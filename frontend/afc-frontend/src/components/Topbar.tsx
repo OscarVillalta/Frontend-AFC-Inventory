@@ -97,7 +97,7 @@ export default function Topbar({ onMenuToggle }: Props) {
 
         <div className="avatar">
           <div className="w-8 h-8 rounded-full shadow bg-neutral text-neutral-content text-xs flex items-center justify-center">
-            U
+            User
           </div>
         </div>
       </div>
