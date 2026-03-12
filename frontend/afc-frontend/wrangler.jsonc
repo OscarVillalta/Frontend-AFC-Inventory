@@ -1,7 +1,4 @@
 {
-  "name": "afc-inventory",
-  "compatibility_date": "2026-03-11",
-  "assets": {
-    "directory": "dist"
-  }
+  "name": "afc-frontend",
+  "pages_build_output_dir": "dist"
 }
