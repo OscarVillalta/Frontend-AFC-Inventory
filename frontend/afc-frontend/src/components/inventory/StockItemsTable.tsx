@@ -33,6 +33,11 @@ interface Props {
   filterSupplier?: string;
   filterCategory?: string;
   filterDescription?: string;
+  filterOnHandMin?: number;
+  filterReservedMin?: number;
+  filterOrderedMin?: number;
+  filterAvailableMin?: number;
+  filterBackorderedMin?: number;
   quickView?: "all" | "low_stock" | "backordered" | "has_orders";
   compact?: boolean;
   suppliers?: Supplier[];
@@ -98,6 +103,11 @@ export default function StockItemsTable({
   filterSupplier = "",
   filterCategory = "",
   filterDescription = "",
+  filterOnHandMin,
+  filterReservedMin,
+  filterOrderedMin,
+  filterAvailableMin,
+  filterBackorderedMin,
   quickView = "all",
   compact = false,
   suppliers = [],
@@ -136,15 +146,23 @@ export default function StockItemsTable({
       description: filterDescription || undefined,
       supplier: filterSupplier || undefined,
       category: filterCategory || undefined,
+      status: quickView !== "all" ? quickView : undefined,
+      on_hand_min: filterOnHandMin,
+      reserved_min: filterReservedMin,
+      ordered_min: filterOrderedMin,
+      available_min: filterAvailableMin,
+      backordered_min: filterBackorderedMin,
     })
       .then((res) => setData(res))
       .catch(() => setError("Failed to load stock items"))
       .finally(() => setLoading(false));
-  }, [page, pageSize, globalSearch, filterDescription, filterSupplier, filterCategory]);
+  }, [page, pageSize, globalSearch, filterDescription, filterSupplier, filterCategory, quickView,
+      filterOnHandMin, filterReservedMin, filterOrderedMin, filterAvailableMin, filterBackorderedMin]);
 
   useEffect(() => {
     setPage(1);
-  }, [globalSearch, filterDescription, filterSupplier, filterCategory, quickView, pageSize]);
+  }, [globalSearch, filterDescription, filterSupplier, filterCategory, quickView, pageSize,
+      filterOnHandMin, filterReservedMin, filterOrderedMin, filterAvailableMin, filterBackorderedMin]);
 
   useEffect(() => {
     loadData();

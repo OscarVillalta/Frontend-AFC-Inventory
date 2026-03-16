@@ -41,6 +41,11 @@ interface Props {
   filterSupplier?: string;
   filterCategory?: string;
   filterDescription?: string;
+  filterOnHandMin?: number;
+  filterReservedMin?: number;
+  filterOrderedMin?: number;
+  filterAvailableMin?: number;
+  filterBackorderedMin?: number;
   quickView?: "all" | "low_stock" | "backordered" | "has_orders" | "recently_updated";
   compact?: boolean;
   suppliers?: Supplier[];
@@ -134,6 +139,11 @@ export default function MediaTable({
   filterSupplier = "",
   filterCategory = "",
   filterDescription = "",
+  filterOnHandMin,
+  filterReservedMin,
+  filterOrderedMin,
+  filterAvailableMin,
+  filterBackorderedMin,
   quickView = "all",
   compact = false,
   suppliers = [],
@@ -176,6 +186,12 @@ export default function MediaTable({
       description: filterDescription || undefined,
       supplier: filterSupplier || undefined,
       category: filterCategory || undefined,
+      status: quickView !== "all" ? (quickView as "low_stock" | "backordered" | "has_orders") : undefined,
+      on_hand_min: filterOnHandMin,
+      reserved_min: filterReservedMin,
+      ordered_min: filterOrderedMin,
+      available_min: filterAvailableMin,
+      backordered_min: filterBackorderedMin,
     })
       .then((res) => {
         setData(res);
@@ -194,12 +210,14 @@ export default function MediaTable({
 
   useEffect(() => {
     setPage(1);
-  }, [globalSearch, filterDescription, filterSupplier, filterCategory, quickView, pageSize]);
+  }, [globalSearch, filterDescription, filterSupplier, filterCategory, quickView, pageSize,
+      filterOnHandMin, filterReservedMin, filterOrderedMin, filterAvailableMin, filterBackorderedMin]);
 
   useEffect(() => {
     loadData();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, pageSize, globalSearch, filterDescription, filterSupplier, filterCategory, refreshToken]);
+  }, [page, pageSize, globalSearch, filterDescription, filterSupplier, filterCategory, refreshToken, quickView,
+      filterOnHandMin, filterReservedMin, filterOrderedMin, filterAvailableMin, filterBackorderedMin]);
 
   const rows: MediaPayload[] = data?.results ?? [];
 

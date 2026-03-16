@@ -39,6 +39,12 @@ export interface StockItemSearchParams {
   description?: string;
   supplier?: string;
   category?: string;
+  status?: "low_stock" | "backordered" | "has_orders";
+  on_hand_min?: number;
+  reserved_min?: number;
+  ordered_min?: number;
+  available_min?: number;
+  backordered_min?: number;
 }
 
 export interface StockItemCategory {
@@ -74,6 +80,12 @@ export function fetchStockItems(
   if (filters.description) params.set("description", filters.description);
   if (filters.supplier) params.set("supplier", filters.supplier);
   if (filters.category) params.set("category", filters.category);
+  if (filters.status) params.set("status", filters.status);
+  if (filters.on_hand_min !== undefined) params.set("on_hand_min", String(filters.on_hand_min));
+  if (filters.reserved_min !== undefined) params.set("reserved_min", String(filters.reserved_min));
+  if (filters.ordered_min !== undefined) params.set("ordered_min", String(filters.ordered_min));
+  if (filters.available_min !== undefined) params.set("available_min", String(filters.available_min));
+  if (filters.backordered_min !== undefined) params.set("backordered_min", String(filters.backordered_min));
 
   return apiRequest(`/stock_items/search?${params.toString()}`, {
     method: "GET",
