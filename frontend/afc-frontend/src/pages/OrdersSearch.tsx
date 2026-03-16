@@ -448,7 +448,7 @@ export default function OrdersSearchPage() {
                           )}
                           <span
                             className={`px-3 py-1 rounded-full text-xs font-medium ${
-                              ORDER_TYPE_BADGE_CLASSES[order.type] ?? "bg-gray-100 text-gray-700"
+                              ORDER_TYPE_BADGE_CLASSES[order.type as OrderType] ?? "bg-gray-100 text-gray-700"
                             }`}
                           >
                             {ORDER_TYPE_LABELS[order.type as OrderType] ?? order.type.charAt(0).toUpperCase() + order.type.slice(1)}
