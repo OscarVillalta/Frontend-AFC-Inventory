@@ -43,6 +43,14 @@ interface Props {
   filterCategory?: string;
   filterMerv?: number;
   filterDescription?: string;
+  filterHeight?: number;
+  filterWidth?: number;
+  filterDepth?: number;
+  filterOnHandMin?: number;
+  filterReservedMin?: number;
+  filterOrderedMin?: number;
+  filterAvailableMin?: number;
+  filterBackorderedMin?: number;
   quickView?: "all" | "low_stock" | "backordered" | "has_orders" | "recently_updated";
   compact?: boolean;
   suppliers?: Supplier[];
@@ -137,6 +145,14 @@ export default function AirFiltersTable({
   filterCategory = "",
   filterMerv,
   filterDescription = "",
+  filterHeight,
+  filterWidth,
+  filterDepth,
+  filterOnHandMin,
+  filterReservedMin,
+  filterOrderedMin,
+  filterAvailableMin,
+  filterBackorderedMin,
   quickView = "all",
   compact = false,
   suppliers = [],
@@ -180,6 +196,15 @@ export default function AirFiltersTable({
       supplier: filterSupplier || undefined,
       category: filterCategory || undefined,
       merv: filterMerv || undefined,
+      height: filterHeight,
+      width: filterWidth,
+      depth: filterDepth,
+      status: quickView !== "all" ? (quickView as "low_stock" | "backordered" | "has_orders") : undefined,
+      on_hand_min: filterOnHandMin,
+      reserved_min: filterReservedMin,
+      ordered_min: filterOrderedMin,
+      available_min: filterAvailableMin,
+      backordered_min: filterBackorderedMin,
     })
       .then((res) => {
         setData(res);
@@ -198,12 +223,16 @@ export default function AirFiltersTable({
 
   useEffect(() => {
     setPage(1);
-  }, [globalSearch, filterDescription, filterSupplier, filterCategory, filterMerv, quickView, pageSize]);
+  }, [globalSearch, filterDescription, filterSupplier, filterCategory, filterMerv, quickView, pageSize,
+      filterHeight, filterWidth, filterDepth,
+      filterOnHandMin, filterReservedMin, filterOrderedMin, filterAvailableMin, filterBackorderedMin]);
 
   useEffect(() => {
     loadData();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, pageSize, globalSearch, filterDescription, filterSupplier, filterCategory, filterMerv, refreshToken]);
+  }, [page, pageSize, globalSearch, filterDescription, filterSupplier, filterCategory, filterMerv, refreshToken,
+      filterHeight, filterWidth, filterDepth, quickView,
+      filterOnHandMin, filterReservedMin, filterOrderedMin, filterAvailableMin, filterBackorderedMin]);
 
   const rows: AirFilterPayload[] = data?.results ?? [];
 
