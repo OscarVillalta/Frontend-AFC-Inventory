@@ -64,6 +64,12 @@ export interface AirFilterSearchParams {
   width?: number;
   depth?: number;
   location?: number;
+  status?: "low_stock" | "backordered" | "has_orders";
+  on_hand_min?: number;
+  reserved_min?: number;
+  ordered_min?: number;
+  available_min?: number;
+  backordered_min?: number;
 }
 
 /* ============================================================
@@ -92,6 +98,12 @@ export function fetchAirFilters(
   if (filters.width !== undefined) params.set("width", String(filters.width));
   if (filters.depth !== undefined) params.set("depth", String(filters.depth));
   if (filters.location !== undefined) params.set("location", String(filters.location));
+  if (filters.status) params.set("status", filters.status);
+  if (filters.on_hand_min !== undefined) params.set("on_hand_min", String(filters.on_hand_min));
+  if (filters.reserved_min !== undefined) params.set("reserved_min", String(filters.reserved_min));
+  if (filters.ordered_min !== undefined) params.set("ordered_min", String(filters.ordered_min));
+  if (filters.available_min !== undefined) params.set("available_min", String(filters.available_min));
+  if (filters.backordered_min !== undefined) params.set("backordered_min", String(filters.backordered_min));
 
   return apiRequest(`/air_filters/search?${params.toString()}`, {
     method: "GET",

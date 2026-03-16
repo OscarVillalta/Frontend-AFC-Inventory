@@ -25,20 +25,52 @@ const QUICK_VIEWS: { key: QuickView; label: string; color: string }[] = [
   { key: "has_orders", label: "Has Orders",    color: "bg-blue-100 text-blue-700 hover:bg-blue-200" },
 ];
 
+const LS_KEY = "afc_inventory_filters";
+
+function loadSavedFilters(): Record<string, string> {
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    return raw ? (JSON.parse(raw) as Record<string, string>) : {};
+  } catch {
+    return {};
+  }
+}
+
+const VALID_TABS: TabKey[] = ["filters", "stock", "media"];
+const VALID_QUICK_VIEWS: QuickView[] = ["all", "low_stock", "backordered", "has_orders"];
+
 export default function Inventory() {
-  const [tab, setTab] = useState<TabKey>("filters");
-  const [quickView, setQuickView] = useState<QuickView>("all");
+  const saved = loadSavedFilters();
+
+  const [tab, setTab] = useState<TabKey>(
+    VALID_TABS.includes(saved.tab as TabKey) ? (saved.tab as TabKey) : "filters"
+  );
+  const [quickView, setQuickView] = useState<QuickView>(
+    VALID_QUICK_VIEWS.includes(saved.quickView as QuickView) ? (saved.quickView as QuickView) : "all"
+  );
   const [showAddProduct, setShowAddProduct] = useState(false);
   const [showProduceProduct, setShowProduceProduct] = useState(false);
   const [refreshToken, setRefreshToken] = useState(0);
 
   /* ── Page-level filter state ── */
-  const [globalSearch, setGlobalSearch] = useState("");
-  const [filterSupplier, setFilterSupplier] = useState("");
-  const [filterCategory, setFilterCategory] = useState("");
-  const [filterMerv, setFilterMerv] = useState("");
-  const [filterDescription, setFilterDescription] = useState("");
-  const [compact, setCompact] = useState(false);
+  const [globalSearch, setGlobalSearch] = useState(saved.globalSearch ?? "");
+  const [filterSupplier, setFilterSupplier] = useState(saved.filterSupplier ?? "");
+  const [filterCategory, setFilterCategory] = useState(saved.filterCategory ?? "");
+  const [filterMerv, setFilterMerv] = useState(saved.filterMerv ?? "");
+  const [filterDescription, setFilterDescription] = useState(saved.filterDescription ?? "");
+  const [compact, setCompact] = useState(saved.compact === "true");
+
+  /* ── Dimension filters (air filters tab only) ── */
+  const [filterHeight, setFilterHeight] = useState(saved.filterHeight ?? "");
+  const [filterWidth, setFilterWidth] = useState(saved.filterWidth ?? "");
+  const [filterDepth, setFilterDepth] = useState(saved.filterDepth ?? "");
+
+  /* ── Quantity min filters ── */
+  const [filterOnHandMin, setFilterOnHandMin] = useState(saved.filterOnHandMin ?? "");
+  const [filterReservedMin, setFilterReservedMin] = useState(saved.filterReservedMin ?? "");
+  const [filterOrderedMin, setFilterOrderedMin] = useState(saved.filterOrderedMin ?? "");
+  const [filterAvailableMin, setFilterAvailableMin] = useState(saved.filterAvailableMin ?? "");
+  const [filterBackorderedMin, setFilterBackorderedMin] = useState(saved.filterBackorderedMin ?? "");
 
   /* ── Dropdown data ── */
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
@@ -53,6 +85,33 @@ export default function Inventory() {
     fetchMediaCategories().then(setMediaCategories).catch(() => {});
   }, []);
 
+  /* ── Persist filters to localStorage ── */
+  useEffect(() => {
+    const data: Record<string, string> = {
+      tab,
+      quickView,
+      globalSearch,
+      filterSupplier,
+      filterCategory,
+      filterMerv,
+      filterDescription,
+      compact: String(compact),
+      filterHeight,
+      filterWidth,
+      filterDepth,
+      filterOnHandMin,
+      filterReservedMin,
+      filterOrderedMin,
+      filterAvailableMin,
+      filterBackorderedMin,
+    };
+    localStorage.setItem(LS_KEY, JSON.stringify(data));
+  }, [
+    tab, quickView, globalSearch, filterSupplier, filterCategory, filterMerv,
+    filterDescription, compact, filterHeight, filterWidth, filterDepth,
+    filterOnHandMin, filterReservedMin, filterOrderedMin, filterAvailableMin, filterBackorderedMin,
+  ]);
+
   const triggerRefresh = () => setRefreshToken((prev) => prev + 1);
 
   const handleClearFilters = () => {
@@ -61,6 +120,14 @@ export default function Inventory() {
     setFilterCategory("");
     setFilterMerv("");
     setFilterDescription("");
+    setFilterHeight("");
+    setFilterWidth("");
+    setFilterDepth("");
+    setFilterOnHandMin("");
+    setFilterReservedMin("");
+    setFilterOrderedMin("");
+    setFilterAvailableMin("");
+    setFilterBackorderedMin("");
     setQuickView("all");
   };
 
@@ -70,9 +137,19 @@ export default function Inventory() {
     filterCategory !== "" ||
     filterMerv !== "" ||
     filterDescription !== "" ||
+    filterHeight !== "" ||
+    filterWidth !== "" ||
+    filterDepth !== "" ||
+    filterOnHandMin !== "" ||
+    filterReservedMin !== "" ||
+    filterOrderedMin !== "" ||
+    filterAvailableMin !== "" ||
+    filterBackorderedMin !== "" ||
     quickView !== "all";
 
   const categories = tab === "filters" ? airFilterCategories : tab === "stock" ? stockItemCategories : mediaCategories;
+
+  const inputCls = "border border-gray-200 rounded-lg px-2 py-1.5 text-sm text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-400";
 
   return (
     <MainLayout>
@@ -132,12 +209,12 @@ export default function Inventory() {
         <InventoryKpiRow refreshToken={refreshToken} />
 
         {/* ── Filter Bar ── */}
-        <div className="flex flex-wrap items-center gap-3 bg-white border border-gray-200 rounded-xl px-4 py-3 shadow-sm">
+        <div className="flex flex-wrap items-end gap-3 bg-white border border-gray-200 rounded-xl px-4 py-3 shadow-sm">
           {/* Supplier */}
           <div className="flex flex-col gap-0.5 min-w-[140px]">
             <label className="text-xs text-gray-400 font-medium uppercase tracking-wide">Supplier</label>
             <select
-              className="border border-gray-200 rounded-lg px-2 py-1.5 text-sm text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-400"
+              className={inputCls}
               value={filterSupplier}
               onChange={(e) => setFilterSupplier(e.target.value)}
             >
@@ -152,7 +229,7 @@ export default function Inventory() {
           <div className="flex flex-col gap-0.5 min-w-[140px]">
             <label className="text-xs text-gray-400 font-medium uppercase tracking-wide">Category</label>
             <select
-              className="border border-gray-200 rounded-lg px-2 py-1.5 text-sm text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-400"
+              className={inputCls}
               value={filterCategory}
               onChange={(e) => setFilterCategory(e.target.value)}
             >
@@ -167,7 +244,7 @@ export default function Inventory() {
           <div className="flex flex-col gap-0.5 min-w-[140px]">
             <label className="text-xs text-gray-400 font-medium uppercase tracking-wide">Status</label>
             <select
-              className="border border-gray-200 rounded-lg px-2 py-1.5 text-sm text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-400"
+              className={inputCls}
               value={quickView}
               onChange={(e) => setQuickView(e.target.value as QuickView)}
             >
@@ -185,7 +262,7 @@ export default function Inventory() {
             </label>
             {tab === "filters" ? (
               <select
-                className="border border-gray-200 rounded-lg px-2 py-1.5 text-sm text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-400"
+                className={inputCls}
                 value={filterMerv}
                 onChange={(e) => setFilterMerv(e.target.value)}
               >
@@ -195,11 +272,7 @@ export default function Inventory() {
                 ))}
               </select>
             ) : (
-              <select
-                className="border border-gray-200 rounded-lg px-2 py-1.5 text-sm text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-400"
-                value=""
-                disabled
-              >
+              <select className={inputCls} value="" disabled>
                 <option value="">All Types</option>
               </select>
             )}
@@ -210,10 +283,106 @@ export default function Inventory() {
             <label className="text-xs text-gray-400 font-medium uppercase tracking-wide">Description</label>
             <input
               type="text"
-              className="border border-gray-200 rounded-lg px-2 py-1.5 text-sm text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-400"
+              className={inputCls}
               placeholder="Search description…"
               value={filterDescription}
               onChange={(e) => setFilterDescription(e.target.value)}
+            />
+          </div>
+
+          {/* Dimension filters — air filters tab only */}
+          {tab === "filters" && (
+            <>
+              <div className="flex flex-col gap-0.5 w-[90px]">
+                <label className="text-xs text-gray-400 font-medium uppercase tracking-wide">Height</label>
+                <input
+                  type="number"
+                  min={0}
+                  className={inputCls}
+                  placeholder="e.g. 20"
+                  value={filterHeight}
+                  onChange={(e) => setFilterHeight(e.target.value)}
+                />
+              </div>
+              <div className="flex flex-col gap-0.5 w-[90px]">
+                <label className="text-xs text-gray-400 font-medium uppercase tracking-wide">Width</label>
+                <input
+                  type="number"
+                  min={0}
+                  className={inputCls}
+                  placeholder="e.g. 20"
+                  value={filterWidth}
+                  onChange={(e) => setFilterWidth(e.target.value)}
+                />
+              </div>
+              <div className="flex flex-col gap-0.5 w-[90px]">
+                <label className="text-xs text-gray-400 font-medium uppercase tracking-wide">Depth</label>
+                <input
+                  type="number"
+                  min={0}
+                  className={inputCls}
+                  placeholder="e.g. 2"
+                  value={filterDepth}
+                  onChange={(e) => setFilterDepth(e.target.value)}
+                />
+              </div>
+            </>
+          )}
+
+          {/* Quantity min filters */}
+          <div className="flex flex-col gap-0.5 w-[90px]">
+            <label className="text-xs text-gray-400 font-medium uppercase tracking-wide">Min On Hand</label>
+            <input
+              type="number"
+              min={0}
+              className={inputCls}
+              placeholder="≥ 0"
+              value={filterOnHandMin}
+              onChange={(e) => setFilterOnHandMin(e.target.value)}
+            />
+          </div>
+          <div className="flex flex-col gap-0.5 w-[90px]">
+            <label className="text-xs text-gray-400 font-medium uppercase tracking-wide">Min Reserved</label>
+            <input
+              type="number"
+              min={0}
+              className={inputCls}
+              placeholder="≥ 0"
+              value={filterReservedMin}
+              onChange={(e) => setFilterReservedMin(e.target.value)}
+            />
+          </div>
+          <div className="flex flex-col gap-0.5 w-[90px]">
+            <label className="text-xs text-gray-400 font-medium uppercase tracking-wide">Min Ordered</label>
+            <input
+              type="number"
+              min={0}
+              className={inputCls}
+              placeholder="≥ 0"
+              value={filterOrderedMin}
+              onChange={(e) => setFilterOrderedMin(e.target.value)}
+            />
+          </div>
+          <div className="flex flex-col gap-0.5 w-[90px]">
+            <label className="text-xs text-gray-400 font-medium uppercase tracking-wide">Min Available</label>
+            <input
+              type="number"
+              min={0}
+              className={inputCls}
+              placeholder="≥ 0"
+              value={filterAvailableMin}
+              onChange={(e) => setFilterAvailableMin(e.target.value)}
+            />
+          </div>
+          <div className="flex flex-col gap-0.5 w-[90px]">
+            <label className="text-xs text-gray-400 font-medium uppercase tracking-wide">Min Back Ord.</label>
+            <input
+              type="number"
+              min={0}
+              className={inputCls}
+              placeholder="≥ 0"
+              value={filterBackorderedMin}
+              onChange={(e) => setFilterBackorderedMin(e.target.value)}
             />
           </div>
 
@@ -301,6 +470,14 @@ export default function Inventory() {
               filterCategory={filterCategory}
               filterMerv={filterMerv ? Number(filterMerv) : undefined}
               filterDescription={filterDescription}
+              filterHeight={filterHeight ? Number(filterHeight) : undefined}
+              filterWidth={filterWidth ? Number(filterWidth) : undefined}
+              filterDepth={filterDepth ? Number(filterDepth) : undefined}
+              filterOnHandMin={filterOnHandMin !== "" ? Number(filterOnHandMin) : undefined}
+              filterReservedMin={filterReservedMin !== "" ? Number(filterReservedMin) : undefined}
+              filterOrderedMin={filterOrderedMin !== "" ? Number(filterOrderedMin) : undefined}
+              filterAvailableMin={filterAvailableMin !== "" ? Number(filterAvailableMin) : undefined}
+              filterBackorderedMin={filterBackorderedMin !== "" ? Number(filterBackorderedMin) : undefined}
               quickView={quickView}
               compact={compact}
               suppliers={suppliers}
@@ -314,6 +491,11 @@ export default function Inventory() {
               filterSupplier={filterSupplier}
               filterCategory={filterCategory}
               filterDescription={filterDescription}
+              filterOnHandMin={filterOnHandMin !== "" ? Number(filterOnHandMin) : undefined}
+              filterReservedMin={filterReservedMin !== "" ? Number(filterReservedMin) : undefined}
+              filterOrderedMin={filterOrderedMin !== "" ? Number(filterOrderedMin) : undefined}
+              filterAvailableMin={filterAvailableMin !== "" ? Number(filterAvailableMin) : undefined}
+              filterBackorderedMin={filterBackorderedMin !== "" ? Number(filterBackorderedMin) : undefined}
               quickView={quickView}
               compact={compact}
               suppliers={suppliers}
@@ -327,6 +509,11 @@ export default function Inventory() {
               filterSupplier={filterSupplier}
               filterCategory={filterCategory}
               filterDescription={filterDescription}
+              filterOnHandMin={filterOnHandMin !== "" ? Number(filterOnHandMin) : undefined}
+              filterReservedMin={filterReservedMin !== "" ? Number(filterReservedMin) : undefined}
+              filterOrderedMin={filterOrderedMin !== "" ? Number(filterOrderedMin) : undefined}
+              filterAvailableMin={filterAvailableMin !== "" ? Number(filterAvailableMin) : undefined}
+              filterBackorderedMin={filterBackorderedMin !== "" ? Number(filterBackorderedMin) : undefined}
               quickView={quickView}
               compact={compact}
               suppliers={suppliers}
