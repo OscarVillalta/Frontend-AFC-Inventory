@@ -1,6 +1,7 @@
 import { useState } from "react";
 import Sidebar from "../components/Sidebar";
 import Topbar from "../components/Topbar";
+import StockTransferModal from "../components/StockTransferModal";
 
 interface Props {
   children: React.ReactNode;
@@ -8,6 +9,7 @@ interface Props {
 
 export default function MainLayout({ children }: Props) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [transferOpen, setTransferOpen] = useState(false);
 
   return (
     <div data-theme="corporate" className="flex h-screen w-screen overflow-hidden">
@@ -27,7 +29,7 @@ export default function MainLayout({ children }: Props) {
           ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
         `}
       >
-        <Sidebar />
+        <Sidebar onTransferClick={() => setTransferOpen(true)} />
       </div>
 
       {/* Main content area */}
@@ -39,6 +41,12 @@ export default function MainLayout({ children }: Props) {
           {children}
         </main>
       </div>
+
+      {/* Stock Transfer Modal */}
+      <StockTransferModal
+        open={transferOpen}
+        onClose={() => setTransferOpen(false)}
+      />
     </div>
   );
 }

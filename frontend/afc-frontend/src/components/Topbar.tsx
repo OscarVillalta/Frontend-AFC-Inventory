@@ -1,4 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
+import { useWarehouse } from "../hooks/useWarehouse";
 
 interface Props {
   onMenuToggle?: () => void;
@@ -6,6 +7,8 @@ interface Props {
 
 export default function Topbar({ onMenuToggle }: Props) {
   const { pathname } = useLocation();
+  const { warehouses, activeWarehouseId, setActiveWarehouseId, loading } =
+    useWarehouse();
 
   type Breadcrumb = { label: string; to?: string };
 
@@ -43,6 +46,12 @@ export default function Topbar({ onMenuToggle }: Props) {
     }));
   })();
 
+  const handleWarehouseChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const id = Number(e.target.value);
+    setActiveWarehouseId(id);
+    window.location.reload();
+  };
+
   return (
     <div className="w-full flex items-center justify-between px-4 sm:px-6 py-3 bg-base-200 shadow-sm">
       
@@ -71,9 +80,27 @@ export default function Topbar({ onMenuToggle }: Props) {
         ))}
       </div>
 
-      {/* RIGHT SIDE - SEARCH & ICONS */}
+      {/* RIGHT SIDE - WAREHOUSE SELECTOR + SEARCH & ICONS */}
       <div className="flex items-center gap-2 sm:gap-4">
         
+        {/* Warehouse Selector */}
+        {!loading && warehouses.length > 0 && (
+          <select
+            className="select select-sm bg-white rounded-lg shadow-sm font-medium text-sm"
+            value={activeWarehouseId ?? ""}
+            onChange={handleWarehouseChange}
+            aria-label="Select warehouse"
+          >
+            {warehouses
+              .filter((w) => w.is_active)
+              .map((w) => (
+                <option key={w.id} value={w.id}>
+                  🏭 {w.name}
+                </option>
+              ))}
+          </select>
+        )}
+
         {/* Search Input */}
         <div className="relative hidden sm:block">
           <input
