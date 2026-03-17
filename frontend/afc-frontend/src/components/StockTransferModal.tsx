@@ -132,7 +132,7 @@ export default function StockTransferModal({
                 <option value="">Select product...</option>
                 {products.map((p) => (
                   <option key={p.id} value={p.id}>
-                    {p.part_number ?? `Product #${p.id}`} — {p.category}
+                    {p.part_number ?? `Product #${p.id}`} - {p.category}
                   </option>
                 ))}
               </select>

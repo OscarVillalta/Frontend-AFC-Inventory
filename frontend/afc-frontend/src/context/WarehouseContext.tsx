@@ -26,7 +26,10 @@ export default function WarehouseProvider({ children }: { children: ReactNode })
           localStorage.setItem(WAREHOUSE_STORAGE_KEY, String(first));
         }
       })
-      .catch(() => setWarehouses([]))
+      .catch((err) => {
+        console.error("Failed to fetch warehouses:", err);
+        setWarehouses([]);
+      })
       .finally(() => setLoading(false));
   }, []);
 
