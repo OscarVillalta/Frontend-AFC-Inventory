@@ -6,6 +6,7 @@ import type { MediaResponse, MediaPayload, MediaCategory } from "../../api/media
 import { autocommitTxn } from "../../api/transactions";
 import type { createTxnRequest } from "../../api/transactions";
 import type { Supplier } from "../../api/suppliers";
+import { useWarehouse } from "../../hooks/useWarehouse";
 
 /* ============================================================
    TYPES
@@ -150,6 +151,7 @@ export default function MediaTable({
   mediaCategories = [],
 }: Props) {
   const navigate = useNavigate();
+  const { activeWarehouseId } = useWarehouse();
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
 
@@ -217,7 +219,7 @@ export default function MediaTable({
     loadData();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, pageSize, globalSearch, filterDescription, filterSupplier, filterCategory, refreshToken, quickView,
-      filterOnHandMin, filterReservedMin, filterOrderedMin, filterAvailableMin, filterBackorderedMin]);
+      filterOnHandMin, filterReservedMin, filterOrderedMin, filterAvailableMin, filterBackorderedMin, activeWarehouseId]);
 
   const rows: MediaPayload[] = data?.results ?? [];
 

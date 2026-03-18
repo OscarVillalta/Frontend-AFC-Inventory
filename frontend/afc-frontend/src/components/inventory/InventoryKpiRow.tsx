@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { fetchInventoryStats } from "../../api/inventoryStats";
 import type { InventoryStats } from "../../api/inventoryStats";
+import { useWarehouse } from "../../hooks/useWarehouse";
 
 interface KpiCardProps {
   label: string;
@@ -27,6 +28,7 @@ function KpiCard({ label, value, borderColor, valueColor, trend }: KpiCardProps)
 }
 
 export default function InventoryKpiRow({ refreshToken }: { refreshToken?: number }) {
+  const { activeWarehouseId } = useWarehouse();
   const [stats, setStats] = useState<InventoryStats | null>(null);
 
   useEffect(() => {
@@ -36,7 +38,7 @@ export default function InventoryKpiRow({ refreshToken }: { refreshToken?: numbe
         console.error("Failed to load inventory stats:", err);
         setStats(null);
       });
-  }, [refreshToken]);
+  }, [refreshToken, activeWarehouseId]);
 
   if (!stats) {
     return (

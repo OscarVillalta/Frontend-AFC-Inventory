@@ -49,7 +49,6 @@ export default function Topbar({ onMenuToggle }: Props) {
   const handleWarehouseChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const id = Number(e.target.value);
     setActiveWarehouseId(id);
-    window.location.reload();
   };
 
   return (

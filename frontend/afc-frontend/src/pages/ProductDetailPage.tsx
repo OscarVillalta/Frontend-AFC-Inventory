@@ -31,6 +31,7 @@ import AddChildProductModal from "../components/inventory/AddChildProductModal";
 import { fetchSuppliers, type Supplier } from "../api/suppliers";
 import { patchAirFilter } from "../api/airfilters";
 import { patchStockItem } from "../api/stockItems";
+import { useWarehouse } from "../hooks/useWarehouse";
 
 /* ============================================================
    TYPES
@@ -72,6 +73,7 @@ const ADJUST_REASON_LABELS: Record<string, string> = {
 export default function ProductDetailPage() {
   const { productId } = useParams<{ productId: string }>();
   const navigate = useNavigate();
+  const { activeWarehouseId } = useWarehouse();
   const [product, setProduct] = useState<ProductDetail | null>(null);
   const [transactions, setTransactions] = useState<TransactionItem[]>([]);
   const [incomingOrders, setIncomingOrders] = useState<ProductOrderSummary[]>([]);
@@ -330,7 +332,7 @@ export default function ProductDetailPage() {
 
   useEffect(() => {
     loadData();
-  }, [loadData]);
+  }, [loadData, activeWarehouseId]);
 
   // Load suppliers for edit mode
   useEffect(() => {
@@ -376,7 +378,7 @@ export default function ProductDetailPage() {
     };
 
     loadLedger();
-  }, [graphTab, productId]);
+  }, [graphTab, productId, activeWarehouseId]);
 
   const filteredTxns = useMemo(() => {
     let result = transactions;

@@ -29,6 +29,7 @@ import { fetchOrderTracking } from "../../api/tracker";
 import type { OrderWithTracking } from "../../api/tracker";
 import OrderLifecycleCard from "./OrderLifecycleCard";
 
+import { useWarehouse } from "../../hooks/useWarehouse";
 
 import type { OrderType } from "../../constants/orderTypes";
 import { isOutgoingType } from "../../constants/orderTypes";
@@ -58,6 +59,7 @@ interface OrderDetailPayload {
 export default function OrderDetailPage() {
   const { orderId } = useParams<{ orderId: string }>();
   const navigate = useNavigate();
+  const { activeWarehouseId } = useWarehouse();
   const [selectedEntityId, setSelectedEntityId] = useState<number | null>(null);
 
   const [order, setOrder] = useState<OrderDetailPayload | null>(null);
@@ -205,7 +207,7 @@ export default function OrderDetailPage() {
       .finally(() => {
         setLoading(false);
       });
-  }, [orderId]);
+  }, [orderId, activeWarehouseId]);
 
   useEffect(() => {
     if (!order) return;
@@ -235,7 +237,7 @@ export default function OrderDetailPage() {
       .then(setItems)
       .catch(() => console.error("Failed to load items"))
       .finally(() => setItemsLoading(false));
-  }, [orderId]);
+  }, [orderId, activeWarehouseId]);
 
   /* ===================== STATES ===================== */
 

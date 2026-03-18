@@ -6,6 +6,7 @@ import type { StockItemResponse, StockItemPayload, StockItemCategory } from "../
 import { autocommitTxn } from "../../api/transactions";
 import type { createTxnRequest } from "../../api/transactions";
 import type { Supplier } from "../../api/suppliers";
+import { useWarehouse } from "../../hooks/useWarehouse";
 
 /* ============================================================
    TYPES
@@ -114,6 +115,7 @@ export default function StockItemsTable({
   stockItemCategories = [],
 }: Props) {
   const navigate = useNavigate();
+  const { activeWarehouseId } = useWarehouse();
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(12);
 
@@ -166,7 +168,7 @@ export default function StockItemsTable({
 
   useEffect(() => {
     loadData();
-  }, [loadData, refreshToken]);
+  }, [loadData, refreshToken, activeWarehouseId]);
 
   const rows: StockItemPayload[] = data?.results ?? [];
 

@@ -15,6 +15,7 @@ import {
   type OrderTrackerStagePayload,
 } from "../api/tracker";
 import { ORDER_TYPE_LABELS } from "../constants/orderTypes";
+import { useWarehouse } from "../hooks/useWarehouse";
 
 // ─────────────────────────────────────────────
 // Tracker step-path definitions (one per order type group)
@@ -761,6 +762,7 @@ const PAGE_SIZE = 10;
 const DEFAULT_STATUS_COUNTS = { "Not Started": 0, "In Progress": 0, Completed: 0, Backordered: 0 };
 
 export default function PackingSlipTrackerPage() {
+  const { activeWarehouseId } = useWarehouse();
   const [activeTab, setActiveTab] = useState<FilterTab>("All");
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -807,7 +809,7 @@ export default function PackingSlipTrackerPage() {
 
   useEffect(() => {
     loadData(page, debouncedSearch, activeTab, filterOrderType);
-  }, [page, debouncedSearch, activeTab, filterOrderType, loadData]);
+  }, [page, debouncedSearch, activeTab, filterOrderType, loadData, activeWarehouseId]);
 
   // Reset page when search or tab changes
   const handleSearch = (v: string) => {
