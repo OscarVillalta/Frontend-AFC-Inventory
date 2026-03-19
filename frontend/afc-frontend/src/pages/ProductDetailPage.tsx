@@ -73,7 +73,8 @@ const ADJUST_REASON_LABELS: Record<string, string> = {
 export default function ProductDetailPage() {
   const { productId } = useParams<{ productId: string }>();
   const navigate = useNavigate();
-  const { activeWarehouseId } = useWarehouse();
+  const { activeWarehouseId, warehouses } = useWarehouse();
+  const activeWarehouseName = warehouses.find((w) => w.id === activeWarehouseId)?.name ?? null;
   const [product, setProduct] = useState<ProductDetail | null>(null);
   const [transactions, setTransactions] = useState<TransactionItem[]>([]);
   const [incomingOrders, setIncomingOrders] = useState<ProductOrderSummary[]>([]);
@@ -897,6 +898,12 @@ export default function ProductDetailPage() {
         </div>
 
         {/* ========== INVENTORY SNAPSHOT ========== */}
+        {activeWarehouseName && (
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium text-gray-500">Warehouse:</span>
+            <span className="badge badge-soft badge-primary text-xs">🏭 {activeWarehouseName}</span>
+          </div>
+        )}
         <div className="grid grid-cols-5 gap-4">
           <StatCard label="On Hand" value={on_hand} />
           <StatCard label="Reserved" value={reserved} />
@@ -1518,6 +1525,13 @@ export default function ProductDetailPage() {
                   onClick={() => setAdjustStockOpen(false)}
                 >✕</button>
               </div>
+
+              {activeWarehouseName && (
+                <div className="mb-4 flex items-center gap-2 bg-blue-50 border border-blue-200 rounded-lg px-3 py-2">
+                  <span className="text-sm text-blue-700">🏭 Warehouse:</span>
+                  <span className="text-sm font-semibold text-blue-800">{activeWarehouseName}</span>
+                </div>
+              )}
 
               <div className="mb-4">
                 <label className="font-medium text-sm text-gray-600">{isStockItem ? "Name" : "Part Number"}</label>
