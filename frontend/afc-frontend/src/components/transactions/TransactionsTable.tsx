@@ -117,7 +117,8 @@ function getDateRangeLabel(
 }
 
 export default function TransactionsTable() {
-  const { activeWarehouseId } = useWarehouse();
+  const { activeWarehouseId, warehouses } = useWarehouse();
+  const activeWarehouseName = warehouses.find((w) => w.id === activeWarehouseId)?.name ?? null;
   const [page, setPage] = useState(1);
   const pageSize = 10;
 
@@ -349,6 +350,7 @@ export default function TransactionsTable() {
         loading={summaryLoading}
         hasActiveFilters={!!hasActiveFilters}
         dateRangeLabel={dateRangeLabel}
+        warehouseName={activeWarehouseName}
       />
 
       {/* ── Preset Filters ── */}

@@ -6,6 +6,7 @@ interface TransactionSummaryBarProps {
   loading: boolean;
   hasActiveFilters?: boolean;
   dateRangeLabel?: string;
+  warehouseName?: string | null;
 }
 
 export default function TransactionSummaryBar({
@@ -16,6 +17,7 @@ export default function TransactionSummaryBar({
   loading,
   hasActiveFilters = false,
   dateRangeLabel,
+  warehouseName,
 }: TransactionSummaryBarProps) {
   if (loading) {
     return (
@@ -31,7 +33,14 @@ export default function TransactionSummaryBar({
   }
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-6">
+    <div className="mb-6 space-y-2">
+      {warehouseName && (
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-medium text-gray-500">Warehouse:</span>
+          <span className="badge badge-soft badge-primary text-xs">🏭 {warehouseName}</span>
+        </div>
+      )}
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
       {/* Total Results */}
       <div className="stat bg-white rounded-xl shadow-sm border border-gray-100 p-4">
         <div className="stat-figure text-blue-500">
@@ -94,6 +103,7 @@ export default function TransactionSummaryBar({
           <span className="badge badge-soft badge-primary text-xs">{dateRangeLabel || "All time"}</span>
         </div>
         <div className="stat-desc text-xs text-gray-400 mt-1">{hasActiveFilters ? "Filtered view" : "No date filter"}</div>
+      </div>
       </div>
     </div>
   );
