@@ -14,6 +14,7 @@ import type { Supplier } from "../api/suppliers";
 import type { AirFilterCategory } from "../api/airfilters";
 import type { StockItemCategory } from "../api/stockItems";
 import type { MediaCategory } from "../api/media";
+import { useWarehouse } from "../hooks/useWarehouse";
 
 type TabKey = "filters" | "stock" | "media";
 type QuickView = "all" | "low_stock" | "backordered" | "has_orders";
@@ -40,6 +41,7 @@ const VALID_TABS: TabKey[] = ["filters", "stock", "media"];
 const VALID_QUICK_VIEWS: QuickView[] = ["all", "low_stock", "backordered", "has_orders"];
 
 export default function Inventory() {
+  const { activeWarehouseId } = useWarehouse();
   const saved = loadSavedFilters();
 
   const [tab, setTab] = useState<TabKey>(
@@ -83,7 +85,7 @@ export default function Inventory() {
     fetchAirFilterCategories().then(setAirFilterCategories).catch(() => {});
     fetchStockItemCategories().then(setStockItemCategories).catch(() => {});
     fetchMediaCategories().then(setMediaCategories).catch(() => {});
-  }, []);
+  }, [activeWarehouseId]);
 
   /* ── Persist filters to localStorage ── */
   useEffect(() => {

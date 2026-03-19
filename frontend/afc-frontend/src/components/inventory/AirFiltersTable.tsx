@@ -6,6 +6,7 @@ import type { AirFilterResponse, AirFilterPayload, AirFilterCategory } from "../
 import { autocommitTxn } from "../../api/transactions";
 import type { createTxnRequest } from "../../api/transactions";
 import type { Supplier } from "../../api/suppliers";
+import { useWarehouse } from "../../hooks/useWarehouse";
 
 /* ============================================================
    TYPES
@@ -159,6 +160,7 @@ export default function AirFiltersTable({
   airFilterCategories = [],
 }: Props) {
   const navigate = useNavigate();
+  const { activeWarehouseId } = useWarehouse();
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
 
@@ -232,7 +234,7 @@ export default function AirFiltersTable({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, pageSize, globalSearch, filterDescription, filterSupplier, filterCategory, filterMerv, refreshToken,
       filterHeight, filterWidth, filterDepth, quickView,
-      filterOnHandMin, filterReservedMin, filterOrderedMin, filterAvailableMin, filterBackorderedMin]);
+      filterOnHandMin, filterReservedMin, filterOrderedMin, filterAvailableMin, filterBackorderedMin, activeWarehouseId]);
 
   const rows: AirFilterPayload[] = data?.results ?? [];
 

@@ -12,6 +12,7 @@ import {
   type ConversionInput,
 } from "../api/conversions";
 import { fetchChildProducts, fetchProducts, type ChildProductName, type Product } from "../api/products";
+import { useWarehouse } from "../hooks/useWarehouse";
 
 interface SourceInput {
   selection: string;
@@ -827,6 +828,7 @@ const QUICK_FILTERS: { label: string; key: QuickFilter }[] = [
 ];
 
 export default function ConversionsPage() {
+  const { activeWarehouseId } = useWarehouse();
   const [batches, setBatches] = useState<ConversionBatchSummary[]>([]);
   const [batchPage, setBatchPage] = useState(1);
   const [totalBatches, setTotalBatches] = useState(0);
@@ -874,11 +876,11 @@ export default function ConversionsPage() {
 
   useEffect(() => {
     loadCatalog();
-  }, [loadCatalog]);
+  }, [loadCatalog, activeWarehouseId]);
 
   useEffect(() => {
     loadBatches();
-  }, [loadBatches]);
+  }, [loadBatches, activeWarehouseId]);
 
   useEffect(() => {
     if (!selectedBatchId) {

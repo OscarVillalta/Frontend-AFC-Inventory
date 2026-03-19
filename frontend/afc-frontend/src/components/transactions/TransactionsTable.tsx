@@ -8,6 +8,7 @@ import type { ChildProductName, Product } from "../../api/products";
 import { usePersistedFilters } from "../../hooks/usePersistedFilters";
 import TransactionSummaryBar from "./TransactionSummaryBar";
 import TransactionDetailDrawer from "./TransactionDetailDrawer";
+import { useWarehouse } from "../../hooks/useWarehouse";
 
 interface TransactionRow {
   id: string;
@@ -116,6 +117,7 @@ function getDateRangeLabel(
 }
 
 export default function TransactionsTable() {
+  const { activeWarehouseId } = useWarehouse();
   const [page, setPage] = useState(1);
   const pageSize = 10;
 
@@ -233,7 +235,7 @@ export default function TransactionsTable() {
 
   useEffect(() => {
     loadTransactions();
-  }, [page, pageSize, filters.searchProduct, filters.orderId, filters.filterState, filters.filterReason, filters.filterNote, filters.startDate, filters.endDate, filters.dateFilterMode]);
+  }, [page, pageSize, filters.searchProduct, filters.orderId, filters.filterState, filters.filterReason, filters.filterNote, filters.startDate, filters.endDate, filters.dateFilterMode, activeWarehouseId]);
 
   const productLookup = useMemo(() => {
     return new Map(products.map((product) => [product.id, product.part_number]));
