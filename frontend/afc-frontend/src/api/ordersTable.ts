@@ -50,6 +50,7 @@ export interface OrderDetailPayload {
   eta?: string | null;
   is_paid?: boolean;
   is_invoiced?: boolean;
+  warehouse_id?: number | null;
 }
 
 export function fetchOrders(
