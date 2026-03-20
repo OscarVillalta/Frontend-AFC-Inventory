@@ -13,6 +13,7 @@ export default function WarehouseProvider({ children }: { children: ReactNode })
   });
   const [loading, setLoading] = useState(true);
 
+  // 1. Fetch warehouses on mount
   useEffect(() => {
     fetchWarehouses()
       .then((data) => {
@@ -33,6 +34,24 @@ export default function WarehouseProvider({ children }: { children: ReactNode })
       .finally(() => setLoading(false));
   }, []);
 
+  // 2. Cross-tab synchronization listener
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      // Only react if our specific warehouse key was changed by another tab
+      if (e.key === WAREHOUSE_STORAGE_KEY) {
+        const newId = e.newValue ? Number(e.newValue) : null;
+        setActiveWarehouseIdState(newId);
+      }
+    };
+
+    // Listen for changes across tabs
+    window.addEventListener("storage", handleStorageChange);
+    
+    // Cleanup listener on unmount
+    return () => window.removeEventListener("storage", handleStorageChange);
+  }, []);
+
+  // 3. Update state and storage when user selects a new warehouse
   const setActiveWarehouseId = useCallback((id: number) => {
     setActiveWarehouseIdState(id);
     localStorage.setItem(WAREHOUSE_STORAGE_KEY, String(id));

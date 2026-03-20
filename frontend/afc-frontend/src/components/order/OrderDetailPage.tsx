@@ -409,6 +409,7 @@ export default function OrderDetailPage() {
     activeWarehouseId !== null &&
     order.warehouse_id !== activeWarehouseId;
 
+
   const orderWarehouseName =
     warehouseMismatch
       ? warehouses.find((w) => w.id === order.warehouse_id)?.name ?? `ID ${order.warehouse_id}`
@@ -417,14 +418,10 @@ export default function OrderDetailPage() {
   return (
     <MainLayout>
       <div className="relative">
-        {/* Warehouse mismatch overlay */}
-        {warehouseMismatch && (
-          <div className="absolute inset-0 z-40 bg-black/30 pointer-events-none rounded-lg" />
-        )}
 
         {/* Warehouse mismatch banner */}
         {warehouseMismatch && (
-          <div className="sticky top-0 z-50 flex justify-center py-6 pointer-events-none">
+          <div className="modal modal-open pointer-events-none">
             <div className="bg-red-600/90 border-2 border-red-400 text-white rounded-xl px-8 py-5 shadow-2xl max-w-xl text-center pointer-events-auto">
               <p className="text-lg font-bold mb-2">⚠️ Warehouse Mismatch</p>
               <p className="text-sm leading-relaxed">
