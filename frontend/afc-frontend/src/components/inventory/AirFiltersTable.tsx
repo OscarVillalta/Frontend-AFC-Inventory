@@ -340,8 +340,13 @@ export default function AirFiltersTable({
     }
   };
 
+  /* Display helper: show light-gray "–" instead of standalone 0 */
+  const dimVal = (v: number) =>
+    v === 0 ? <span className="text-gray-300">–</span> : v;
+
   /* MERV label helper */
   const mervLabel = (rating: number) => {
+    if (rating === 0) return <span className="text-gray-300">–</span>;
     if (rating === 17) return "99.99%";
     if (rating === 18) return "99.999%";
     return `MERV ${rating}`;
@@ -496,7 +501,7 @@ export default function AirFiltersTable({
                   className={`${rowPadding} text-sm text-gray-700 whitespace-nowrap`}
                   onClick={() => navigate(`/products/${group.parent.product_id}`)}
                 >
-                  {group.parent.height} × {group.parent.width} × {group.parent.depth}
+                  {dimVal(group.parent.height)} × {dimVal(group.parent.width)} × {dimVal(group.parent.depth)}
                 </td>
                 {/* MERV */}
                 <td
@@ -518,6 +523,8 @@ export default function AirFiltersTable({
                       <option value={17}>99.99%</option>
                       <option value={18}>99.999%</option>
                     </select>
+                  ) : group.parent.merv_rating === 0 ? (
+                    <span className="text-gray-300 cursor-pointer" title="Click to edit">–</span>
                   ) : (
                     <span
                       className="px-2 py-0.5 text-xs rounded bg-gray-100 text-gray-600 font-medium cursor-pointer hover:bg-blue-100 hover:text-blue-700"
@@ -575,9 +582,11 @@ export default function AirFiltersTable({
                     </td>
                     <td className={`${rowPadding} text-sm text-gray-500`} onClick={() => navigate(`/products/${child.product_id}`)}>{child.supplier_name ?? "—"}</td>
                     <td className={`${rowPadding} text-sm text-gray-500`} onClick={() => navigate(`/products/${child.product_id}`)}>{child.filter_category}</td>
-                    <td className={`${rowPadding} text-sm text-gray-500 whitespace-nowrap`} onClick={() => navigate(`/products/${child.product_id}`)}>{child.height} × {child.width} × {child.depth}</td>
+                    <td className={`${rowPadding} text-sm text-gray-500 whitespace-nowrap`} onClick={() => navigate(`/products/${child.product_id}`)}>{dimVal(child.height)} × {dimVal(child.width)} × {dimVal(child.depth)}</td>
                     <td className={`${rowPadding} text-center`} onClick={() => navigate(`/products/${child.product_id}`)}>
-                      <span className="px-2 py-0.5 text-xs rounded bg-gray-100 text-gray-500">{child.merv_rating}</span>
+                      {child.merv_rating === 0
+                        ? <span className="text-gray-300">–</span>
+                        : <span className="px-2 py-0.5 text-xs rounded bg-gray-100 text-gray-500">{mervLabel(child.merv_rating)}</span>}
                     </td>
                     <td className="w-4" />
                     {renderStockCells(child, true)}
