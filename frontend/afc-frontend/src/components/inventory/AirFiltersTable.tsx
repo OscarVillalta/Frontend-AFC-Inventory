@@ -203,11 +203,11 @@ export default function AirFiltersTable({
       width: filterWidth,
       depth: filterDepth,
       status: quickView !== "all" ? (quickView as "low_stock" | "backordered" | "has_orders") : undefined,
-      on_hand_min: filterOnHandMin,
-      reserved_min: filterReservedMin,
-      ordered_min: filterOrderedMin,
-      available_min: filterAvailableMin,
-      backordered_min: filterBackorderedMin,
+      on_hand: filterOnHandMin,
+      reserved: filterReservedMin,
+      ordered: filterOrderedMin,
+      available: filterAvailableMin,
+      backordered: filterBackorderedMin,
     })
       .then((res) => {
         setData(res);
