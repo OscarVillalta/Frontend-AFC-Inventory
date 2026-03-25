@@ -38,13 +38,13 @@ function App() {
 
             {/* Product / Catalog Management — Admin only */}
             <Route element={<ProtectedRoute allowedRoles={["Admin"]} />}>
-              <Route path="/inventory" element={<Inventory />} />
               <Route path="/products/:productId" element={<ProductDetailPage />} />
               <Route path="/child-products/:childProductId" element={<ChildProductDetailPage />} />
             </Route>
 
             {/* Inventory & Order pages — all operational roles */}
             <Route element={<ProtectedRoute allowedRoles={ALL_ROLES} />}>
+              <Route path="/inventory" element={<Inventory />} />
               <Route path="/order" element={<Order />} />
               <Route path="/orders/search" element={<OrdersSearch />} />
               <Route path="/transactions" element={<TransactionsPage/>}/>
