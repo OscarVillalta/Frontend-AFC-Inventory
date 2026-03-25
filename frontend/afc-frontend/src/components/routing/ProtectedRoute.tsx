@@ -10,7 +10,7 @@ export default function ProtectedRoute({ allowedRoles }: ProtectedRouteProps) {
   const auth = useContext(AuthContext);
 
   if (!auth || !auth.isAuthenticated) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/signin" replace />;
   }
 
   if (!allowedRoles.includes(auth.user!.role)) {
