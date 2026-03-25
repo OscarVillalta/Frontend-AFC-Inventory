@@ -1,3 +1,5 @@
+import { AUTH_TOKEN_KEY } from "../context/authContextDef";
+
 const BASE_URL = import.meta.env.VITE_API_URL;
 
 export const WAREHOUSE_STORAGE_KEY = "activeWarehouseId";
@@ -6,7 +8,7 @@ export async function apiRequest(endpoint: string, options: RequestInit = {}) {
   const method = options.method || "GET";
 
   const warehouseId = localStorage.getItem(WAREHOUSE_STORAGE_KEY);
-  const token = localStorage.getItem("access_token");
+  const token = localStorage.getItem(AUTH_TOKEN_KEY);
 
   const headers: HeadersInit = {
     ...(method !== "GET" ? { "Content-Type": "application/json" } : {}),
