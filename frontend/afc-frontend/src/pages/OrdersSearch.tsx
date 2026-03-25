@@ -13,6 +13,7 @@ import CreateOrderModal from "../components/order/Table/CreateOrderModal";
 import PullFromQBModal from "../components/order/Table/PullFromQBModal";
 import { ALL_ORDER_TYPES, ORDER_TYPE_LABELS, type OrderType } from "../constants/orderTypes";
 import { useWarehouse } from "../hooks/useWarehouse";
+import { useAuth } from "../hooks/useAuth";
 
 /** Light-background badge classes keyed by order type. */
 const ORDER_TYPE_BADGE_CLASSES: Record<OrderType, string> = {
@@ -27,6 +28,7 @@ export default function OrdersSearchPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { activeWarehouseId } = useWarehouse();
+  const { user } = useAuth();
 
   //Customer and supplier list
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -240,6 +242,7 @@ export default function OrdersSearchPage() {
                 Search Orders
               </h1>
               <div className="flex gap-3">
+                {user?.role !== "Warehouse" && user?.role !== "Service" && (
                 <button
                   className="
                     px-5 py-2.5 rounded-lg
@@ -257,6 +260,7 @@ export default function OrdersSearchPage() {
                 >
                   Pull From QB
                 </button>
+                )}
                 <button
                   className="
                     px-5 py-2.5 rounded-lg
