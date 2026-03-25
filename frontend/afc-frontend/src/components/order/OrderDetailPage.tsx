@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, Link } from "react-router-dom";
 
 import MainLayout from "../../layouts/MainLayout";
 import OrderHeader from "./OrderHeader";
@@ -29,6 +29,7 @@ import { fetchOrderTracking } from "../../api/tracker";
 import type { OrderWithTracking } from "../../api/tracker";
 import OrderLifecycleCard from "./OrderLifecycleCard";
 
+import { useWarehouse } from "../../hooks/useWarehouse";
 
 import type { OrderType } from "../../constants/orderTypes";
 import { isOutgoingType } from "../../constants/orderTypes";
@@ -51,6 +52,7 @@ interface OrderDetailPayload {
   eta?: string | null;
   is_paid?: boolean;
   is_invoiced?: boolean;
+  warehouse_id?: number | null;
 }
 
 /* ===================== COMPONENT ===================== */
@@ -58,6 +60,7 @@ interface OrderDetailPayload {
 export default function OrderDetailPage() {
   const { orderId } = useParams<{ orderId: string }>();
   const navigate = useNavigate();
+  const { activeWarehouseId, warehouses } = useWarehouse();
   const [selectedEntityId, setSelectedEntityId] = useState<number | null>(null);
 
   const [order, setOrder] = useState<OrderDetailPayload | null>(null);
@@ -205,7 +208,7 @@ export default function OrderDetailPage() {
       .finally(() => {
         setLoading(false);
       });
-  }, [orderId]);
+  }, [orderId, activeWarehouseId]);
 
   useEffect(() => {
     if (!order) return;
@@ -235,7 +238,7 @@ export default function OrderDetailPage() {
       .then(setItems)
       .catch(() => console.error("Failed to load items"))
       .finally(() => setItemsLoading(false));
-  }, [orderId]);
+  }, [orderId, activeWarehouseId]);
 
   /* ===================== STATES ===================== */
 
@@ -400,106 +403,143 @@ export default function OrderDetailPage() {
 
   /* ===================== RENDER ===================== */
 
+  const warehouseMismatch =
+    order.warehouse_id !== undefined &&
+    order.warehouse_id !== null &&
+    activeWarehouseId !== null &&
+    order.warehouse_id !== activeWarehouseId;
+
+
+  const orderWarehouseName =
+    warehouseMismatch
+      ? warehouses.find((w) => w.id === order.warehouse_id)?.name ?? `ID ${order.warehouse_id}`
+      : null;
+
   return (
     <MainLayout>
-      <div className="flex flex-col lg:flex-row justify-start flex-grow gap-4">
-        {/* LEFT COLUMN */}
-        <div className="max-w-7xl space-y-4 lg:flex-3 w-full bg-slate-100 ">
-          <OrderHeader
-            orderNumber={order.order_number}
-            externalOrderNumber={order.external_order_number}
-            type={order.type}
-            status={order.status}
-            currentDepartment={trackingData?.tracker?.current_department ?? null}
-            onCopyOrder={handleCopySerializedOrder}
-            copyStatus={copyStatus}
-            selectedCount={selectedItems.size}
-          />
-          
+      <div className="relative">
 
-          <div className="lg:col-span-8 space-y-4">
-            <OrderMetaCard
-              type={order.type}
-              status={order.status}
-              createdAt={order.created_at}
-              completedAt={order.completed_at}
-              eta={order.eta}
-
-              entities={isOutgoingType(order.type) ? customers : suppliers}
-              selectedEntityId={selectedEntityId}
-              onEntityChange={(id) => {
-                setSelectedEntityId(id);
-                scheduleAutoSave(buildPatch({ cs_id: id }));
-              }}
-
-              onCreatedAtChange={(v) => {
-                setOrder({ ...order, created_at: v });
-                scheduleAutoSave(buildPatch({ created_at: v }));
-              }}
-              onEtaChange={(v) => {
-                setOrder({ ...order, eta: v });
-                scheduleAutoSave(buildPatch({ eta: v || null }));
-              }}
-              onTypeChange={(newType) => {
-                setOrder({ ...order, type: newType });
-                scheduleAutoSave(buildPatch({ type: newType }));
-              }}
-            />
+        {/* Warehouse mismatch banner */}
+        {warehouseMismatch && (
+          <div className="modal modal-open pointer-events-none">
+            <div className="bg-red-600/90 border-2 border-red-400 text-white rounded-xl px-8 py-5 shadow-2xl max-w-xl text-center pointer-events-auto">
+              <p className="text-lg font-bold mb-2">⚠️ Warehouse Mismatch</p>
+              <p className="text-sm leading-relaxed">
+                This order belongs to <span className="font-semibold">{orderWarehouseName}</span>,
+                not the currently active warehouse. All interactions are locked.
+              </p>
+              <p className="text-sm mt-3">
+                Go to{" "}
+                <Link to="/orders/search" className="underline font-semibold hover:text-red-100">
+                  Orders / Search
+                </Link>{" "}
+                or change the active warehouse in the top bar.
+              </p>
+            </div>
           </div>
+        )}
 
-          <OrderItemsTable
-            orderId={order.id}
-            items={items}
-            loading={itemsLoading}
-            onRefresh={refreshOrder}
-            orderType={order.type}
-            orderStatus={order.status}
-            txnRefreshKey={txnRefreshKey}
-            selectedItems={selectedItems}
-            onSelectedItemsChange={setSelectedItems}
-          />
-        </div>
+        <div className={warehouseMismatch ? "pointer-events-none select-none" : ""}>
+          <div className="flex flex-col lg:flex-row justify-start flex-grow gap-4">
+            {/* LEFT COLUMN */}
+            <div className="max-w-7xl space-y-4 lg:flex-3 w-full bg-slate-100 ">
+              <OrderHeader
+                orderNumber={order.order_number}
+                externalOrderNumber={order.external_order_number}
+                type={order.type}
+                status={order.status}
+                currentDepartment={trackingData?.tracker?.current_department ?? null}
+                onCopyOrder={handleCopySerializedOrder}
+                copyStatus={copyStatus}
+                selectedCount={selectedItems.size}
+              />
+              
 
-        {/* RIGHT COLUMN */}
-        <div className="lg:flex-1 w-full lg:w-auto lg:sticky lg:top-1 lg:self-start">
-          <OrderDescription
-            value={order.description}
-            onChange={(v) => {
-              setOrder({ ...order, description: v });
-              scheduleAutoSave(buildPatch({ description: v }));
-            }}
-            selectedItemsCount={selectedItems.size}
-            onAllocateSelected={handleAllocateSelected}
-            onCommitSelected={handleCommitSelected}
-            onCancelSelected={handleCancelSelected}
-            onRollbackSelected={handleRollbackSelected}
-            disabled={order.status === "Completed"}
-            orderType={order.type}
-          />
+              <div className="lg:col-span-8 space-y-4">
+                <OrderMetaCard
+                  type={order.type}
+                  status={order.status}
+                  createdAt={order.created_at}
+                  completedAt={order.completed_at}
+                  eta={order.eta}
 
-          <OrderLifecycleCard
-            trackingData={trackingData}
-            createdAt={order.created_at}
-            status={order.status}
-            isPaid={order.is_paid ?? false}
-            isInvoiced={order.is_invoiced ?? false}
-            orderId={order.id}
-            orderType={order.type}
-            onRefresh={refreshOrder}
-          />
+                  entities={isOutgoingType(order.type) ? customers : suppliers}
+                  selectedEntityId={selectedEntityId}
+                  onEntityChange={(id) => {
+                    setSelectedEntityId(id);
+                    scheduleAutoSave(buildPatch({ cs_id: id }));
+                  }}
 
-          <div className="flex justify-end pt-2 gap-x-2 items-center">
-            {/* ===== ORDER ACTIONS ===== */}
-            {autoSaveError && (
-              <p className="text-sm text-red-500">{autoSaveError}</p>
-            )}
-            <button
-              className="btn btn-sm btn-error"
-              onClick={handleDeleteOrder}
-              disabled={deleting}
-            >
-              {deleting ? "Deleting..." : "Delete Order"}
-            </button>
+                  onCreatedAtChange={(v) => {
+                    setOrder({ ...order, created_at: v });
+                    scheduleAutoSave(buildPatch({ created_at: v }));
+                  }}
+                  onEtaChange={(v) => {
+                    setOrder({ ...order, eta: v });
+                    scheduleAutoSave(buildPatch({ eta: v || null }));
+                  }}
+                  onTypeChange={(newType) => {
+                    setOrder({ ...order, type: newType });
+                    scheduleAutoSave(buildPatch({ type: newType }));
+                  }}
+                />
+              </div>
+
+              <OrderItemsTable
+                orderId={order.id}
+                items={items}
+                loading={itemsLoading}
+                onRefresh={refreshOrder}
+                orderType={order.type}
+                orderStatus={order.status}
+                txnRefreshKey={txnRefreshKey}
+                selectedItems={selectedItems}
+                onSelectedItemsChange={setSelectedItems}
+              />
+            </div>
+
+            {/* RIGHT COLUMN */}
+            <div className="lg:flex-1 w-full lg:w-auto lg:sticky lg:top-1 lg:self-start">
+              <OrderDescription
+                value={order.description}
+                onChange={(v) => {
+                  setOrder({ ...order, description: v });
+                  scheduleAutoSave(buildPatch({ description: v }));
+                }}
+                selectedItemsCount={selectedItems.size}
+                onAllocateSelected={handleAllocateSelected}
+                onCommitSelected={handleCommitSelected}
+                onCancelSelected={handleCancelSelected}
+                onRollbackSelected={handleRollbackSelected}
+                disabled={order.status === "Completed"}
+                orderType={order.type}
+              />
+
+              <OrderLifecycleCard
+                trackingData={trackingData}
+                createdAt={order.created_at}
+                status={order.status}
+                isPaid={order.is_paid ?? false}
+                isInvoiced={order.is_invoiced ?? false}
+                orderId={order.id}
+                orderType={order.type}
+                onRefresh={refreshOrder}
+              />
+
+              <div className="flex justify-end pt-2 gap-x-2 items-center">
+                {/* ===== ORDER ACTIONS ===== */}
+                {autoSaveError && (
+                  <p className="text-sm text-red-500">{autoSaveError}</p>
+                )}
+                <button
+                  className="btn btn-sm btn-error"
+                  onClick={handleDeleteOrder}
+                  disabled={deleting}
+                >
+                  {deleting ? "Deleting..." : "Delete Order"}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </div>

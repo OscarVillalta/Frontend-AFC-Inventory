@@ -7,6 +7,7 @@ import { fetchOrders } from "../../../api/ordersTable"
 import { useNavigate } from 'react-router-dom'
 import { usePersistedFilters } from "../../../hooks/usePersistedFilters";
 import { ALL_ORDER_TYPES, ORDER_TYPE_LABELS } from "../../../constants/orderTypes";
+import { useWarehouse } from "../../../hooks/useWarehouse";
 
 function formatUTCDate(iso: string) {
   const d = new Date(iso);
@@ -30,6 +31,7 @@ interface Props {
 
 export default function OrdersTable({ reloadKey }: Props) {
   const navigate = useNavigate()
+  const { activeWarehouseId } = useWarehouse();
   const [page, setPage] = useState(1);
   const pageSize = 10;
 
@@ -53,13 +55,26 @@ export default function OrdersTable({ reloadKey }: Props) {
   useEffect(() => {
     setLoading(true);
 
-    fetchOrders(page, pageSize)
+    const apiFilters: Record<string, string | undefined> = {
+      order_number: filters.searchOrder || undefined,
+      description: filters.searchDescription || undefined,
+      type: filters.filterType === "All" ? undefined : filters.filterType,
+      status: filters.filterStatus === "All" ? undefined : filters.filterStatus,
+      cs_name: filters.filterCustomer === "All" ? undefined : filters.filterCustomer,
+    };
+
+    // Remove undefined keys so fetchOrders doesn't send them
+    const cleanFilters = Object.fromEntries(
+      Object.entries(apiFilters).filter(([, v]) => v !== undefined)
+    );
+
+    fetchOrders(page, pageSize, cleanFilters)
       .then((res) => {
         setRows(res.results ?? []);
         setTotal(res.total ?? 0);
       })
       .finally(() => setLoading(false));
-  }, [page, reloadKey]);
+  }, [page, reloadKey, activeWarehouseId, filters.searchOrder, filters.searchDescription, filters.filterType, filters.filterStatus, filters.filterCustomer]);
 
   // Options (derived from API data — still UI-only)
   const uniqueStatuses = ["All", ...new Set(rows.map((r) => r.status))];

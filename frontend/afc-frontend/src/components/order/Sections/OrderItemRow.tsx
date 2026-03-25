@@ -14,7 +14,6 @@ import {
   rollbackTransaction,
   deleteOrderItem,
   updateOrderItem,
-  allocateOrderItem,
 } from "../../../api/orderDetail";
 import type { OrderType } from "../../../constants/orderTypes";
 import { isOutgoingType } from "../../../constants/orderTypes";
@@ -126,21 +125,6 @@ export default function OrderItemRow({ item, orderType, onRefresh, txnRefreshKey
     }
   }
 
-  /* ===== Fulfill Custom Cut (no inventory deduction) ===== */
-  async function handleFulfillCut(e: React.MouseEvent) {
-    e.stopPropagation();
-    setSubmitting(true);
-    setError(null);
-    try {
-      await allocateOrderItem(item.id);
-      await onRefresh();
-    } catch (err: unknown) {
-      const parsed = JSON.parse((err as Error)?.message || "{}");
-      setError(parsed["error"] || "Failed to fulfill custom cut item.");
-    } finally {
-      setSubmitting(false);
-    }
-  }
 
   async function loadTransactions(force = false) {
     if (loaded && !force) return;
@@ -622,7 +606,9 @@ export default function OrderItemRow({ item, orderType, onRefresh, txnRefreshKey
             }}
             title="Click to view transactions"
           >
-            {item.quantity_fulfilled}
+            {isMediaCut
+              ? (<span className="text-gray-400 italic text-sm">Non-Tracked Material</span>)
+              : item.quantity_fulfilled}
           </td>
           <td className="px-3 py-3">
             {item.status ?? "—"}
@@ -668,20 +654,13 @@ export default function OrderItemRow({ item, orderType, onRefresh, txnRefreshKey
       {expanded && !isSeparator && (
         <tr style={expandedStyle}>
           <td colSpan={8} className="bg-gray-50 px-6 py-4 space-y-3" style={{ pointerEvents: isDragging ? 'none' : 'auto' }}>
-            {/* ===== MEDIA CUT FULFILLMENT (bypass) ===== */}
-            {isMediaCut && remainingSafe > 0 && (
+            {/* ===== MEDIA CUT — non-tracked, no fulfillment actions ===== */}
+            {isMediaCut && (
               <div className="flex flex-wrap items-center gap-3">
-                <span className="badge badge-info badge-sm">Custom Cut — No Stock Deduction</span>
-                <span className="text-sm text-gray-500">
-                  Remaining: {remainingSafe}
+                <span className="badge badge-info badge-sm">Media — Non-Tracked Material</span>
+                <span className="text-sm text-gray-400 italic">
+                  Bulk floor stock: no discrete fulfillment actions available.
                 </span>
-                <button
-                  className="btn btn-xs btn-success"
-                  onClick={handleFulfillCut}
-                  disabled={submitting}
-                >
-                  {submitting ? "Saving…" : "Fulfill Cut"}
-                </button>
               </div>
             )}
 
@@ -812,7 +791,7 @@ export default function OrderItemRow({ item, orderType, onRefresh, txnRefreshKey
 
                         <td>
                           <div className="flex gap-2">
-                            {tx.state === "pending" && (
+                            {tx.state === "pending" && !isMediaCut && (
                               <>
                                 <button
                                   className="btn btn-xs btn-success"
@@ -834,7 +813,7 @@ export default function OrderItemRow({ item, orderType, onRefresh, txnRefreshKey
                                 </button>
                               </>
                             )}
-                            {tx.state === "committed" && tx.reason !== "rollback" && (
+                            {tx.state === "committed" && tx.reason !== "rollback" && !isMediaCut && (
                               <button
                                 className="btn btn-xs btn-warning"
                                 disabled={!!error}

@@ -21,6 +21,7 @@ import {
   type ProductOrderSummary,
   type LedgerItem,
 } from "../api/productDetail";
+import { useWarehouse } from "../hooks/useWarehouse";
 
 /* ============================================================
    TYPES
@@ -50,6 +51,7 @@ interface HistoricalDataPoint {
 export default function ChildProductDetailPage() {
   const { childProductId } = useParams<{ childProductId: string }>();
   const navigate = useNavigate();
+  const { activeWarehouseId } = useWarehouse();
   const [childProduct, setChildProduct] = useState<ChildProductDetail | null>(null);
   const [transactions, setTransactions] = useState<TransactionItem[]>([]);
   const [incomingOrders, setIncomingOrders] = useState<ProductOrderSummary[]>([]);
@@ -143,7 +145,7 @@ export default function ChildProductDetailPage() {
     };
 
     loadData();
-  }, [childProductId]);
+  }, [childProductId, activeWarehouseId]);
 
   // Load ledger data when switching to historical tab
   useEffect(() => {
@@ -164,7 +166,7 @@ export default function ChildProductDetailPage() {
     };
 
     loadLedger();
-  }, [graphTab, childProductId]);
+  }, [graphTab, childProductId, activeWarehouseId]);
 
   const historicalData = useMemo((): HistoricalDataPoint[] => {
     const sorted = [...ledgerItems].sort(

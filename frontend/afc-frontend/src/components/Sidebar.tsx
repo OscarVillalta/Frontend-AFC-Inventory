@@ -1,6 +1,10 @@
 import { Link, useLocation } from "react-router-dom";
 
-export default function Sidebar() {
+interface Props {
+  onTransferClick?: () => void;
+}
+
+export default function Sidebar({ onTransferClick }: Props) {
   const { pathname } = useLocation();
 
   const links = [
@@ -55,6 +59,19 @@ export default function Sidebar() {
           );
         })}
       </nav>
+
+      {/* Transfer button */}
+      {onTransferClick && (
+        <div className="px-2 mt-4">
+          <button
+            onClick={onTransferClick}
+            className="flex items-center gap-3 px-4 py-3 rounded-lg w-full text-gray-300 hover:bg-white/10 hover:text-white transition-all duration-200"
+          >
+            <span className="text-xl">🔀</span>
+            <span>Stock Transfer</span>
+          </button>
+        </div>
+      )}
 
       {/* Spacer to push footer down */}
       <div className="flex-1"></div>

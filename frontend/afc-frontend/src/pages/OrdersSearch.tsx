@@ -12,6 +12,7 @@ import { usePersistedFilters } from "../hooks/usePersistedFilters";
 import CreateOrderModal from "../components/order/Table/CreateOrderModal";
 import PullFromQBModal from "../components/order/Table/PullFromQBModal";
 import { ALL_ORDER_TYPES, ORDER_TYPE_LABELS, type OrderType } from "../constants/orderTypes";
+import { useWarehouse } from "../hooks/useWarehouse";
 
 /** Light-background badge classes keyed by order type. */
 const ORDER_TYPE_BADGE_CLASSES: Record<OrderType, string> = {
@@ -25,6 +26,7 @@ const ORDER_TYPE_BADGE_CLASSES: Record<OrderType, string> = {
 export default function OrdersSearchPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const { activeWarehouseId } = useWarehouse();
 
   //Customer and supplier list
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -76,7 +78,7 @@ export default function OrdersSearchPage() {
     fetchProducts().then(setAvailableProducts).catch(console.error);
     fetchCustomers().then(setCustomers).catch(console.error);
     fetchSuppliers().then(setSuppliers).catch(console.error);
-  }, []);
+  }, [activeWarehouseId]);
   
   // Handle URL parameters on mount
   useEffect(() => {
@@ -170,7 +172,8 @@ export default function OrdersSearchPage() {
   //Perform initial search if URL has relevant params
   useEffect(() => {
     handleSearch(1);
-  }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeWarehouseId]);
 
   const handleClearSearch = () => {
     setFilter("searchId", "");

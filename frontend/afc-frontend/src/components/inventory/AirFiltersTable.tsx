@@ -6,6 +6,7 @@ import type { AirFilterResponse, AirFilterPayload, AirFilterCategory } from "../
 import { autocommitTxn } from "../../api/transactions";
 import type { createTxnRequest } from "../../api/transactions";
 import type { Supplier } from "../../api/suppliers";
+import { useWarehouse } from "../../hooks/useWarehouse";
 
 /* ============================================================
    TYPES
@@ -159,6 +160,8 @@ export default function AirFiltersTable({
   airFilterCategories = [],
 }: Props) {
   const navigate = useNavigate();
+  const { activeWarehouseId, warehouses } = useWarehouse();
+  const activeWarehouseName = warehouses.find((w) => w.id === activeWarehouseId)?.name ?? null;
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
 
@@ -200,11 +203,11 @@ export default function AirFiltersTable({
       width: filterWidth,
       depth: filterDepth,
       status: quickView !== "all" ? (quickView as "low_stock" | "backordered" | "has_orders") : undefined,
-      on_hand_min: filterOnHandMin,
-      reserved_min: filterReservedMin,
-      ordered_min: filterOrderedMin,
-      available_min: filterAvailableMin,
-      backordered_min: filterBackorderedMin,
+      on_hand: filterOnHandMin,
+      reserved: filterReservedMin,
+      ordered: filterOrderedMin,
+      available: filterAvailableMin,
+      backordered: filterBackorderedMin,
     })
       .then((res) => {
         setData(res);
@@ -232,7 +235,7 @@ export default function AirFiltersTable({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, pageSize, globalSearch, filterDescription, filterSupplier, filterCategory, filterMerv, refreshToken,
       filterHeight, filterWidth, filterDepth, quickView,
-      filterOnHandMin, filterReservedMin, filterOrderedMin, filterAvailableMin, filterBackorderedMin]);
+      filterOnHandMin, filterReservedMin, filterOrderedMin, filterAvailableMin, filterBackorderedMin, activeWarehouseId]);
 
   const rows: AirFilterPayload[] = data?.results ?? [];
 
@@ -337,8 +340,13 @@ export default function AirFiltersTable({
     }
   };
 
+  /* Display helper: show light-gray "–" instead of standalone 0 */
+  const dimVal = (v: number) =>
+    v === 0 ? <span className="text-gray-300">–</span> : v;
+
   /* MERV label helper */
   const mervLabel = (rating: number) => {
+    if (rating === 0) return <span className="text-gray-300">–</span>;
     if (rating === 17) return "99.99%";
     if (rating === 18) return "99.999%";
     return `MERV ${rating}`;
@@ -493,7 +501,7 @@ export default function AirFiltersTable({
                   className={`${rowPadding} text-sm text-gray-700 whitespace-nowrap`}
                   onClick={() => navigate(`/products/${group.parent.product_id}`)}
                 >
-                  {group.parent.height} × {group.parent.width} × {group.parent.depth}
+                  {dimVal(group.parent.height)} × {dimVal(group.parent.width)} × {dimVal(group.parent.depth)}
                 </td>
                 {/* MERV */}
                 <td
@@ -515,6 +523,8 @@ export default function AirFiltersTable({
                       <option value={17}>99.99%</option>
                       <option value={18}>99.999%</option>
                     </select>
+                  ) : group.parent.merv_rating === 0 ? (
+                    <span className="text-gray-300 cursor-pointer" title="Click to edit">–</span>
                   ) : (
                     <span
                       className="px-2 py-0.5 text-xs rounded bg-gray-100 text-gray-600 font-medium cursor-pointer hover:bg-blue-100 hover:text-blue-700"
@@ -572,9 +582,11 @@ export default function AirFiltersTable({
                     </td>
                     <td className={`${rowPadding} text-sm text-gray-500`} onClick={() => navigate(`/products/${child.product_id}`)}>{child.supplier_name ?? "—"}</td>
                     <td className={`${rowPadding} text-sm text-gray-500`} onClick={() => navigate(`/products/${child.product_id}`)}>{child.filter_category}</td>
-                    <td className={`${rowPadding} text-sm text-gray-500 whitespace-nowrap`} onClick={() => navigate(`/products/${child.product_id}`)}>{child.height} × {child.width} × {child.depth}</td>
+                    <td className={`${rowPadding} text-sm text-gray-500 whitespace-nowrap`} onClick={() => navigate(`/products/${child.product_id}`)}>{dimVal(child.height)} × {dimVal(child.width)} × {dimVal(child.depth)}</td>
                     <td className={`${rowPadding} text-center`} onClick={() => navigate(`/products/${child.product_id}`)}>
-                      <span className="px-2 py-0.5 text-xs rounded bg-gray-100 text-gray-500">{child.merv_rating}</span>
+                      {child.merv_rating === 0
+                        ? <span className="text-gray-300">–</span>
+                        : <span className="px-2 py-0.5 text-xs rounded bg-gray-100 text-gray-500">{mervLabel(child.merv_rating)}</span>}
                     </td>
                     <td className="w-4" />
                     {renderStockCells(child, true)}
@@ -602,6 +614,13 @@ export default function AirFiltersTable({
               <h2 className="text-xl font-semibold">{editRow.part_number}</h2>
               <button className="cursor-pointer hover:scale-110 transition" onClick={closeModal}>✕</button>
             </div>
+
+            {activeWarehouseName && (
+              <div className="mb-4 flex items-center gap-2 bg-blue-50 border border-blue-200 rounded-lg px-3 py-2">
+                <span className="text-sm text-blue-700">🏭 Warehouse:</span>
+                <span className="text-sm font-semibold text-blue-800">{activeWarehouseName}</span>
+              </div>
+            )}
 
             <div className="grid grid-cols-2 gap-4 mb-6 text-sm">
               <div>

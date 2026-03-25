@@ -6,6 +6,7 @@ import type { StockItemResponse, StockItemPayload, StockItemCategory } from "../
 import { autocommitTxn } from "../../api/transactions";
 import type { createTxnRequest } from "../../api/transactions";
 import type { Supplier } from "../../api/suppliers";
+import { useWarehouse } from "../../hooks/useWarehouse";
 
 /* ============================================================
    TYPES
@@ -114,6 +115,8 @@ export default function StockItemsTable({
   stockItemCategories = [],
 }: Props) {
   const navigate = useNavigate();
+  const { activeWarehouseId, warehouses } = useWarehouse();
+  const activeWarehouseName = warehouses.find((w) => w.id === activeWarehouseId)?.name ?? null;
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(12);
 
@@ -166,7 +169,7 @@ export default function StockItemsTable({
 
   useEffect(() => {
     loadData();
-  }, [loadData, refreshToken]);
+  }, [loadData, refreshToken, activeWarehouseId]);
 
   const rows: StockItemPayload[] = data?.results ?? [];
 
@@ -439,6 +442,13 @@ export default function StockItemsTable({
               <h2 className="text-xl font-semibold">{editRow.name}</h2>
               <button className="cursor-pointer hover:scale-110 transition" onClick={closeModal}>✕</button>
             </div>
+
+            {activeWarehouseName && (
+              <div className="mb-4 flex items-center gap-2 bg-blue-50 border border-blue-200 rounded-lg px-3 py-2">
+                <span className="text-sm text-blue-700">🏭 Warehouse:</span>
+                <span className="text-sm font-semibold text-blue-800">{activeWarehouseName}</span>
+              </div>
+            )}
 
             <div className="grid grid-cols-2 gap-4 mb-6 text-sm">
               <div>
