@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import AuthProvider from "./context/AuthContext";
 import WarehouseProvider from "./context/WarehouseContext";
 import Dashboard from "./pages/Dashboard";
 import Inventory from "./pages/Inventory";
@@ -14,6 +15,7 @@ import PackingSlipTrackerPage from "./pages/PackingSlipTrackerPage";
 function App() {
   return (
     <BrowserRouter>
+      <AuthProvider>
       <WarehouseProvider>
         <Routes>
           <Route path="/" element={<Dashboard/>}/>
@@ -28,6 +30,7 @@ function App() {
           <Route path="/packing-slip-tracker" element={<PackingSlipTrackerPage />} />
         </Routes>
       </WarehouseProvider>
+      </AuthProvider>
     </BrowserRouter>
   );
 }

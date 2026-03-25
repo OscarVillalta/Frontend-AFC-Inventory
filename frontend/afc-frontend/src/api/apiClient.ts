@@ -6,10 +6,12 @@ export async function apiRequest(endpoint: string, options: RequestInit = {}) {
   const method = options.method || "GET";
 
   const warehouseId = localStorage.getItem(WAREHOUSE_STORAGE_KEY);
+  const token = localStorage.getItem("access_token");
 
   const headers: HeadersInit = {
     ...(method !== "GET" ? { "Content-Type": "application/json" } : {}),
     ...(warehouseId ? { "X-Warehouse-Id": warehouseId } : {}),
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
     ...(options.headers || {}),
   };
 
