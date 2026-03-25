@@ -18,7 +18,7 @@ export async function loginUser(
 
   if (!res.ok) {
     const text = await res.text();
-    throw new Error(text || "Invalid credentials");
+    throw new Error(text || "Login failed");
   }
 
   return res.json();
