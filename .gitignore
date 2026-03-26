@@ -44,6 +44,8 @@ Thumbs.db
 # Environment
 .env.local
 .env.*.local
+.env
+.env/
 
 # Build outputs
 dist/
