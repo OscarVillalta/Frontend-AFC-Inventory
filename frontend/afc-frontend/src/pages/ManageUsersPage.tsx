@@ -346,6 +346,7 @@ export default function ManageUsersPage() {
                             className="btn btn-ghost btn-xs"
                             onClick={() => openEditModal(u)}
                             title="Edit user"
+                            aria-label={`Edit ${u.email}`}
                           >
                             ✏️
                           </button>
@@ -353,6 +354,7 @@ export default function ManageUsersPage() {
                             className="btn btn-ghost btn-xs text-error"
                             onClick={() => openDeleteModal(u)}
                             title="Delete user"
+                            aria-label={`Delete ${u.email}`}
                           >
                             🗑️
                           </button>
