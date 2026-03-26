@@ -15,6 +15,7 @@ import ProductDetailPage from "./pages/ProductDetailPage";
 import ChildProductDetailPage from "./pages/ChildProductDetailPage";
 import ConversionsPage from "./pages/Conversions";
 import PackingSlipTrackerPage from "./pages/PackingSlipTrackerPage";
+import ManageUsersPage from "./pages/ManageUsersPage";
 
 function RequireAuth() {
   const auth = useContext(AuthContext);
@@ -40,6 +41,7 @@ function App() {
             <Route element={<ProtectedRoute allowedRoles={["Admin"]} />}>
               <Route path="/products/:productId" element={<ProductDetailPage />} />
               <Route path="/child-products/:childProductId" element={<ChildProductDetailPage />} />
+              <Route path="/manage-users" element={<ManageUsersPage />} />
             </Route>
 
             {/* Inventory & Order pages — all operational roles */}
