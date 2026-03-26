@@ -1,5 +1,6 @@
 import { Link, useLocation } from "react-router-dom";
 import { useWarehouse } from "../hooks/useWarehouse";
+import { useAuth } from "../hooks/useAuth";
 
 interface Props {
   onMenuToggle?: () => void;
@@ -9,6 +10,8 @@ export default function Topbar({ onMenuToggle }: Props) {
   const { pathname } = useLocation();
   const { warehouses, activeWarehouseId, setActiveWarehouseId, loading } =
     useWarehouse();
+  const { user } = useAuth();
+  const isAdmin = user?.role === "Admin";
 
   type Breadcrumb = { label: string; to?: string };
 
@@ -112,10 +115,22 @@ export default function Topbar({ onMenuToggle }: Props) {
           </span>
         </div>
 
-        {/* Icons */}
-        <button className="btn btn-sm btn-circle bg-white shadow-sm">
-          ⚙️
-        </button>
+        {/* Settings Dropdown */}
+        <div className="dropdown dropdown-end">
+          <button tabIndex={0} className="btn btn-sm btn-circle bg-white shadow-sm">
+            ⚙️
+          </button>
+          <ul
+            tabIndex={0}
+            className="dropdown-content menu bg-base-100 rounded-box z-50 w-48 p-2 shadow"
+          >
+            {isAdmin && (
+              <li>
+                <Link to="/manage-users">Manage Users</Link>
+              </li>
+            )}
+          </ul>
+        </div>
 
         <button className="btn btn-sm btn-circle bg-white shadow-sm">
           🔔

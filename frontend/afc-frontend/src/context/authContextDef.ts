@@ -1,6 +1,6 @@
 import { createContext } from "react";
 
-export const AUTH_TOKEN_KEY = "access_token";
+export const AUTH_TOKEN_KEY = "4JPVm2vtYoFnxo7LVYGvUR3oeXT3e0MqdhVI12NnCNC";
 
 export interface AuthUser {
   email: string;
