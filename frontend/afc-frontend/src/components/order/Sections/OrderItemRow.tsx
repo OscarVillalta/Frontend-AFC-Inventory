@@ -17,6 +17,7 @@ import {
 } from "../../../api/orderDetail";
 import type { OrderType } from "../../../constants/orderTypes";
 import { isOutgoingType } from "../../../constants/orderTypes";
+import { useAuth } from "../../../hooks/useAuth";
 
 interface Props {
   item: OrderItemPayload;
@@ -28,6 +29,7 @@ interface Props {
 }
 
 export default function OrderItemRow({ item, orderType, onRefresh, txnRefreshKey, isSelected, onSelectChange }: Props) {
+  const { user } = useAuth();
   const [expanded, setExpanded] = useState(false);
   
   const {
@@ -795,7 +797,12 @@ export default function OrderItemRow({ item, orderType, onRefresh, txnRefreshKey
                               <>
                                 <button
                                   className="btn btn-xs btn-success"
-                                  disabled={!!error}
+                                  disabled={!!error || (user?.role !== "Admin" && user?.role !== "Warehouse")}
+                                  title={
+                                    user?.role !== "Admin" && user?.role !== "Warehouse"
+                                      ? "Only Warehouse staff can fulfill orders."
+                                      : undefined
+                                  }
                                   onClick={(e) =>
                                     handleCommit(e, tx.id)
                                   }
