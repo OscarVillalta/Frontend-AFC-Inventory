@@ -3,6 +3,7 @@ import { useContext } from "react";
 import AuthProvider from "./context/AuthContext";
 import { AuthContext } from "./context/authContextDef";
 import WarehouseProvider from "./context/WarehouseContext";
+import ToastProvider from "./context/ToastContext";
 import ProtectedRoute from "./components/routing/ProtectedRoute";
 import SignInPage from "./pages/SignInPage";
 import Dashboard from "./pages/Dashboard";
@@ -32,6 +33,7 @@ function App() {
     <BrowserRouter>
       <AuthProvider>
       <WarehouseProvider>
+      <ToastProvider>
         <Routes>
           <Route path="/signin" element={<SignInPage />} />
           <Route element={<RequireAuth />}>
@@ -56,6 +58,7 @@ function App() {
             </Route>
           </Route>
         </Routes>
+      </ToastProvider>
       </WarehouseProvider>
       </AuthProvider>
     </BrowserRouter>
