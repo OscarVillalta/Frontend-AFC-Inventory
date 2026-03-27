@@ -20,7 +20,7 @@ export default function SignInPage() {
 
     try {
       const data = await loginUser(email, password);
-      login(data.access_token, data.email, data.role);
+      login(data.access_token, data.email, data.permissions);
       navigate("/", { replace: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed");

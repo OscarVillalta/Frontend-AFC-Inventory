@@ -10,8 +10,8 @@ export default function Topbar({ onMenuToggle }: Props) {
   const { pathname } = useLocation();
   const { warehouses, activeWarehouseId, setActiveWarehouseId, loading } =
     useWarehouse();
-  const { user } = useAuth();
-  const isAdmin = user?.role === "Admin";
+  const { hasPermission } = useAuth();
+  const isAdmin = hasPermission("users:manage");
 
   type Breadcrumb = { label: string; to?: string };
 

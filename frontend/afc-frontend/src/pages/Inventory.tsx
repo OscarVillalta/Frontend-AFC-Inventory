@@ -43,7 +43,7 @@ const VALID_QUICK_VIEWS: QuickView[] = ["all", "low_stock", "backordered", "has_
 
 export default function Inventory() {
   const { activeWarehouseId } = useWarehouse();
-  const { user } = useAuth();
+  const { hasPermission } = useAuth();
   const saved = loadSavedFilters();
 
   const [tab, setTab] = useState<TabKey>(
@@ -190,7 +190,7 @@ export default function Inventory() {
           </div>
         </div>
 
-          {user?.role === "Admin" && (
+          {hasPermission("inventory:manage") && (
           <div className="flex gap-2 flex-wrap shrink-0">
             <button
               className="px-4 py-2 text-sm font-medium rounded-lg border border-gray-300 text-gray-700 bg-white hover:bg-gray-50 transition"

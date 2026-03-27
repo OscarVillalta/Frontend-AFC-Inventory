@@ -1,9 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import MainLayout from "../layouts/MainLayout";
-import { fetchUsers, createUser, updateUser, deleteUser } from "../api/users";
-import type { User, CreateUserPayload, UpdateUserPayload } from "../api/users";
-
-const ROLES = ["Admin", "Sales", "Warehouse", "Service"];
+import { fetchUsers, fetchRoles, createUser, updateUser, deleteUser } from "../api/users";
+import type { User, Role, CreateUserPayload, UpdateUserPayload } from "../api/users";
 
 /* ------------------------------------------------------------------ */
 /*  Add / Edit Modal                                                   */
@@ -13,13 +11,15 @@ interface UserModalProps {
   onSave: (data: CreateUserPayload | UpdateUserPayload) => Promise<void>;
   user: User | null; // null → create mode
   saving: boolean;
+  roles: Role[];
 }
 
-function UserModal({ onClose, onSave, user, saving }: UserModalProps) {
+function UserModal({ onClose, onSave, user, saving, roles }: UserModalProps) {
   const isEdit = user !== null;
 
   const [email, setEmail] = useState(user?.email ?? "");
-  const [role, setRole] = useState(user?.role ?? ROLES[0]);
+  const matchingRole = roles.find((r) => r.name === user?.role);
+  const [roleId, setRoleId] = useState<number>(matchingRole?.id ?? roles[0]?.id ?? 0);
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
 
@@ -29,12 +29,12 @@ function UserModal({ onClose, onSave, user, saving }: UserModalProps) {
 
     if (!isEdit) {
       // Create mode – all fields required
-      if (!email || !password || !role) {
+      if (!email || !password || !roleId) {
         setError("All fields are required.");
         return;
       }
       try {
-        await onSave({ email, password, role });
+        await onSave({ email, password, role_id: roleId });
       } catch (err: unknown) {
         setError(err instanceof Error ? err.message : "Failed to create user");
       }
@@ -42,7 +42,8 @@ function UserModal({ onClose, onSave, user, saving }: UserModalProps) {
       // Edit mode – send only changed fields
       const patch: UpdateUserPayload = {};
       if (email !== user.email) patch.email = email;
-      if (role !== user.role) patch.role = role;
+      const currentRoleId = matchingRole?.id;
+      if (roleId !== currentRoleId) patch.role_id = roleId;
       if (password) patch.password = password;
 
       if (Object.keys(patch).length === 0) {
@@ -83,12 +84,12 @@ function UserModal({ onClose, onSave, user, saving }: UserModalProps) {
             <span className="label-text font-medium mb-1">Role</span>
             <select
               className="select select-bordered w-full"
-              value={role}
-              onChange={(e) => setRole(e.target.value)}
+              value={roleId}
+              onChange={(e) => setRoleId(Number(e.target.value))}
             >
-              {ROLES.map((r) => (
-                <option key={r} value={r}>
-                  {r}
+              {roles.map((r) => (
+                <option key={r.id} value={r.id}>
+                  {r.name}
                 </option>
               ))}
             </select>
@@ -206,6 +207,7 @@ function DeleteModal({ onClose, onConfirm, user, deleting }: DeleteModalProps) {
 /* ------------------------------------------------------------------ */
 export default function ManageUsersPage() {
   const [users, setUsers] = useState<User[]>([]);
+  const [roles, setRoles] = useState<Role[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -225,8 +227,9 @@ export default function ManageUsersPage() {
     setLoading(true);
     setError("");
     try {
-      const data = await fetchUsers();
-      setUsers(data);
+      const [userData, roleData] = await Promise.all([fetchUsers(), fetchRoles()]);
+      setUsers(userData);
+      setRoles(roleData);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Failed to load users");
     } finally {
@@ -377,13 +380,14 @@ export default function ManageUsersPage() {
       </div>
 
       {/* Modals – key forces remount to reset form state */}
-      {modalOpen && (
+      {modalOpen && roles.length > 0 && (
         <UserModal
           key={modalKey}
           onClose={() => setModalOpen(false)}
           onSave={handleSave}
           user={editingUser}
           saving={saving}
+          roles={roles}
         />
       )}
 
