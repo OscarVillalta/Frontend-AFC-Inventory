@@ -399,12 +399,12 @@ export default function ManageUsersPage() {
 
       // Build role details: role list augmented with permission names.
       // If the roles API already returns permissions, use them; otherwise
-      // initialise with an empty array so the UI still works.
+      // initialize with an empty array so the UI still works.
       setRoleDetails(
         roleData.map((r) => ({
           id: r.id,
           name: r.name,
-          permissions: (r as unknown as RoleDetail).permissions ?? [],
+          permissions: r.permissions ?? [],
         })),
       );
     } catch (err: unknown) {
