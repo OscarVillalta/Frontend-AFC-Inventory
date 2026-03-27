@@ -2,6 +2,8 @@ import { useCallback, useEffect, useState } from "react";
 import MainLayout from "../layouts/MainLayout";
 import { fetchUsers, fetchRoles, createUser, updateUser, deleteUser } from "../api/users";
 import type { User, Role, CreateUserPayload, UpdateUserPayload } from "../api/users";
+import { fetchPermissions, createRole, updateRole } from "../api/admin";
+import type { Permission, RoleDetail, CreateRolePayload, UpdateRolePayload } from "../api/admin";
 
 /* ------------------------------------------------------------------ */
 /*  Add / Edit Modal                                                   */
@@ -203,15 +205,168 @@ function DeleteModal({ onClose, onConfirm, user, deleting }: DeleteModalProps) {
 }
 
 /* ------------------------------------------------------------------ */
+/*  Role Add / Edit Modal                                              */
+/* ------------------------------------------------------------------ */
+interface RoleModalProps {
+  onClose: () => void;
+  onSave: (data: CreateRolePayload | UpdateRolePayload) => Promise<void>;
+  role: RoleDetail | null; // null → create mode
+  saving: boolean;
+  permissions: Permission[];
+}
+
+function RoleModal({ onClose, onSave, role, saving, permissions }: RoleModalProps) {
+  const isEdit = role !== null;
+
+  const [name, setName] = useState(role?.name ?? "");
+  const [selectedPerms, setSelectedPerms] = useState<Set<string>>(
+    new Set(role?.permissions ?? []),
+  );
+  const [error, setError] = useState("");
+
+  const togglePerm = (permName: string) => {
+    setSelectedPerms((prev) => {
+      const next = new Set(prev);
+      if (next.has(permName)) {
+        next.delete(permName);
+      } else {
+        next.add(permName);
+      }
+      return next;
+    });
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+
+    if (!name.trim()) {
+      setError("Role name is required.");
+      return;
+    }
+
+    const permissionsArray = Array.from(selectedPerms);
+
+    if (!isEdit) {
+      try {
+        await onSave({ name: name.trim(), permissions: permissionsArray });
+      } catch (err: unknown) {
+        setError(err instanceof Error ? err.message : "Failed to create role");
+      }
+    } else {
+      const patch: UpdateRolePayload = {};
+      if (name.trim() !== role.name) patch.name = name.trim();
+
+      const currentPerms = new Set(role.permissions);
+      const permsChanged =
+        permissionsArray.length !== currentPerms.size ||
+        permissionsArray.some((p) => !currentPerms.has(p));
+      if (permsChanged) patch.permissions = permissionsArray;
+
+      if (Object.keys(patch).length === 0) {
+        onClose();
+        return;
+      }
+      try {
+        await onSave(patch);
+      } catch (err: unknown) {
+        setError(err instanceof Error ? err.message : "Failed to update role");
+      }
+    }
+  };
+
+  return (
+    <dialog className="modal modal-open">
+      <div className="modal-box max-w-lg">
+        <h3 className="font-bold text-lg mb-4">
+          {isEdit ? "Edit Role" : "Add Role"}
+        </h3>
+
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+          {/* Role Name */}
+          <label className="form-control w-full">
+            <span className="label-text font-medium mb-1">Role Name</span>
+            <input
+              type="text"
+              className="input input-bordered w-full"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required
+              autoComplete="off"
+              placeholder="e.g. Manager"
+            />
+          </label>
+
+          {/* Permissions Checklist */}
+          <fieldset>
+            <legend className="label-text font-medium mb-2">Permissions</legend>
+            <div className="border rounded-lg p-3 max-h-60 overflow-y-auto flex flex-col gap-2">
+              {permissions.length === 0 ? (
+                <span className="text-sm text-[#7B809A]">No permissions available.</span>
+              ) : (
+                permissions.map((p) => (
+                  <label key={p.id} className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      className="checkbox checkbox-sm checkbox-primary"
+                      checked={selectedPerms.has(p.name)}
+                      onChange={() => togglePerm(p.name)}
+                    />
+                    <span className="text-sm font-mono">{p.name}</span>
+                  </label>
+                ))
+              )}
+            </div>
+          </fieldset>
+
+          {error && (
+            <div className="text-error text-sm">{error}</div>
+          )}
+
+          <div className="modal-action">
+            <button
+              type="button"
+              className="btn"
+              onClick={onClose}
+              disabled={saving}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="btn btn-primary"
+              disabled={saving}
+            >
+              {saving ? (
+                <span className="loading loading-spinner loading-sm" />
+              ) : isEdit ? (
+                "Save"
+              ) : (
+                "Create"
+              )}
+            </button>
+          </div>
+        </form>
+      </div>
+      <form method="dialog" className="modal-backdrop">
+        <button onClick={onClose}>close</button>
+      </form>
+    </dialog>
+  );
+}
+
+/* ------------------------------------------------------------------ */
 /*  Main Page                                                          */
 /* ------------------------------------------------------------------ */
 export default function ManageUsersPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [roles, setRoles] = useState<Role[]>([]);
+  const [permissions, setPermissions] = useState<Permission[]>([]);
+  const [roleDetails, setRoleDetails] = useState<RoleDetail[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  // Modal state – modalKey forces remount so form state resets
+  // User modal state – modalKey forces remount so form state resets
   const [modalOpen, setModalOpen] = useState(false);
   const [modalKey, setModalKey] = useState(0);
   const [editingUser, setEditingUser] = useState<User | null>(null);
@@ -223,23 +378,45 @@ export default function ManageUsersPage() {
   const [deletingUser, setDeletingUser] = useState<User | null>(null);
   const [deleting, setDeleting] = useState(false);
 
-  const loadUsers = useCallback(async () => {
+  // Role modal state
+  const [roleModalOpen, setRoleModalOpen] = useState(false);
+  const [roleModalKey, setRoleModalKey] = useState(0);
+  const [editingRole, setEditingRole] = useState<RoleDetail | null>(null);
+  const [savingRole, setSavingRole] = useState(false);
+
+  const loadData = useCallback(async () => {
     setLoading(true);
     setError("");
     try {
-      const [userData, roleData] = await Promise.all([fetchUsers(), fetchRoles()]);
+      const [userData, roleData, permData] = await Promise.all([
+        fetchUsers(),
+        fetchRoles(),
+        fetchPermissions(),
+      ]);
       setUsers(userData);
       setRoles(roleData);
+      setPermissions(permData);
+
+      // Build role details: role list augmented with permission names.
+      // If the roles API already returns permissions, use them; otherwise
+      // initialize with an empty array so the UI still works.
+      setRoleDetails(
+        roleData.map((r) => ({
+          id: r.id,
+          name: r.name,
+          permissions: r.permissions ?? [],
+        })),
+      );
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to load users");
+      setError(err instanceof Error ? err.message : "Failed to load data");
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    loadUsers();
-  }, [loadUsers]);
+    loadData();
+  }, [loadData]);
 
   /* ---------- Handlers ---------- */
 
@@ -264,7 +441,7 @@ export default function ManageUsersPage() {
         await createUser(data as CreateUserPayload);
       }
       setModalOpen(false);
-      await loadUsers();
+      await loadData();
     } finally {
       setSaving(false);
     }
@@ -282,9 +459,38 @@ export default function ManageUsersPage() {
     try {
       await deleteUser(deletingUser.id);
       setDeleteModalOpen(false);
-      await loadUsers();
+      await loadData();
     } finally {
       setDeleting(false);
+    }
+  };
+
+  /* ---------- Role Handlers ---------- */
+
+  const openAddRoleModal = () => {
+    setEditingRole(null);
+    setRoleModalKey((k) => k + 1);
+    setRoleModalOpen(true);
+  };
+
+  const openEditRoleModal = (role: RoleDetail) => {
+    setEditingRole(role);
+    setRoleModalKey((k) => k + 1);
+    setRoleModalOpen(true);
+  };
+
+  const handleRoleSave = async (data: CreateRolePayload | UpdateRolePayload) => {
+    setSavingRole(true);
+    try {
+      if (editingRole) {
+        await updateRole(editingRole.id, data as UpdateRolePayload);
+      } else {
+        await createRole(data as CreateRolePayload);
+      }
+      setRoleModalOpen(false);
+      await loadData();
+    } finally {
+      setSavingRole(false);
     }
   };
 
@@ -292,9 +498,11 @@ export default function ManageUsersPage() {
 
   return (
     <MainLayout>
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-5xl mx-auto">
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold text-[#344767]">Manage Users</h1>
+          <h1 className="text-2xl font-bold text-[#344767]">
+            Manage Users &amp; Roles
+          </h1>
         </div>
 
         {error && (
@@ -309,6 +517,9 @@ export default function ManageUsersPage() {
           </div>
         ) : (
           <>
+            {/* ========== User Management Section ========== */}
+            <h2 className="text-lg font-semibold text-[#344767] mb-3">Users</h2>
+
             <div className="bg-white rounded-xl shadow overflow-x-auto">
               <table className="table table-zebra w-full">
                 <thead>
@@ -375,11 +586,77 @@ export default function ManageUsersPage() {
                 + Add User
               </button>
             </div>
+
+            {/* ========== Role Management Section ========== */}
+            <div className="divider my-8" />
+            <h2 className="text-lg font-semibold text-[#344767] mb-3">Roles</h2>
+
+            <div className="bg-white rounded-xl shadow overflow-x-auto">
+              <table className="table table-zebra w-full">
+                <thead>
+                  <tr className="text-xs uppercase text-[#7B809A]">
+                    <th>Role Name</th>
+                    <th>Permissions</th>
+                    <th className="text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {roleDetails.length === 0 ? (
+                    <tr>
+                      <td colSpan={3} className="text-center py-8 text-[#7B809A]">
+                        No roles found.
+                      </td>
+                    </tr>
+                  ) : (
+                    roleDetails.map((r) => (
+                      <tr key={r.id}>
+                        <td className="font-medium">{r.name}</td>
+                        <td>
+                          <div className="flex flex-wrap gap-1">
+                            {r.permissions.length === 0 ? (
+                              <span className="text-[#7B809A] text-xs italic">
+                                None
+                              </span>
+                            ) : (
+                              r.permissions.map((p) => (
+                                <span
+                                  key={p}
+                                  className="badge badge-outline badge-xs font-mono"
+                                >
+                                  {p}
+                                </span>
+                              ))
+                            )}
+                          </div>
+                        </td>
+                        <td className="text-right">
+                          <button
+                            className="btn btn-ghost btn-xs"
+                            onClick={() => openEditRoleModal(r)}
+                            title="Edit role"
+                            aria-label={`Edit role ${r.name}`}
+                          >
+                            ✏️
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Add Role button */}
+            <div className="flex justify-end mt-4">
+              <button className="btn btn-secondary" onClick={openAddRoleModal}>
+                + Add Role
+              </button>
+            </div>
           </>
         )}
       </div>
 
-      {/* Modals – key forces remount to reset form state */}
+      {/* User Modals – key forces remount to reset form state */}
       {modalOpen && roles.length > 0 && (
         <UserModal
           key={modalKey}
@@ -398,6 +675,18 @@ export default function ManageUsersPage() {
           onConfirm={handleDelete}
           user={deletingUser}
           deleting={deleting}
+        />
+      )}
+
+      {/* Role Modal */}
+      {roleModalOpen && (
+        <RoleModal
+          key={roleModalKey}
+          onClose={() => setRoleModalOpen(false)}
+          onSave={handleRoleSave}
+          role={editingRole}
+          saving={savingRole}
+          permissions={permissions}
         />
       )}
     </MainLayout>
