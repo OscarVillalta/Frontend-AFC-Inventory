@@ -44,7 +44,7 @@ function App() {
             </Route>
 
             {/* User Management — requires users:manage */}
-            <Route element={<ProtectedRoute requiredPermission="users:manage" />}>
+            <Route element={<ProtectedRoute requiredPermission="roles:manage" />}>
               <Route path="/manage-users" element={<ManageUsersPage />} />
             </Route>
 
