@@ -29,7 +29,7 @@ interface Props {
 }
 
 export default function OrderItemRow({ item, orderType, onRefresh, txnRefreshKey, isSelected, onSelectChange }: Props) {
-  const { user } = useAuth();
+  const { hasPermission } = useAuth();
   const [expanded, setExpanded] = useState(false);
   
   const {
@@ -797,9 +797,9 @@ export default function OrderItemRow({ item, orderType, onRefresh, txnRefreshKey
                               <>
                                 <button
                                   className="btn btn-xs btn-success"
-                                  disabled={!!error || (user?.role !== "Admin" && user?.role !== "Warehouse")}
+                                  disabled={!!error || !hasPermission("inventory:fulfill")}
                                   title={
-                                    user?.role !== "Admin" && user?.role !== "Warehouse"
+                                    !hasPermission("inventory:fulfill")
                                       ? "Only Warehouse staff can fulfill orders."
                                       : undefined
                                   }

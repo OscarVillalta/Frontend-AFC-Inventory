@@ -28,7 +28,7 @@ export default function OrdersSearchPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { activeWarehouseId } = useWarehouse();
-  const { user } = useAuth();
+  const { hasPermission } = useAuth();
 
   //Customer and supplier list
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -242,7 +242,7 @@ export default function OrdersSearchPage() {
                 Search Orders
               </h1>
               <div className="flex gap-3">
-                {user?.role !== "Warehouse" && user?.role !== "Service" && (
+                {hasPermission("orders:create") && (
                 <button
                   className="
                     px-5 py-2.5 rounded-lg

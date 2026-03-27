@@ -75,7 +75,7 @@ export default function ProductDetailPage() {
   const { productId } = useParams<{ productId: string }>();
   const navigate = useNavigate();
   const { activeWarehouseId, warehouses } = useWarehouse();
-  const { user } = useAuth();
+  const { hasPermission } = useAuth();
   const activeWarehouseName = warehouses.find((w) => w.id === activeWarehouseId)?.name ?? null;
   const [product, setProduct] = useState<ProductDetail | null>(null);
   const [transactions, setTransactions] = useState<TransactionItem[]>([]);
@@ -693,7 +693,7 @@ export default function ProductDetailPage() {
               <div className="flex items-start justify-between">
                 <h1 className="text-3xl font-bold text-[#363b4c]">{partNumber}</h1>
                 <div className="flex gap-2 flex-shrink-0">
-                  {user?.role === "Admin" && (
+                  {hasPermission("products:manage") && (
                   <>
                   {!editingDetails ? (
                     <button
@@ -1284,7 +1284,7 @@ export default function ProductDetailPage() {
         <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden col-span-1">
           <div className="bg-[#363b4c] text-white px-4 py-2 flex justify-between items-center">
             <h3 className="font-semibold">Child Products</h3>
-            {user?.role === "Admin" && (
+            {hasPermission("products:manage") && (
             <button
               className="text-white text-sm hover:text-gray-300 transition-colors"
               onClick={() => setAddChildProductOpen(true)}
@@ -1331,7 +1331,7 @@ export default function ProductDetailPage() {
             ) : (
               <div className="text-center py-6">
                 <p className="text-gray-500 mb-4">No child products</p>
-                {user?.role === "Admin" && (
+                {hasPermission("products:manage") && (
                 <button
                   className="bg-[#363b4c] text-white px-6 py-2 rounded hover:bg-[#4a5063] transition-colors"
                   onClick={() => setAddChildProductOpen(true)}

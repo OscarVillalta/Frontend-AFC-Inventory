@@ -26,8 +26,6 @@ function RequireAuth() {
   return <Outlet />;
 }
 
-const ALL_ROLES = ["Admin", "Sales", "Warehouse", "Service"];
-
 function App() {
   return (
     <BrowserRouter>
@@ -39,15 +37,19 @@ function App() {
           <Route element={<RequireAuth />}>
             <Route path="/" element={<Dashboard/>}/>
 
-            {/* Product / Catalog Management — Admin only */}
-            <Route element={<ProtectedRoute allowedRoles={["Admin"]} />}>
+            {/* Product / Catalog Management — requires products:manage */}
+            <Route element={<ProtectedRoute requiredPermission="products:manage" />}>
               <Route path="/products/:productId" element={<ProductDetailPage />} />
               <Route path="/child-products/:childProductId" element={<ChildProductDetailPage />} />
+            </Route>
+
+            {/* User Management — requires users:manage */}
+            <Route element={<ProtectedRoute requiredPermission="users:manage" />}>
               <Route path="/manage-users" element={<ManageUsersPage />} />
             </Route>
 
-            {/* Inventory & Order pages — all operational roles */}
-            <Route element={<ProtectedRoute allowedRoles={ALL_ROLES} />}>
+            {/* Inventory & Order pages — requires orders:view */}
+            <Route element={<ProtectedRoute requiredPermission="orders:view" />}>
               <Route path="/inventory" element={<Inventory />} />
               <Route path="/order" element={<Order />} />
               <Route path="/orders/search" element={<OrdersSearch />} />

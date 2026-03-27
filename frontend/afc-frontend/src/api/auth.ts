@@ -3,7 +3,7 @@ const BASE_URL = import.meta.env.VITE_API_URL;
 export interface LoginResponse {
   access_token: string;
   email: string;
-  role: string;
+  permissions: string[];
 }
 
 export async function loginUser(

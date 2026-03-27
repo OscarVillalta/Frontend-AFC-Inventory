@@ -153,7 +153,7 @@ export default function MediaTable({
 }: Props) {
   const navigate = useNavigate();
   const { activeWarehouseId } = useWarehouse();
-  const { user } = useAuth();
+  const { hasPermission } = useAuth();
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
 
@@ -489,7 +489,7 @@ export default function MediaTable({
                 {renderStockCells(group.parent)}
                 {/* Actions */}
                 <td className={`${rowPadding} text-right pr-3`}>
-                  {user?.role === "Admin" && (
+                  {hasPermission("inventory:manage") && (
                   <div className="flex items-center justify-end gap-2 opacity-40 group-hover:opacity-100 transition-opacity">
                     <button
                       onClick={(e) => { e.stopPropagation(); handleEdit(group.parent); }}
