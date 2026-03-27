@@ -29,7 +29,7 @@ function UserModal({ onClose, onSave, user, saving, roles }: UserModalProps) {
 
     if (!isEdit) {
       // Create mode – all fields required
-      if (!email || !password || !roleId) {
+      if (!email || !password || roleId == null) {
         setError("All fields are required.");
         return;
       }
