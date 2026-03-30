@@ -38,7 +38,7 @@ function App() {
             <Route path="/" element={<Dashboard/>}/>
 
             {/* Product / Catalog Management — requires products:manage */}
-            <Route element={<ProtectedRoute requiredPermission="products:manage" />}>
+            <Route element={<ProtectedRoute requiredPermission="inventory:view" />}>
               <Route path="/products/:productId" element={<ProductDetailPage />} />
               <Route path="/child-products/:childProductId" element={<ChildProductDetailPage />} />
             </Route>
