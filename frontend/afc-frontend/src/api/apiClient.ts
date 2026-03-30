@@ -24,6 +24,12 @@ export async function apiRequest(endpoint: string, options: RequestInit = {}) {
   });
 
   if (!res.ok) {
+    if (res.status === 401) {
+      localStorage.removeItem(AUTH_TOKEN_KEY);
+      localStorage.removeItem("user_email");
+      localStorage.removeItem("user_permissions");
+      window.location.href = "/signin";
+    }
     const message = await res.text();
     throw new Error(message || "API request failed");
   }
