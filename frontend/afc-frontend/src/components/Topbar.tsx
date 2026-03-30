@@ -124,11 +124,9 @@ export default function Topbar({ onMenuToggle }: Props) {
             tabIndex={0}
             className="dropdown-content menu bg-base-100 rounded-box z-50 w-48 p-2 shadow"
           >
-            {isAdmin && (
               <li>
                 <Link to="/manage-users">Manage Users</Link>
               </li>
-            )}
           </ul>
         </div>
 
