@@ -223,13 +223,13 @@ export function buildSteps(row: PackingSlipRow): Step[] {
 function StockStateBadge({ state }: { state: string }) {
   if (state === "Delivered") {
     return (
-      <span className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold bg-green-600 text-white">
+      <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold bg-green-600 text-white">
         ✓ Delivered
       </span>
     );
   }
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold bg-blue-100 text-blue-700">
+    <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold bg-blue-100 text-blue-700">
       ◆ Reserved
     </span>
   );
@@ -238,34 +238,34 @@ function StockStateBadge({ state }: { state: string }) {
 function TrackerStatusBadge({ status, deptLabel: dept }: { status: string; deptLabel: string }) {
   if (status === "Completed") {
     return (
-      <span className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1 text-xs font-bold bg-green-100 text-green-700 uppercase tracking-wide">
+      <span className="inline-flex items-center gap-1 rounded-lg px-2.5 py-0.5 text-xs font-bold bg-green-100 text-green-700 uppercase tracking-wide">
         ✓ COMPLETED
       </span>
     );
   }
   if (status === "Backordered") {
     return (
-      <span className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1 text-xs font-bold bg-orange-100 text-orange-700 uppercase tracking-wide">
+      <span className="inline-flex items-center gap-1 rounded-lg px-2.5 py-0.5 text-xs font-bold bg-orange-100 text-orange-700 uppercase tracking-wide">
         ⚠ BACKORDERED
       </span>
     );
   }
   if (status === "In Progress" && dept) {
     return (
-      <span className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1 text-xs font-bold bg-yellow-100 text-yellow-700 uppercase tracking-wide">
+      <span className="inline-flex items-center gap-1 rounded-lg px-2.5 py-0.5 text-xs font-bold bg-yellow-100 text-yellow-700 uppercase tracking-wide">
         ● {dept}
       </span>
     );
   }
   if (status === "Not Started") {
     return (
-      <span className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1 text-xs font-semibold bg-slate-100 text-slate-500 uppercase tracking-wide">
+      <span className="inline-flex items-center gap-1 rounded-lg px-2.5 py-0.5 text-xs font-semibold bg-slate-100 text-slate-500 uppercase tracking-wide">
         ○ NOT STARTED
       </span>
     );
   }
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1 text-xs font-semibold bg-slate-100 text-slate-500 uppercase tracking-wide">
+    <span className="inline-flex items-center gap-1 rounded-lg px-2.5 py-0.5 text-xs font-semibold bg-slate-100 text-slate-500 uppercase tracking-wide">
       ● {status}
     </span>
   );
@@ -273,7 +273,7 @@ function TrackerStatusBadge({ status, deptLabel: dept }: { status: string; deptL
 
 function TypePill({ type }: { type: string }) {
   const t = type.toLowerCase();
-  let cls = "inline-flex items-center gap-2 rounded-lg px-3 py-1 text-base font-semibold ";
+  let cls = "inline-flex items-center gap-1.5 rounded-lg px-2.5 py-0.5 text-xs font-semibold ";
   if (t.includes("installation")) cls += "bg-blue-100 text-blue-700";
   else if (t.includes("delivery")) cls += "bg-teal-100 text-teal-700";
   else if (t.includes("shipment")) cls += "bg-cyan-100 text-cyan-700";
@@ -1114,51 +1114,51 @@ export default function PackingSlipTrackerPage() {
 
           {/* Table scroll wrapper */}
           <div className="overflow-x-auto">
-            <table className="w-full table-fixed border-separate border-spacing-0 text-sm">
+            <table className="w-full table-fixed border-separate border-spacing-0 text-xs">
               <colgroup>
+                <col className="w-32" />
+                <col className="w-28" />
+                <col className="w-56" />
+                <col className="w-28" />
+                <col className="w-28" />
                 <col className="w-36" />
-                <col className="w-32" />
-                <col className="w-64" />
-                <col className="w-32" />
-                <col className="w-32" />
-                <col className="w-40" />
-                <col className="w-28" />
-                <col className="w-28" />
-                <col className="w-28" />
-                <col className="w-12" />
+                <col className="w-24" />
+                <col className="w-24" />
+                <col className="w-24" />
+                <col className="w-10" />
               </colgroup>
               <thead>
                 <tr>
-                  <th className="px-4 py-3 text-left text-sm font-semibold text-slate-600 bg-slate-50 border-b border-slate-200/70 border-r border-slate-200/60 rounded-tl-xl">
+                  <th className="px-3 py-1.5 text-left text-xs font-semibold text-slate-600 bg-slate-50 border-b border-slate-200/70 border-r border-slate-200/60 rounded-tl-xl">
                     Packing Slip #
                   </th>
-                  <th className="px-4 py-3 text-left text-sm font-semibold text-slate-600 bg-slate-50 border-b border-slate-200/70 border-r border-slate-200/60">
+                  <th className="px-3 py-1.5 text-left text-xs font-semibold text-slate-600 bg-slate-50 border-b border-slate-200/70 border-r border-slate-200/60">
                     External Order #
                   </th>
-                  <th className="px-4 py-3 text-left text-sm font-semibold text-slate-600 bg-slate-50 border-b border-slate-200/70 border-r border-slate-200/60">
+                  <th className="px-3 py-1.5 text-left text-xs font-semibold text-slate-600 bg-slate-50 border-b border-slate-200/70 border-r border-slate-200/60">
                     Company
                   </th>
-                  <th className="px-4 py-3 text-left text-sm font-semibold text-slate-600 bg-slate-50 border-b border-slate-200/70 border-r border-slate-200/60">
+                  <th className="px-3 py-1.5 text-left text-xs font-semibold text-slate-600 bg-slate-50 border-b border-slate-200/70 border-r border-slate-200/60">
                     Type
                   </th>
-                  <th className="px-4 py-3 text-left text-sm font-semibold text-slate-600 bg-slate-50 border-b border-slate-200/70 border-r border-slate-200/60">
+                  <th className="px-3 py-1.5 text-left text-xs font-semibold text-slate-600 bg-slate-50 border-b border-slate-200/70 border-r border-slate-200/60">
                     Stock State
                   </th>
-                  <th className="px-4 py-3 text-left text-sm font-semibold text-slate-600 bg-slate-50 border-b border-slate-200/70 border-r border-slate-200/60">
+                  <th className="px-3 py-1.5 text-left text-xs font-semibold text-slate-600 bg-slate-50 border-b border-slate-200/70 border-r border-slate-200/60">
                     Tracker Status
                   </th>
-                  <th className="px-4 py-3 text-left text-sm font-semibold text-slate-600 bg-slate-50 border-b border-slate-200/70 border-r border-slate-200/60">
+                  <th className="px-3 py-1.5 text-left text-xs font-semibold text-slate-600 bg-slate-50 border-b border-slate-200/70 border-r border-slate-200/60">
                     <span className="inline-flex items-center gap-1">
                       Last Updated
                     </span>
                   </th>
-                  <th className="px-4 py-3 text-center text-sm font-semibold text-slate-600 bg-slate-50 border-b border-slate-200/70 border-r border-slate-200/60">
+                  <th className="px-3 py-1.5 text-center text-xs font-semibold text-slate-600 bg-slate-50 border-b border-slate-200/70 border-r border-slate-200/60">
                     Paid
                   </th>
-                  <th className="px-4 py-3 text-center text-sm font-semibold text-slate-600 bg-slate-50 border-b border-slate-200/70 border-r border-slate-200/60">
+                  <th className="px-3 py-1.5 text-center text-xs font-semibold text-slate-600 bg-slate-50 border-b border-slate-200/70 border-r border-slate-200/60">
                     Invoiced
                   </th>
-                  <th className="px-4 py-3 bg-slate-50 border-b border-slate-200/70 rounded-tr-xl w-12" />
+                  <th className="px-3 py-1.5 bg-slate-50 border-b border-slate-200/70 rounded-tr-xl w-10" />
                 </tr>
               </thead>
 
@@ -1200,7 +1200,7 @@ export default function PackingSlipTrackerPage() {
                           }
                         }}
                       >
-                        <td className="px-4 py-3 border-b border-slate-200/60 border-r border-slate-200/50">
+                        <td className="px-3 py-1.5 border-b border-slate-200/60 border-r border-slate-200/50">
                           <Link
                             to={`/orders/${row.id}`}
                             onClick={(e) => e.stopPropagation()}
@@ -1210,12 +1210,12 @@ export default function PackingSlipTrackerPage() {
                           </Link>
                         </td>
                         {/* External Order # */}
-                        <td className="px-4 py-3 border-b border-slate-200/60 border-r border-slate-200/50">
+                        <td className="px-3 py-1.5 border-b border-slate-200/60 border-r border-slate-200/50">
                           {row.externalOrderNumber ? (
                             <Link
                               to={`/orders/${row.id}`}
                               onClick={(e) => e.stopPropagation()}
-                              className="font-medium text-blue-700 hover:underline text-sm"
+                              className="font-medium text-blue-700 hover:underline text-xs"
                             >
                               {row.externalOrderNumber}
                             </Link>
@@ -1223,29 +1223,29 @@ export default function PackingSlipTrackerPage() {
                             <span className="text-slate-400">—</span>
                           )}
                         </td>
-                        <td className="px-4 py-3 border-b border-slate-200/60 border-r border-slate-200/50 font-medium text-slate-800">
+                        <td className="px-3 py-1.5 border-b border-slate-200/60 border-r border-slate-200/50 font-medium text-slate-800">
                           <span className="truncate block" title={row.customer}>
                             {row.customer}
                           </span>
                         </td>
-                        <td className="px-4 py-3 border-b border-slate-200/60 border-r border-slate-200/50">
+                        <td className="px-3 py-1.5 border-b border-slate-200/60 border-r border-slate-200/50">
                           <TypePill type={row.type} />
                         </td>
                         {/* Stock State */}
-                        <td className="px-4 py-3 border-b border-slate-200/60 border-r border-slate-200/50">
+                        <td className="px-3 py-1.5 border-b border-slate-200/60 border-r border-slate-200/50">
                           <StockStateBadge state={row.stockState} />
                         </td>
                         {/* Tracker Status */}
-                        <td className="px-4 py-3 border-b border-slate-200/60 border-r border-slate-200/50">
+                        <td className="px-3 py-1.5 border-b border-slate-200/60 border-r border-slate-200/50">
                           <TrackerStatusBadge
                             status={row.trackerStatus}
                             deptLabel={row.trackerDept}
                           />
                         </td>
-                        <td className="px-4 py-3 border-b border-slate-200/60 border-r border-slate-200/50 text-slate-700 font-medium">
+                        <td className="px-3 py-1.5 border-b border-slate-200/60 border-r border-slate-200/50 text-slate-700 font-medium">
                           {row.lastUpdated}
                         </td>
-                        <td className="px-2 py-3 border-b border-slate-200/60 border-r border-slate-200/50 text-center">
+                        <td className="px-2 py-1.5 border-b border-slate-200/60 border-r border-slate-200/50 text-center">
                           <PaidInvoicedToggle
                             orderId={row.id}
                             isPaid={row.is_paid}
@@ -1254,7 +1254,7 @@ export default function PackingSlipTrackerPage() {
                             onUpdate={(field, value) => handlePaidInvoicedUpdate(row.id, field, value)}
                           />
                         </td>
-                        <td className="px-2 py-3 border-b border-slate-200/60 border-r border-slate-200/50 text-center">
+                        <td className="px-2 py-1.5 border-b border-slate-200/60 border-r border-slate-200/50 text-center">
                           <PaidInvoicedToggle
                             orderId={row.id}
                             isPaid={row.is_paid}
@@ -1263,16 +1263,16 @@ export default function PackingSlipTrackerPage() {
                             onUpdate={(field, value) => handlePaidInvoicedUpdate(row.id, field, value)}
                           />
                         </td>
-                        <td className="px-4 py-3 border-b border-slate-200/60 text-center">
+                        <td className="px-3 py-1.5 border-b border-slate-200/60 text-center">
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
                               toggleExpand(row.id);
                             }}
-                            className="w-9 h-9 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-600 transition-colors mx-auto"
+                            className="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-600 transition-colors mx-auto"
                             aria-label={expandedId === row.id ? "Collapse" : "Expand"}
                           >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               {expandedId === row.id ? (
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
                               ) : (
