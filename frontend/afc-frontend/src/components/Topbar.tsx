@@ -1,4 +1,4 @@
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useWarehouse } from "../hooks/useWarehouse";
 import { useAuth } from "../hooks/useAuth";
 
@@ -10,7 +10,8 @@ export default function Topbar({ onMenuToggle }: Props) {
   const { pathname } = useLocation();
   const { warehouses, activeWarehouseId, setActiveWarehouseId, loading } =
     useWarehouse();
-  const { hasPermission } = useAuth();
+  const { hasPermission, logout, user } = useAuth();
+  const navigate = useNavigate();
   const isAdmin = hasPermission("users:manage");
 
   type Breadcrumb = { label: string; to?: string };
@@ -134,10 +135,32 @@ export default function Topbar({ onMenuToggle }: Props) {
           🔔
         </button>
 
-        <div className="avatar">
-          <div className="w-8 h-8 rounded-full shadow bg-neutral text-neutral-content text-xs flex items-center justify-center">
-            User
-          </div>
+        {/* User Avatar Dropdown */}
+        <div className="dropdown dropdown-end">
+          <button tabIndex={0} className="btn btn-ghost btn-circle avatar" aria-label="User menu">
+            <div className="w-8 h-8 rounded-full shadow bg-neutral text-neutral-content text-xs flex items-center justify-center">
+              {user?.email?.charAt(0).toUpperCase() ?? "U"}
+            </div>
+          </button>
+          <ul
+            tabIndex={0}
+            className="dropdown-content menu bg-base-100 rounded-box z-50 w-52 p-2 shadow"
+          >
+            <li className="menu-title">
+              <span className="text-xs truncate">{user?.email ?? "User"}</span>
+            </li>
+            <li>
+              <button
+                onClick={() => {
+                  logout();
+                  navigate("/signin");
+                }}
+                className="text-error"
+              >
+                🚪 Logout
+              </button>
+            </li>
+          </ul>
         </div>
       </div>
     </div>
