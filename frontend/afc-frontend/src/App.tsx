@@ -41,6 +41,7 @@ function App() {
             <Route element={<ProtectedRoute requiredPermission="inventory:view" />}>
               <Route path="/products/:productId" element={<ProductDetailPage />} />
               <Route path="/child-products/:childProductId" element={<ChildProductDetailPage />} />
+              <Route path="/inventory" element={<Inventory />} />
             </Route>
 
             {/* User Management — requires users:manage */}
@@ -50,13 +51,21 @@ function App() {
 
             {/* Inventory & Order pages — requires orders:view */}
             <Route element={<ProtectedRoute requiredPermission="orders:view" />}>
-              <Route path="/inventory" element={<Inventory />} />
               <Route path="/order" element={<Order />} />
               <Route path="/orders/search" element={<OrdersSearch />} />
-              <Route path="/transactions" element={<TransactionsPage/>}/>
-              <Route path="/conversions" element={<ConversionsPage />} />
               <Route path="/orders/:orderId" element={<OrderDetailPage />} />
+            </Route>
+
+            <Route element={<ProtectedRoute requiredPermission="tracker:view"/>}>
               <Route path="/packing-slip-tracker" element={<PackingSlipTrackerPage />} />
+            </Route>
+
+            <Route element={<ProtectedRoute requiredPermission="conversions:view"/>}>
+              <Route path="/conversions" element={<ConversionsPage />} />
+            </Route>
+
+            <Route element={<ProtectedRoute requiredPermission="catalog:view"/>}>
+              <Route path="/transactions" element={<TransactionsPage/>}/>
             </Route>
           </Route>
         </Routes>
