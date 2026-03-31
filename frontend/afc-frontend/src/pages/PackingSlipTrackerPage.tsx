@@ -16,6 +16,9 @@ import {
 } from "../api/tracker";
 import { ORDER_TYPE_LABELS } from "../constants/orderTypes";
 import { useWarehouse } from "../hooks/useWarehouse";
+import { useAuth } from "../hooks/useAuth";
+
+const { hasPermission } = useAuth();
 
 // ─────────────────────────────────────────────
 // Tracker step-path definitions (one per order type group)
@@ -45,6 +48,15 @@ const PURCHASE_ORDER_STEPS: { dept: Department; label: string }[] = [
   { dept: "DELIVERY_DEPT", label: "Delivery" },
   { dept: "LOGISTICS",     label: "Logistics II" },
 ];
+
+/** Permissiones required for each Department */
+const DEPARMENT_PERMISSION: Record<Department,string> = {
+  "SALES": "tracker:update_sales",
+  "LOGISTICS": "tracker:update_logistics",
+  "DELIVERY_DEPT": "tracker:update_delivery",
+  "SERVICE": "tracker:update_service",
+  "ACCOUNTING": "tracker:update_accounting"
+};
 
 /** Returns the correct step template for the given order type string. */
 function getStepsTemplate(orderType: string): { dept: Department; label: string }[] {
@@ -522,6 +534,12 @@ function ExpandedPanel({
           current_department: firstDept,
           step_index: 0,
         });
+      }
+
+      const steps = getStepsTemplate(row.type)
+
+      if (!hasPermission(DEPARMENT_PERMISSION[steps[index]["dept"]])) {
+        throw new Error('You do not have the permissiones to complete this step')
       }
 
       const currentStage = (row.stages ?? []).find((s) => s.stage_index === index);
