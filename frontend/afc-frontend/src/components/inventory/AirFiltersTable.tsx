@@ -372,7 +372,7 @@ export default function AirFiltersTable({
 
   /* ===================== TABLE COLUMNS ===================== */
 
-  const columns = ["Part Number", "Description", "Supplier", "Category", "Dimensions", "MERV", "", "On Hand", "Ordered", "Reserved", "Available", "Backord.", "Actions"];
+  const columns = ["Part Number", "Description", "Supplier", "Category", "Dimensions", "MERV", "", "On Hand", "Ordered", "Reserved", "Available", "Backorder", "Actions"];
 
   /* ===================== ROW RENDER HELPER ===================== */
 
@@ -542,7 +542,7 @@ export default function AirFiltersTable({
                 {renderStockCells(group.parent)}
                 {/* Actions */}
                 <td className={`${rowPadding} text-right pr-3`}>
-                  {hasPermission("inventory:manage") && (
+                  {hasPermission("inventory:manual_adjust") && (
                   <div className="flex items-center justify-end gap-2 opacity-40 group-hover:opacity-100 transition-opacity">
                     <button
                       onClick={(e) => { e.stopPropagation(); handleEdit(group.parent); }}

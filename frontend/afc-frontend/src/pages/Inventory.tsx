@@ -190,7 +190,7 @@ export default function Inventory() {
           </div>
         </div>
 
-          {hasPermission("inventory:manage") && (
+          {hasPermission("inventory:manual_adjust") && (
           <div className="flex gap-2 flex-wrap shrink-0">
             <button
               className="px-4 py-2 text-sm font-medium rounded-lg border border-gray-300 text-gray-700 bg-white hover:bg-gray-50 transition"

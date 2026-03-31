@@ -396,7 +396,7 @@ export default function StockItemsTable({
             </td>
             {/* Actions */}
             <td className={`${rowPadding} text-right pr-3`}>
-              {hasPermission("inventory:manage") && (
+              {hasPermission("inventory:manual_adjust") && (
               <div className="flex items-center justify-end gap-2 opacity-40 group-hover:opacity-100 transition-opacity">
                 <button
                   onClick={(e) => { e.stopPropagation(); handleEdit(row); }}
