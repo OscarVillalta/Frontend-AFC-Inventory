@@ -422,6 +422,9 @@ function PaidInvoicedToggle({
   field?: "is_paid" | "is_invoiced";
   onUpdate: (field: "is_paid" | "is_invoiced", value: boolean) => void;
 }) {
+  const {hasPermission} = useAuth()
+  const canMarkPaid = hasPermission("orders:mark_paid");
+  const canMarkInvoiced = hasPermission("orders:mark_invoiced");
   const [savingPaid, setSavingPaid] = useState(false);
   const [savingInvoiced, setSavingInvoiced] = useState(false);
 
@@ -439,13 +442,13 @@ function PaidInvoicedToggle({
   if (field === "is_paid") {
     return (
       <button
-        disabled={savingPaid}
+        disabled={savingPaid && !canMarkPaid}
         onClick={(e) => { e.stopPropagation(); toggle("is_paid", isPaid); }}
         className={`px-3 py-1 rounded-full text-xs font-semibold transition-all border ${
           isPaid
             ? "bg-green-500 text-white border-green-500 shadow-sm"
             : "bg-white text-gray-500 border-gray-300 hover:bg-green-50 hover:text-green-600 hover:border-green-400"
-        }`}
+        } ${!canMarkPaid ? "opacity-50 cursor-not-allowed" : ""}`}
       >
         {savingPaid ? "…" : isPaid ? "✓ PAID" : "PAID"}
       </button>
@@ -455,13 +458,13 @@ function PaidInvoicedToggle({
   if (field === "is_invoiced") {
     return (
       <button
-        disabled={savingInvoiced}
+        disabled={savingInvoiced && canMarkInvoiced}
         onClick={(e) => { e.stopPropagation(); toggle("is_invoiced", isInvoiced); }}
         className={`px-3 py-1 rounded-full text-xs font-semibold transition-all border ${
           isInvoiced
             ? "bg-green-500 text-white border-green-500 shadow-sm"
             : "bg-white text-gray-500 border-gray-300 hover:bg-green-50 hover:text-green-600 hover:border-green-400"
-        }`}
+        } ${!canMarkInvoiced ? "opacity-50 cursor-not-allowed" : ""}`}
       >
         {savingInvoiced ? "…" : isInvoiced ? "✓ INVOICED" : "INVOICED"}
       </button>
@@ -477,7 +480,7 @@ function PaidInvoicedToggle({
           isPaid
             ? "bg-green-500 text-white border-green-500 shadow-sm"
             : "bg-white text-gray-500 border-gray-300 hover:bg-green-50 hover:text-green-600 hover:border-green-400"
-        }`}
+        } ${!canMarkPaid ? "opacity-50 cursor-not-allowed" : ""}`}
       >
         {savingPaid ? "…" : isPaid ? "✓ PAID" : "PAID"}
       </button>
@@ -488,7 +491,7 @@ function PaidInvoicedToggle({
           isInvoiced
             ? "bg-green-500 text-white border-green-500 shadow-sm"
             : "bg-white text-gray-500 border-gray-300 hover:bg-green-50 hover:text-green-600 hover:border-green-400"
-        }`}
+        } ${!canMarkInvoiced ? "opacity-50 cursor-not-allowed" : ""}`}
       >
         {savingInvoiced ? "…" : isInvoiced ? "✓ INVOICED" : "INVOICED"}
       </button>
@@ -516,6 +519,7 @@ function ExpandedPanel({
   onBackorderedUpdate: (orderId: number, isBackordered: boolean) => void;
 }) {
   const { hasPermission } = useAuth();
+  const canToggleBackorder = hasPermission("orders:edit") || hasPermission("tracker:update_any");
   const [savingIndex, setSavingIndex] = useState<number | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [savingBackordered, setSavingBackordered] = useState(false);
@@ -606,13 +610,13 @@ function ExpandedPanel({
               )}
             </div>
             <button
-              disabled={savingBackordered}
+              disabled={savingBackordered || !canToggleBackorder}
               onClick={(e) => { e.stopPropagation(); handleToggleBackordered(); }}
               className={`px-3 py-1 rounded-full text-xs font-semibold transition-all border ${
                 row.tracker?.is_backordered
                   ? "bg-orange-500 text-white border-orange-500 shadow-sm"
                   : "bg-white text-gray-500 border-gray-300 hover:bg-orange-50 hover:text-orange-600 hover:border-orange-400"
-              }`}
+              } ${!canToggleBackorder ? "opacity-50 cursor-not-allowed" : ""}`}
             >
               {savingBackordered ? "…" : row.tracker?.is_backordered ? "⚠ BACKORDERED" : "Set Backordered"}
             </button>
