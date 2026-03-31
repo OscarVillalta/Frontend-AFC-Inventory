@@ -442,7 +442,7 @@ function PaidInvoicedToggle({
   if (field === "is_paid") {
     return (
       <button
-        disabled={savingPaid && !canMarkPaid}
+        disabled={savingPaid || !canMarkPaid}
         onClick={(e) => { e.stopPropagation(); toggle("is_paid", isPaid); }}
         className={`px-3 py-1 rounded-full text-xs font-semibold transition-all border ${
           isPaid
@@ -458,7 +458,7 @@ function PaidInvoicedToggle({
   if (field === "is_invoiced") {
     return (
       <button
-        disabled={savingInvoiced && canMarkInvoiced}
+        disabled={savingInvoiced || canMarkInvoiced}
         onClick={(e) => { e.stopPropagation(); toggle("is_invoiced", isInvoiced); }}
         className={`px-3 py-1 rounded-full text-xs font-semibold transition-all border ${
           isInvoiced

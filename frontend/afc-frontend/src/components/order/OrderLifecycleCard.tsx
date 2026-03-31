@@ -350,7 +350,7 @@ export default function OrderLifecycleCard({
 
           <div className="mt-4 flex gap-2 flex-wrap">
             <button
-              disabled={savingInvoiced && !canMarkInvoiced}
+              disabled={savingInvoiced || !canMarkInvoiced}
               onClick={() => handleInvoicedChange(!invoiced)}
               className={`px-4 py-1.5 rounded-full text-sm font-semibold transition-all border ${
                 invoiced
@@ -361,7 +361,7 @@ export default function OrderLifecycleCard({
               {savingInvoiced ? "…" : invoiced ? "✓ INVOICED" : "INVOICED"}
             </button>
             <button
-              disabled={savingPaid && !canMarkPaid}
+              disabled={savingPaid || !canMarkPaid}
               onClick={() => handlePaidChange(!paid)}
               className={`px-4 py-1.5 rounded-full text-sm font-semibold transition-all border ${
                 paid
