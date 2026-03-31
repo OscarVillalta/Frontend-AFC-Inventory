@@ -18,8 +18,6 @@ import { ORDER_TYPE_LABELS } from "../constants/orderTypes";
 import { useWarehouse } from "../hooks/useWarehouse";
 import { useAuth } from "../hooks/useAuth";
 
-const { hasPermission } = useAuth();
-
 // ─────────────────────────────────────────────
 // Tracker step-path definitions (one per order type group)
 // ─────────────────────────────────────────────
@@ -517,6 +515,7 @@ function ExpandedPanel({
   onStagesUpdate: (orderId: number, updatedStage: OrderTrackerStagePayload) => void;
   onBackorderedUpdate: (orderId: number, isBackordered: boolean) => void;
 }) {
+  const { hasPermission } = useAuth();
   const [savingIndex, setSavingIndex] = useState<number | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [savingBackordered, setSavingBackordered] = useState(false);
