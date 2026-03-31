@@ -48,7 +48,7 @@ const PURCHASE_ORDER_STEPS: { dept: Department; label: string }[] = [
 ];
 
 /** Permissiones required for each Department */
-const DEPARMENT_PERMISSION: Record<Department,string> = {
+const DEPARTMENT_PERMISSION: Record<Department,string> = {
   "SALES": "tracker:update_sales",
   "LOGISTICS": "tracker:update_logistics",
   "DELIVERY_DEPT": "tracker:update_delivery",
@@ -535,10 +535,12 @@ function ExpandedPanel({
         });
       }
 
-      const steps = getStepsTemplate(row.type)
+      const stepsTemplate = getStepsTemplate(row.type ?? "")
+      const targetDept = stepsTemplate[index].dept;
+      const requiredPermission = DEPARTMENT_PERMISSION[targetDept];
 
-      if (!hasPermission(DEPARMENT_PERMISSION[steps[index]["dept"]])) {
-        throw new Error('You do not have the permissiones to complete this step')
+      if (!hasPermission(requiredPermission) && !hasPermission('tracker:update_any')) {
+        throw new Error('You do not have the permissions to complete this department\'s step.');
       }
 
       const currentStage = (row.stages ?? []).find((s) => s.stage_index === index);
