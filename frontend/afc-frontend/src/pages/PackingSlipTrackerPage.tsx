@@ -519,7 +519,7 @@ function ExpandedPanel({
   onBackorderedUpdate: (orderId: number, isBackordered: boolean) => void;
 }) {
   const { hasPermission } = useAuth();
-  const canToggleBackorder = hasPermission("orders:edit") || hasPermission("tracker:update_any");
+  const canToggleBackorder = hasPermission("tracker:set_backordered") || hasPermission("tracker:update_any");
   const [savingIndex, setSavingIndex] = useState<number | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [savingBackordered, setSavingBackordered] = useState(false);

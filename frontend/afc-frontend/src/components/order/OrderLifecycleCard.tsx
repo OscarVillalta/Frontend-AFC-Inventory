@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import type { OrderWithTracking, Department, OrderTrackerStagePayload } from "../../api/tracker";
 import { patchOrderPaidInvoiced, initOrderTracker, toggleTrackerStage } from "../../api/tracker";
+import { useAuth } from "../../hooks/useAuth";
 
 // ─────────────────────────────────────────────
 // Tracker step-path definitions (per order type)
@@ -37,6 +38,15 @@ function getTrackerSteps(orderType: string): { dept: Department; label: string }
   if (t === "incoming") return PURCHASE_ORDER_STEPS;
   return WILL_CALL_STEPS; // will_call, delivery, shipment
 }
+
+/** Permissiones required for each Department */
+const DEPARTMENT_PERMISSION: Record<Department,string> = {
+  "SALES": "tracker:update_sales",
+  "LOGISTICS": "tracker:update_logistics",
+  "DELIVERY_DEPT": "tracker:update_delivery",
+  "SERVICE": "tracker:update_service",
+  "ACCOUNTING": "tracker:update_accounting"
+};
 
 // ─────────────────────────────────────────────
 // Types
@@ -134,6 +144,9 @@ export default function OrderLifecycleCard({
   orderType,
   onRefresh,
 }: Props) {
+  const {hasPermission} = useAuth()
+  const canMarkPaid = hasPermission("orders:mark_paid");
+  const canMarkInvoiced = hasPermission("orders:mark_invoiced");
   const [paid, setPaid] = useState(isPaid);
   const [invoiced, setInvoiced] = useState(isInvoiced);
   const [savingIndex, setSavingIndex] = useState<number | null>(null);
@@ -206,6 +219,13 @@ export default function OrderLifecycleCard({
           current_department: TRACKER_STEPS[0].dept,
           step_index: 0,
         });
+      }
+
+      const targetDept = TRACKER_STEPS[index].dept;
+      const requiredPermission = DEPARTMENT_PERMISSION[targetDept];
+
+      if (!hasPermission(requiredPermission) && !hasPermission('tracker:update_any')) {
+        throw new Error('You do not have the permissions to complete this department\'s step.');
       }
 
       await toggleTrackerStage(orderId, index, { is_completed: newCompleted });
@@ -330,24 +350,24 @@ export default function OrderLifecycleCard({
 
           <div className="mt-4 flex gap-2 flex-wrap">
             <button
-              disabled={savingInvoiced}
+              disabled={savingInvoiced && !canMarkInvoiced}
               onClick={() => handleInvoicedChange(!invoiced)}
               className={`px-4 py-1.5 rounded-full text-sm font-semibold transition-all border ${
                 invoiced
                   ? "bg-green-500 text-white border-green-500 shadow-sm"
                   : "bg-white text-gray-500 border-gray-300 hover:bg-green-50 hover:text-green-600 hover:border-green-400"
-              }`}
+              } ${!canMarkInvoiced ? "opacity-50 cursor-not-allowed" : ""}`}
             >
               {savingInvoiced ? "…" : invoiced ? "✓ INVOICED" : "INVOICED"}
             </button>
             <button
-              disabled={savingPaid}
+              disabled={savingPaid && !canMarkPaid}
               onClick={() => handlePaidChange(!paid)}
               className={`px-4 py-1.5 rounded-full text-sm font-semibold transition-all border ${
                 paid
                   ? "bg-green-500 text-white border-green-500 shadow-sm"
                   : "bg-white text-gray-500 border-gray-300 hover:bg-green-50 hover:text-green-600 hover:border-green-400"
-              }`}
+              } ${!canMarkPaid ? "opacity-50 cursor-not-allowed" : ""}`}
             >
               {savingPaid ? "…" : paid ? "✓ PAID" : "PAID"}
             </button>
