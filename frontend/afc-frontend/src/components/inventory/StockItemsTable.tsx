@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import MDTable from "../table/MDtable";
 import { fetchStockItems, patchStockItem } from "../../api/stockItems";
@@ -175,19 +175,6 @@ export default function StockItemsTable({
 
   const rows: StockItemPayload[] = data?.results ?? [];
 
-  /* ── client-side quick-view filter ── */
-  const filteredRows = useMemo(() => {
-    if (quickView === "all") return rows;
-    return rows.filter((r) => {
-      switch (quickView) {
-        case "low_stock":   return r.available <= 0;
-        case "backordered": return r.backordered > 0;
-        case "has_orders":  return r.ordered > 0;
-        default:            return true;
-      }
-    });
-  }, [rows, quickView]);
-
   /* ===================== EDIT HANDLERS ===================== */
 
   const handleEdit = (row: StockItemPayload) => {
@@ -280,7 +267,7 @@ export default function StockItemsTable({
         onPageChange={setPage}
         onPageSizeChange={setPageSize}
       >
-        {filteredRows.map((row) => (
+        {rows.map((row) => (
           <tr
             key={row.id}
             className="hover:bg-blue-50/40 transition cursor-pointer group"
@@ -429,7 +416,7 @@ export default function StockItemsTable({
           </tr>
         )}
 
-        {!loading && filteredRows.length === 0 && (
+        {!loading && rows.length === 0 && (
           <tr>
             <td colSpan={columns.length} className="text-center py-8 text-gray-400 text-sm">
               No items found.

@@ -241,20 +241,7 @@ export default function AirFiltersTable({
 
   const rows: AirFilterPayload[] = data?.results ?? [];
 
-  /* ── client-side quick-view filter ── */
-  const filteredRows = useMemo(() => {
-    if (quickView === "all") return rows;
-    return rows.filter((r) => {
-      switch (quickView) {
-        case "low_stock":      return r.available <= 0;
-        case "backordered":    return r.backordered > 0;
-        case "has_orders":     return r.ordered > 0;
-        default:               return true;
-      }
-    });
-  }, [rows, quickView]);
-
-  const groupedProducts = useMemo(() => groupProducts(filteredRows), [filteredRows]);
+  const groupedProducts = useMemo(() => groupProducts(rows), [rows]);
 
   /* ===================== EXPAND/COLLAPSE ===================== */
 
