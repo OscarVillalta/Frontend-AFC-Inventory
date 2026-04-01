@@ -63,7 +63,7 @@ export default function Sidebar({ onTransferClick }: Props) {
       </nav>
 
       {/* Transfer button */}
-      {onTransferClick && hasPermission("inventory:transfor") && (
+      {onTransferClick && hasPermission("inventory:transfer") && (
         <div className="px-2 mt-4">
           <button
             onClick={onTransferClick}
