@@ -605,6 +605,7 @@ function BatchDetailDrawer({
   onAddConversion,
   onRollbackConversion,
 }: BatchDetailDrawerProps) {
+  const {hasPermission} = useAuth()
   return (
     <>
       {open && (
