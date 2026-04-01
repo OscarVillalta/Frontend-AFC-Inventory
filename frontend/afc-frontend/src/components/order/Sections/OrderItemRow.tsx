@@ -421,13 +421,13 @@ export default function OrderItemRow({ item, orderType, onRefresh, txnRefreshKey
                 </div>
               ) : (
                 <span 
-                  className={`font-bold text-base cursor-pointer px-2 py-1 rounded flex-1 ${
+                  className={`font-bold text-base ${hasPermission("orders:edit") ? "cursor-pointer" : ""} px-2 py-1 rounded flex-1 ${
                     isSectionSeparator
-                      ? "text-white hover:bg-gray-600"
-                      : "text-blue-900 hover:bg-blue-100"
+                      ? `text-white ${hasPermission("orders:edit") ? "hover:bg-gray-600" : ""}`
+                      : `text-blue-900 ${hasPermission("orders:edit") ? "hover:bg-blue-100" : ""}`
                   }`}
-                  onClick={() => setIsEditingNote(true)}
-                  title="Click to edit"
+                  onClick={() => hasPermission("orders:edit") && setIsEditingNote(true)}
+                  title={hasPermission("orders:edit") ? "Click to edit" : undefined}
                 >
                   {item.note || (isSectionSeparator ? "Section Separator" : "Separator")}
                 </span>
@@ -440,6 +440,7 @@ export default function OrderItemRow({ item, orderType, onRefresh, txnRefreshKey
                 className={`btn btn-xs btn-ghost ${isSectionSeparator ? "text-gray-300 hover:text-white" : "text-gray-500 hover:text-gray-700"}`}
                 onClick={() => setShowTypeMenu((v) => !v)}
                 title="Change separator type"
+                disabled={!hasPermission("orders:edit")}
               >
                 ⋯
               </button>
@@ -524,9 +525,9 @@ export default function OrderItemRow({ item, orderType, onRefresh, txnRefreshKey
             ) : (
               <div className="flex flex-col gap-1">
                 <span
-                  className="cursor-pointer hover:bg-gray-100 px-2 py-1 rounded inline-block"
-                  onClick={() => setIsEditingNote(true)}
-                  title="Click to edit"
+                  className={`${hasPermission("orders:edit") ? "cursor-pointer hover:bg-gray-100" : ""} px-2 py-1 rounded inline-block`}
+                  onClick={() => hasPermission("orders:edit") && setIsEditingNote(true)}
+                  title={hasPermission("orders:edit") ? "Click to edit" : undefined}
                 >
                   {item.note || "—"}
                 </span>
@@ -589,11 +590,11 @@ export default function OrderItemRow({ item, orderType, onRefresh, txnRefreshKey
               />
             ) : (
               <span
-                className={`cursor-pointer hover:bg-blue-50 px-2 py-1 rounded inline-block `}
+                className={`${hasPermission("orders:edit") ? "cursor-pointer hover:bg-blue-50" : ""} px-2 py-1 rounded inline-block `}
                 onClick={() => {
-                    setIsEditingQty(true);
+                    if (hasPermission("orders:edit")) setIsEditingQty(true);
                 }}
-                title={item.quantity_fulfilled > 0 ? "Cannot edit fulfilled items" : "Click to edit"}
+                title={!hasPermission("orders:edit") ? undefined : item.quantity_fulfilled > 0 ? "Cannot edit fulfilled items" : "Click to edit"}
               >
                 {item.quantity_ordered}
               </span>
@@ -701,7 +702,7 @@ export default function OrderItemRow({ item, orderType, onRefresh, txnRefreshKey
                 <button
                   className="btn btn-xs btn-primary"
                   onClick={handleCreatePendingTxn}
-                  disabled={submitting}
+                  disabled={submitting || !hasPermission("inventory:allocate")}
                 >
                   {submitting ? "Saving…" : isOutgoingType(orderType) ? "Reserve" : "Order"}
                 </button>
@@ -811,7 +812,7 @@ export default function OrderItemRow({ item, orderType, onRefresh, txnRefreshKey
                                 </button>
                                 <button
                                   className="btn btn-xs btn-error"
-                                  disabled={!!error}
+                                  disabled={!!error || !hasPermission("orders:edit")}
                                   onClick={(e) =>
                                     handleCancel(e, tx.id)
                                   }
@@ -823,7 +824,7 @@ export default function OrderItemRow({ item, orderType, onRefresh, txnRefreshKey
                             {tx.state === "committed" && tx.reason !== "rollback" && !isMediaCut && (
                               <button
                                 className="btn btn-xs btn-warning"
-                                disabled={!!error}
+                                disabled={!!error || !hasPermission("transactions:rollback")}
                                 onClick={(e) =>
                                   handleRollback(e, tx.id)
                                 }

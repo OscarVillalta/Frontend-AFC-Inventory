@@ -11,6 +11,11 @@ interface Props {
   onRollbackSelected: () => void;
   disabled?: boolean;
   orderType: OrderType;
+  disableAllocate?: boolean;
+  disableCommit?: boolean;
+  disableCancel?: boolean;
+  disableRollback?: boolean;
+  disableDescription?: boolean;
 }
 
 export default function OrderDescription({ 
@@ -23,6 +28,11 @@ export default function OrderDescription({
   onRollbackSelected,
   disabled = false,
   orderType,
+  disableAllocate = false,
+  disableCommit = false,
+  disableCancel = false,
+  disableRollback = false,
+  disableDescription = false,
 }: Props) {
   return (
     <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 text-sm text-slate-700">
@@ -35,6 +45,7 @@ export default function OrderDescription({
         placeholder="Order description..."
         value={value}
         onChange={(e) => onChange(e.target.value)}
+        disabled={disableDescription}
       />
 
       {selectedItemsCount >= 0 && (
@@ -46,28 +57,28 @@ export default function OrderDescription({
             <button
               className="btn btn-xs btn-primary"
               onClick={onAllocateSelected}
-              disabled={disabled}
+              disabled={disabled || disableAllocate}
             >
               {isOutgoingType(orderType) ? "Reserve Selected" : "Order Selected"}
             </button>
             <button
               className="btn btn-xs btn-success"
               onClick={onCommitSelected}
-              disabled={disabled}
+              disabled={disabled || disableCommit}
             >
               {isOutgoingType(orderType) ? "Fulfill Selected" : "Receive Selected"}
             </button>
             <button
               className="btn btn-xs btn-error"
               onClick={onCancelSelected}
-              disabled={disabled}
+              disabled={disabled || disableCancel}
             >
               Cancel Order
             </button>
             <button
               className="btn btn-xs btn-warning"
               onClick={onRollbackSelected}
-              disabled={disabled}
+              disabled={disabled || disableRollback}
             >
               Reverse Selected
             </button>

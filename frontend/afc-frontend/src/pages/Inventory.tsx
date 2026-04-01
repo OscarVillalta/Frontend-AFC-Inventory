@@ -190,14 +190,16 @@ export default function Inventory() {
           </div>
         </div>
 
-          {hasPermission("inventory:manual_adjust") && (
           <div className="flex gap-2 flex-wrap shrink-0">
+            {hasPermission("conversions:create") && (
             <button
               className="px-4 py-2 text-sm font-medium rounded-lg border border-gray-300 text-gray-700 bg-white hover:bg-gray-50 transition"
               onClick={() => setShowProduceProduct(true)}
             >
               Convert Product
             </button>
+            )}
+            {hasPermission("catalog:create") && (
             <button
               className="px-4 py-2 text-sm font-medium rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition flex items-center gap-1.5"
               onClick={() => setShowAddProduct(true)}
@@ -205,8 +207,8 @@ export default function Inventory() {
               <span className="text-base leading-none">+</span>
               Add Item
             </button>
+            )}
           </div>
-          )}
         </div>
 
         

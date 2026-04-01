@@ -13,6 +13,7 @@ import {
 } from "../api/conversions";
 import { fetchChildProducts, fetchProducts, type ChildProductName, type Product } from "../api/products";
 import { useWarehouse } from "../hooks/useWarehouse";
+import { useAuth } from "../hooks/useAuth";
 
 interface SourceInput {
   selection: string;
@@ -700,6 +701,7 @@ function BatchDetailDrawer({
                 <button
                   className="btn btn-outline btn-sm"
                   onClick={() => setAddMode(true)}
+                  disabled={!hasPermission("conversions:edit")}
                 >
                   Add Conversion
                 </button>
@@ -733,6 +735,7 @@ function BatchDetailDrawer({
                           <button
                             className="btn btn-xs"
                             onClick={() => onRollbackConversion(conv.id)}
+                            disabled={!hasPermission("conversions:rollback")}
                           >
                             Reverse
                           </button>
@@ -829,6 +832,7 @@ const QUICK_FILTERS: { label: string; key: QuickFilter }[] = [
 
 export default function ConversionsPage() {
   const { activeWarehouseId } = useWarehouse();
+  const { hasPermission } = useAuth();
   const [batches, setBatches] = useState<ConversionBatchSummary[]>([]);
   const [batchPage, setBatchPage] = useState(1);
   const [totalBatches, setTotalBatches] = useState(0);
@@ -1022,6 +1026,7 @@ export default function ConversionsPage() {
           <button
             className="btn btn-primary w-full md:w-auto"
             onClick={() => setBuilderDrawerOpen(true)}
+            disabled={!hasPermission("conversions:create")}
           >
             Create Production Batch
           </button>
@@ -1122,6 +1127,7 @@ export default function ConversionsPage() {
                   <button
                     className="btn btn-primary btn-sm"
                     onClick={() => setBuilderDrawerOpen(true)}
+                    disabled={!hasPermission("conversions:create")}
                   >
                     Create Production Batch
                   </button>

@@ -9,14 +9,16 @@ export default function Sidebar({ onTransferClick }: Props) {
   const { pathname } = useLocation();
   const { hasPermission } = useAuth();
 
-  const links = [
+  const allLinks = [
     { name: "Dashboard", to: "/", icon: "📊" },
     { name: "Inventory", to: "/inventory", icon: "📦" },
     { name: "Orders", to: "/orders/search", icon: "🧾" },
-    { name: "Transactions", to: "/transactions", icon: "💱" },
-    { name: "Conversions", to: "/conversions", icon: "🔄" },
-    { name: "Packing Slips", to: "/packing-slip-tracker", icon: "📋" },
+    { name: "Transactions", to: "/transactions", icon: "💱", permission: "inventory:view" as const },
+    { name: "Conversions", to: "/conversions", icon: "🔄", permission: "conversions:view" as const },
+    { name: "Packing Slips", to: "/packing-slip-tracker", icon: "📋", permission: "tracker:view" as const },
   ];
+
+  const links = allLinks.filter((link) => !link.permission || hasPermission(link.permission));
 
   return (
     <aside
