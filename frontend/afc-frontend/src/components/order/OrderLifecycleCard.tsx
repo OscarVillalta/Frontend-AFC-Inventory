@@ -232,7 +232,7 @@ export default function OrderLifecycleCard({
       onRefresh();
     } catch (err) {
       console.error("Failed to toggle stage:", err);
-      setToggleError("Failed to update stage. Please try again.");
+      setToggleError(err instanceof Error ? err.message : "Failed to update stage. Please try again.");
     } finally {
       setSavingIndex(null);
     }

@@ -1,4 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
+import { useAuth } from "../hooks/useAuth";
 
 interface Props {
   onTransferClick?: () => void;
@@ -6,6 +7,7 @@ interface Props {
 
 export default function Sidebar({ onTransferClick }: Props) {
   const { pathname } = useLocation();
+  const { hasPermission } = useAuth();
 
   const links = [
     { name: "Dashboard", to: "/", icon: "📊" },
@@ -61,7 +63,7 @@ export default function Sidebar({ onTransferClick }: Props) {
       </nav>
 
       {/* Transfer button */}
-      {onTransferClick && (
+      {onTransferClick && hasPermission("inventory:transfor") && (
         <div className="px-2 mt-4">
           <button
             onClick={onTransferClick}
