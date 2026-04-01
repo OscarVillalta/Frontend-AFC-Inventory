@@ -361,7 +361,7 @@ export default function AirFiltersTable({
 
   const columns = ["Part Number", "Description", "Supplier", "Category", "Dimensions", "MERV", "", "On Hand", "Ordered", "Reserved", "Available", "Backorder"];
 
-   if(hasPermission("inventory:manual_adjust")){
+   if(hasPermission("catalog:edit") || hasPermission("catalog:archive")){
     columns.push("Actions");
   }
 
@@ -532,9 +532,10 @@ export default function AirFiltersTable({
                 {/* Stock cells */}
                 {renderStockCells(group.parent)}
                 {/* Actions */}
-                {hasPermission("inventory:manual_adjust") && (
+                {(hasPermission("catalog:edit") || hasPermission("catalog:archive")) && (
                 <td className={`${rowPadding} text-right pr-3`}>              
                   <div className="flex items-center justify-end gap-2 opacity-40 group-hover:opacity-100 transition-opacity">
+                    {hasPermission("catalog:edit") && (
                     <button
                       onClick={(e) => { e.stopPropagation(); handleEdit(group.parent); }}
                       className="text-gray-500 hover:text-blue-600 transition cursor-pointer"
@@ -542,6 +543,8 @@ export default function AirFiltersTable({
                     >
                       <PencilIcon />
                     </button>
+                    )}
+                    {hasPermission("catalog:archive") && (
                     <button
                       onClick={(e) => { e.stopPropagation(); setDeleteTarget(group.parent); }}
                       className="text-gray-500 hover:text-red-600 transition"
@@ -549,6 +552,7 @@ export default function AirFiltersTable({
                     >
                       <TrashIcon />
                     </button>
+                    )}
                   </div>
                 </td>
                 )}

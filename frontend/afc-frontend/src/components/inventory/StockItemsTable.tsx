@@ -223,7 +223,7 @@ export default function StockItemsTable({
 
   const columns = ["Name", "Description", "Category", "Supplier", "", "On Hand", "Ordered", "Reserved", "Available", "Backorder"];
 
-  if(hasPermission("inventory:manual_adjust")){
+  if(hasPermission("catalog:edit") || hasPermission("catalog:archive")){
     columns.push("Actions");
   }
 
@@ -386,9 +386,10 @@ export default function StockItemsTable({
               )}
             </td>
             {/* Actions */}
-            {hasPermission("inventory:manual_adjust") && (
+            {(hasPermission("catalog:edit") || hasPermission("catalog:archive")) && (
             <td className={`${rowPadding} text-right pr-3`}>
               <div className="flex items-center justify-end gap-2 opacity-40 group-hover:opacity-100 transition-opacity">
+                {hasPermission("catalog:edit") && (
                 <button
                   onClick={(e) => { e.stopPropagation(); handleEdit(row); }}
                   className="text-gray-500 hover:text-blue-600 transition"
@@ -396,6 +397,8 @@ export default function StockItemsTable({
                 >
                   <PencilIcon />
                 </button>
+                )}
+                {hasPermission("catalog:archive") && (
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
@@ -406,6 +409,7 @@ export default function StockItemsTable({
                 >
                   <TrashIcon />
                 </button>
+                )}
               </div>  
             </td>
             )}

@@ -30,6 +30,7 @@ import type { OrderWithTracking } from "../../api/tracker";
 import OrderLifecycleCard from "./OrderLifecycleCard";
 
 import { useWarehouse } from "../../hooks/useWarehouse";
+import { useAuth } from "../../hooks/useAuth";
 
 import type { OrderType } from "../../constants/orderTypes";
 import { isOutgoingType } from "../../constants/orderTypes";
@@ -61,6 +62,7 @@ export default function OrderDetailPage() {
   const { orderId } = useParams<{ orderId: string }>();
   const navigate = useNavigate();
   const { activeWarehouseId, warehouses } = useWarehouse();
+  const { hasPermission } = useAuth();
   const [selectedEntityId, setSelectedEntityId] = useState<number | null>(null);
 
   const [order, setOrder] = useState<OrderDetailPayload | null>(null);
@@ -482,6 +484,7 @@ export default function OrderDetailPage() {
                     setOrder({ ...order, type: newType });
                     scheduleAutoSave(buildPatch({ type: newType }));
                   }}
+                  disabled={!hasPermission("orders:edit")}
                 />
               </div>
 
@@ -513,6 +516,11 @@ export default function OrderDetailPage() {
                 onRollbackSelected={handleRollbackSelected}
                 disabled={order.status === "Completed"}
                 orderType={order.type}
+                disableAllocate={!hasPermission("inventory:allocate")}
+                disableCommit={!hasPermission("inventory:fulfill")}
+                disableCancel={!hasPermission("orders:edit")}
+                disableRollback={!hasPermission("transactions:rollback")}
+                disableDescription={!hasPermission("orders:edit")}
               />
 
               <OrderLifecycleCard
@@ -534,7 +542,7 @@ export default function OrderDetailPage() {
                 <button
                   className="btn btn-sm btn-error"
                   onClick={handleDeleteOrder}
-                  disabled={deleting}
+                  disabled={deleting || !hasPermission("orders:delete")}
                 >
                   {deleting ? "Deleting..." : "Delete Order"}
                 </button>

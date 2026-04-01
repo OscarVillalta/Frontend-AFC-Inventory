@@ -29,6 +29,9 @@ interface Props {
   onCreatedAtChange: (v: string) => void;
   onEtaChange: (v: string) => void;
   onTypeChange?: (newType: OrderType) => void;
+
+  /** When true, all editable inputs/dropdowns are disabled */
+  disabled?: boolean;
 }
 
 /* ===================== COMPONENT ===================== */
@@ -47,6 +50,7 @@ export default function OrderMetaCard({
   onCreatedAtChange,
   onEtaChange,
   onTypeChange,
+  disabled = false,
 }: Props) {
   const [open, setOpen] = useState(true);
 
@@ -76,6 +80,7 @@ export default function OrderMetaCard({
                 className="select select-bordered select-sm w-full"
                 value={type}
                 onChange={(e) => onTypeChange(e.target.value as OrderType)}
+                disabled={disabled}
               >
                 {OUTGOING_ORDER_TYPES.map((t) => (
                   <option key={t} value={t}>
@@ -96,6 +101,7 @@ export default function OrderMetaCard({
               className="input input-bordered input-sm w-full"
               value={createdAt}
               onChange={(e) => onCreatedAtChange(e.target.value)}
+              disabled={disabled}
             />
           </div>
 
@@ -106,6 +112,7 @@ export default function OrderMetaCard({
               className="select select-bordered select-sm w-full"
               value={selectedEntityId ?? ""}
               onChange={(e) => onEntityChange(Number(e.target.value))}
+              disabled={disabled}
             >
               <option value="" disabled>
                 Select {entityLabel}
@@ -128,6 +135,7 @@ export default function OrderMetaCard({
               value={eta ?? ""}
               min={createdAt}
               onChange={(e) => onEtaChange(e.target.value)}
+              disabled={disabled}
             />
           </div>
 
