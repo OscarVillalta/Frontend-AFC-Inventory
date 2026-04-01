@@ -528,8 +528,8 @@ export default function AirFiltersTable({
                 {/* Stock cells */}
                 {renderStockCells(group.parent)}
                 {/* Actions */}
-                <td className={`${rowPadding} text-right pr-3`}>
-                  {hasPermission("inventory:manual_adjust") && (
+                {hasPermission("inventory:manual_adjust") && (
+                <td className={`${rowPadding} text-right pr-3`}>              
                   <div className="flex items-center justify-end gap-2 opacity-40 group-hover:opacity-100 transition-opacity">
                     <button
                       onClick={(e) => { e.stopPropagation(); handleEdit(group.parent); }}
@@ -546,8 +546,8 @@ export default function AirFiltersTable({
                       <TrashIcon />
                     </button>
                   </div>
-                  )}
                 </td>
+                )}
               </tr>
 
               {/* CHILD ROWS */}
