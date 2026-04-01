@@ -14,6 +14,7 @@ import {
 import { fetchChildProducts, fetchProducts, type ChildProductName, type Product } from "../api/products";
 import { useWarehouse } from "../hooks/useWarehouse";
 import { useAuth } from "../hooks/useAuth";
+import AutocompleteInput from "../components/AutocompleteInput";
 
 interface SourceInput {
   selection: string;
@@ -166,6 +167,25 @@ function ConversionBuilder({
     return [...base, ...childOpts];
   }, [products, childProducts]);
 
+  const autocompleteOptions = useMemo(
+    () => options.map((opt, i) => ({ id: i, name: opt.label })),
+    [options],
+  );
+
+  const labelToValue = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const opt of options) map.set(opt.label, opt.value);
+    return map;
+  }, [options]);
+
+  const valueToLabel = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const opt of options) map.set(opt.value, opt.label);
+    return map;
+  }, [options]);
+
+  const resolveSelection = (label: string) => labelToValue.get(label) || label;
+
   const parseSelection = (selection: string) => {
     if (!selection) return null;
     const [kind, id] = selection.split("-");
@@ -201,7 +221,7 @@ function ConversionBuilder({
   const buildConversion = (draft: ConversionDraft) => {
     const parsedSources = draft.sources
       .map((source) => ({
-        parsed: parseSelection(source.selection),
+        parsed: parseSelection(resolveSelection(source.selection)),
         quantity: Number(source.quantity),
       }))
       .filter(
@@ -230,7 +250,7 @@ function ConversionBuilder({
       return null;
     }
 
-    const target = parseSelection(draft.targetSelection);
+    const target = parseSelection(resolveSelection(draft.targetSelection));
     if (!target) {
       alert("Invalid finished product selection. Please choose a valid product option.");
       return null;
@@ -352,19 +372,16 @@ function ConversionBuilder({
                 <div key={idx} className="col-span-2 py-2 relative">
                   <div className="flex gap-3">
                     <div className="flex-1">
-                      <select
-                        className="select select-bordered select-sm w-full mt-1"
-                        value={source.selection}
-                        onChange={(e) => updateSource(draft.id, idx, "selection", e.target.value)}
-                        disabled={submitting}
-                      >
-                        <option value="">Select product...</option>
-                        {options.map((opt) => (
-                          <option key={opt.value} value={opt.value}>
-                            {opt.label}
-                          </option>
-                        ))}
-                      </select>
+                      <AutocompleteInput
+                        label=""
+                        placeholder="Search product..."
+                        options={autocompleteOptions}
+                        value={valueToLabel.get(source.selection) || source.selection}
+                        onChange={(name) => {
+                          const val = labelToValue.get(name);
+                          updateSource(draft.id, idx, "selection", val || name);
+                        }}
+                      />
                     </div>
 
                     <div className="w-28">
@@ -415,27 +432,19 @@ function ConversionBuilder({
             <div className="flex flex-col gap-3">
               <div className="flex flex-col sm:flex-row gap-3 sm:items-end">
                 <div className="flex-1">
-                  <label className="text-[11px] uppercase tracking-wide text-base-content/60 font-semibold">
-                    Product
-                  </label>
-                  <select
-                    className="select select-bordered select-sm w-full mt-1"
-                    value={draft.targetSelection}
-                    onChange={(e) =>
+                  <AutocompleteInput
+                    label="Product"
+                    placeholder="Search product..."
+                    options={autocompleteOptions}
+                    value={valueToLabel.get(draft.targetSelection) || draft.targetSelection}
+                    onChange={(name) => {
+                      const val = labelToValue.get(name);
                       updateDraft(draft.id, (prev) => ({
                         ...prev,
-                        targetSelection: e.target.value,
-                      }))
-                    }
-                    disabled={submitting}
-                  >
-                    <option value="">Select product...</option>
-                    {options.map((opt) => (
-                      <option key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </option>
-                    ))}
-                  </select>
+                        targetSelection: val || name,
+                      }));
+                    }}
+                  />
                 </div>
 
                 <div className="w-32">
@@ -852,9 +861,6 @@ export default function ConversionsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [quickFilter, setQuickFilter] = useState<QuickFilter>("all");
 
-  // Track batch IDs that have at least one reversed conversion (for "Reversed" filter)
-  const [reversedBatchIds, setReversedBatchIds] = useState<Set<number>>(new Set());
-
   const [products, setProducts] = useState<Product[]>([]);
   const [childProducts, setChildProducts] = useState<ChildProductName[]>([]);
 
@@ -870,14 +876,19 @@ export default function ConversionsPage() {
   const loadBatches = useCallback(() => {
     setLoadingList(true);
     setError(null);
-    fetchConversionBatches(batchPage, 10)
+    fetchConversionBatches(
+      batchPage,
+      10,
+      searchQuery || undefined,
+      quickFilter !== "all" ? quickFilter : undefined,
+    )
       .then((res) => {
         setBatches(res.results || []);
         setTotalBatches(res.total || 0);
       })
       .catch(() => setError("Failed to load production batches."))
       .finally(() => setLoadingList(false));
-  }, [batchPage]);
+  }, [batchPage, searchQuery, quickFilter]);
 
   useEffect(() => {
     loadCatalog();
@@ -886,6 +897,10 @@ export default function ConversionsPage() {
   useEffect(() => {
     loadBatches();
   }, [loadBatches, activeWarehouseId]);
+
+  useEffect(() => {
+    setBatchPage(1);
+  }, [searchQuery, quickFilter]);
 
   useEffect(() => {
     if (!selectedBatchId) {
@@ -897,11 +912,6 @@ export default function ConversionsPage() {
     fetchConversionBatch(selectedBatchId)
       .then((res) => {
         setDetail(res);
-        // Track batches that have at least one reversed conversion
-        const hasReversed = res.conversions.some((c) => c.state === "rolled_back");
-        if (hasReversed) {
-          setReversedBatchIds((prev) => new Set([...prev, selectedBatchId]));
-        }
       })
       .catch(() => setError("Failed to load conversion details."))
       .finally(() => setLoadingDetail(false));
@@ -995,21 +1005,6 @@ export default function ConversionsPage() {
 
   const totalPages = Math.max(1, Math.ceil(totalBatches / 10));
 
-  // Client-side filtered batches
-  const filteredBatches = useMemo(() => {
-    return batches.filter((batch) => {
-      if (quickFilter === "has_order" && !batch.order_id) return false;
-      if (quickFilter === "reversed" && !reversedBatchIds.has(batch.id)) return false;
-      if (searchQuery) {
-        const q = searchQuery.toLowerCase();
-        const matchesBatchId = String(batch.id).includes(q);
-        const matchesOrderId = batch.order_id ? String(batch.order_id).includes(q) : false;
-        if (!matchesBatchId && !matchesOrderId) return false;
-      }
-      return true;
-    });
-  }, [batches, quickFilter, searchQuery, reversedBatchIds]);
-
   const withOrderCount = useMemo(() => batches.filter((b) => b.order_id).length, [batches]);
   const withNoteCount = useMemo(() => batches.filter((b) => b.note).length, [batches]);
 
@@ -1094,7 +1089,9 @@ export default function ConversionsPage() {
                 onClick={() => setQuickFilter(f.key)}
                 className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
                   quickFilter === f.key
-                    ? "bg-[#3A7BD5] text-white shadow-sm"
+                    ? f.key === "reversed"
+                      ? "bg-red-500 text-white shadow-sm"
+                      : "bg-[#3A7BD5] text-white shadow-sm"
                     : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50"
                 }`}
               >
@@ -1111,7 +1108,7 @@ export default function ConversionsPage() {
               <div className="px-4 py-6 text-sm text-gray-500">Loading batches...</div>
             )}
 
-            {!loadingList && filteredBatches.length === 0 && (
+            {!loadingList && batches.length === 0 && (
               <div className="flex flex-col items-center justify-center gap-4 py-12 px-6 text-center">
                 <div className="text-4xl">📦</div>
                 <div>
@@ -1136,7 +1133,7 @@ export default function ConversionsPage() {
               </div>
             )}
 
-            {!loadingList && filteredBatches.length > 0 && (
+            {!loadingList && batches.length > 0 && (
               <>
                 {/* Desktop table */}
                 <table
@@ -1164,7 +1161,7 @@ export default function ConversionsPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100 [&>tr:nth-child(even)]:bg-gray-50/60">
-                    {filteredBatches.map((batch) => (
+                    {batches.map((batch) => (
                       <tr
                         key={batch.id}
                         className="cursor-pointer hover:bg-blue-50/40 transition-colors"
@@ -1208,7 +1205,7 @@ export default function ConversionsPage() {
 
                 {/* Mobile cards */}
                 <div className="md:hidden flex flex-col gap-2 p-3">
-                  {filteredBatches.map((batch) => (
+                  {batches.map((batch) => (
                     <div
                       key={batch.id}
                       className="rounded-lg border border-gray-200 p-3 cursor-pointer hover:bg-slate-50 transition-colors"

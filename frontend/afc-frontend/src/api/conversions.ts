@@ -73,9 +73,11 @@ export function createConversionBatch(payload: ConversionBatchRequest) {
   }) as Promise<{ batch: ConversionBatchSummary; conversions?: ConversionRecord[] }>;
 }
 
-export function fetchConversionBatches(page = 1, limit = 10) {
-  const search = new URLSearchParams({ page: String(page), limit: String(limit) });
-  return apiRequest(`/conversion_batches/search?${search.toString()}`) as Promise<ConversionBatchSearchResponse>;
+export function fetchConversionBatches(page = 1, limit = 10, search?: string, status?: string) {
+  const params = new URLSearchParams({ page: String(page), limit: String(limit) });
+  if (search) params.set("search", search);
+  if (status) params.set("status", status);
+  return apiRequest(`/conversion_batches/search?${params.toString()}`) as Promise<ConversionBatchSearchResponse>;
 }
 
 export function fetchConversionBatch(batchId: number) {
