@@ -167,10 +167,17 @@ function ConversionBuilder({
     return [...base, ...childOpts];
   }, [products, childProducts]);
 
-  const autocompleteOptions = useMemo(
-    () => options.map((opt, i) => ({ id: i, name: opt.label })),
-    [options],
-  );
+  const autocompleteOptions = useMemo(() => {
+    const base = products.map((p) => ({
+      id: p.id,
+      name: p.part_number || `Product ${p.id}`,
+    }));
+    const childOpts = childProducts.map((c) => ({
+      id: -(c.id),
+      name: getChildLabel(c),
+    }));
+    return [...base, ...childOpts];
+  }, [products, childProducts]);
 
   const labelToValue = useMemo(() => {
     const map = new Map<string, string>();
@@ -378,6 +385,8 @@ function ConversionBuilder({
                         options={autocompleteOptions}
                         value={valueToLabel.get(source.selection) || source.selection}
                         onChange={(name) => {
+                          // Store the resolved value when a valid option is selected;
+                          // partial text is stored as-is and rejected by buildConversion validation.
                           const val = labelToValue.get(name);
                           updateSource(draft.id, idx, "selection", val || name);
                         }}
@@ -438,6 +447,8 @@ function ConversionBuilder({
                     options={autocompleteOptions}
                     value={valueToLabel.get(draft.targetSelection) || draft.targetSelection}
                     onChange={(name) => {
+                      // Store the resolved value when a valid option is selected;
+                      // partial text is stored as-is and rejected by buildConversion validation.
                       const val = labelToValue.get(name);
                       updateDraft(draft.id, (prev) => ({
                         ...prev,
