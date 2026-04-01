@@ -8,6 +8,7 @@ export interface DailyOrder {
   id: number;
   order_id: number | null;
   order_number: string | null;
+  external_order_number: string | null;
   order_type: string | null;
   quantity_delta: number;
   reason: string;
@@ -17,6 +18,7 @@ export interface ProjectedStockPoint {
   date: string;
   projectedStock: number;
   dailyOrders: DailyOrder[];
+  isFiller?: boolean;
 }
 
 /* ============================================================
@@ -31,6 +33,13 @@ function toYMD(d: Date): string {
   return `${yyyy}-${mm}-${dd}`;
 }
 
+/** Add days to a date and return a new Date */
+function addDays(d: Date, n: number): Date {
+  const result = new Date(d);
+  result.setDate(result.getDate() + n);
+  return result;
+}
+
 /* ============================================================
    processGraphData
 ============================================================ */
@@ -41,14 +50,28 @@ function toYMD(d: Date): string {
  * 1. Date clamping  – orders with an ETA older than today use today's date.
  * 2. Grouping       – orders on the same effective date are merged into one point.
  * 3. Running total  – a cumulative projected stock starting from `currentStockOnHand`.
+ * 4. Filler points  – adds intermediate points between data dates for smooth slopes.
+ * 5. Date interval  – only includes points within [startDate, endDate].
  */
 export function processGraphData(
   rawOrders: PendingProjectionItem[],
   currentStockOnHand: number,
+  options?: {
+    fillerIntervalDays?: number;
+    startDate?: string;
+    endDate?: string;
+  },
 ): ProjectedStockPoint[] {
+  const fillerInterval = options?.fillerIntervalDays ?? 1;
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const todayStr = toYMD(today);
+
+  // Determine the display window
+  const windowStart = options?.startDate ? new Date(options.startDate + "T00:00:00") : new Date(today);
+  windowStart.setHours(0, 0, 0, 0);
+  const windowEnd = options?.endDate ? new Date(options.endDate + "T00:00:00") : addDays(today, 30);
+  windowEnd.setHours(0, 0, 0, 0);
 
   /* --- 1. Clamp & group ----------------------------------------- */
   const grouped = new Map<string, DailyOrder[]>();
@@ -66,6 +89,7 @@ export function processGraphData(
       id: order.id,
       order_id: order.order_id,
       order_number: order.order_number,
+      external_order_number: order.external_order_number ?? null,
       order_type: order.order_type,
       quantity_delta: order.quantity_delta,
       reason: order.reason,
@@ -82,18 +106,63 @@ export function processGraphData(
   /* --- 2. Sort chronologically ----------------------------------- */
   const sortedDates = [...grouped.keys()].sort();
 
-  /* --- 3. Running total ------------------------------------------ */
+  /* --- 3. Build data points with running total ------------------- */
   let runningStock = currentStockOnHand;
+  const realPoints = new Map<string, ProjectedStockPoint>();
 
-  return sortedDates.map((date) => {
+  for (const date of sortedDates) {
     const orders = grouped.get(date)!;
     const dailyNet = orders.reduce((sum, o) => sum + o.quantity_delta, 0);
     runningStock += dailyNet;
 
-    return {
+    realPoints.set(date, {
       date,
       projectedStock: runningStock,
       dailyOrders: orders,
-    };
-  });
+    });
+  }
+
+  /* --- 4. Build full timeline with filler points ----------------- */
+  const result: ProjectedStockPoint[] = [];
+  const windowStartStr = toYMD(windowStart);
+  const windowEndStr = toYMD(windowEnd);
+
+  // Always include the starting point (today / windowStart)
+  // Calculate stock at window start considering all orders before/on that date
+  let stockAtWindowStart = currentStockOnHand;
+  for (const date of sortedDates) {
+    if (date <= windowStartStr && realPoints.has(date)) {
+      stockAtWindowStart = realPoints.get(date)!.projectedStock;
+    }
+  }
+
+  let lastStock = stockAtWindowStart;
+  let current = new Date(windowStart);
+
+  while (toYMD(current) <= windowEndStr) {
+    const dateStr = toYMD(current);
+    const realPoint = realPoints.get(dateStr);
+
+    if (realPoint) {
+      lastStock = realPoint.projectedStock;
+      result.push(realPoint);
+    } else {
+      // Only add filler if it's on the filler interval grid
+      const daysSinceStart = Math.round(
+        (current.getTime() - windowStart.getTime()) / (1000 * 60 * 60 * 24)
+      );
+      if (daysSinceStart % fillerInterval === 0 || dateStr === windowStartStr || dateStr === windowEndStr) {
+        result.push({
+          date: dateStr,
+          projectedStock: lastStock,
+          dailyOrders: [],
+          isFiller: true,
+        });
+      }
+    }
+
+    current = addDays(current, 1);
+  }
+
+  return result;
 }

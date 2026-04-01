@@ -190,6 +190,7 @@ export interface PendingProjectionItem {
   quantity_delta: number;
   order_id: number | null;
   order_number: string | null;
+  external_order_number: string | null;
   order_type: string | null;
   eta: string | null;
   reason: string;
