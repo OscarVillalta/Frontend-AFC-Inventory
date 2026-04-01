@@ -27,6 +27,7 @@ import {
   type LedgerItem,
 } from "../api/productDetail";
 import { useWarehouse } from "../hooks/useWarehouse";
+import { useProjectionDateRange } from "../hooks/useProjectionDateRange";
 
 /* ============================================================
    TYPES
@@ -78,35 +79,13 @@ export default function ChildProductDetailPage() {
   } | null>(null);
 
   // Projection interval state
-  const todayStr = useMemo(() => {
-    const d = new Date();
-    d.setHours(0, 0, 0, 0);
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-  }, []);
-  const defaultEndStr = useMemo(() => {
-    const d = new Date();
-    d.setHours(0, 0, 0, 0);
-    d.setMonth(d.getMonth() + 1);
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-  }, []);
-  const maxEndStr = useMemo(() => {
-    const d = new Date();
-    d.setHours(0, 0, 0, 0);
-    d.setMonth(d.getMonth() + 2);
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-  }, []);
-  const [projStart, setProjStart] = useState(() => {
-    const d = new Date();
-    d.setHours(0, 0, 0, 0);
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-  });
-  const [projEnd, setProjEnd] = useState(() => {
-    const d = new Date();
-    d.setHours(0, 0, 0, 0);
-    d.setMonth(d.getMonth() + 1);
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-  });
-  const [projFillerInterval, setProjFillerInterval] = useState<1 | 2>(1);
+  const {
+    todayStr, defaultEndStr, maxEndStr,
+    projStart, setProjStart,
+    projEnd, setProjEnd,
+    projFillerInterval, setProjFillerInterval,
+    resetRange: resetProjRange,
+  } = useProjectionDateRange();
 
   const projContainerRef = useRef<HTMLDivElement>(null);
 
@@ -575,7 +554,7 @@ export default function ChildProductDetailPage() {
                       </div>
                       <button
                         className="text-xs px-2 py-1 rounded-full border border-gray-300 bg-white text-gray-600 hover:border-[#363b4c] transition-colors"
-                        onClick={() => { setProjStart(todayStr); setProjEnd(defaultEndStr); setProjFillerInterval(1); }}
+                        onClick={() => resetProjRange()}
                       >
                         Reset
                       </button>
