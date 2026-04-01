@@ -54,7 +54,7 @@ export function processGraphData(
   const grouped = new Map<string, DailyOrder[]>();
 
   for (const order of rawOrders) {
-    // Orders without an ETA are clamped to today
+    // Orders without an ETA or with past-due ETAs are clamped to today
     let effectiveEta = todayStr;
     if (order.eta) {
       const etaDate = new Date(order.eta);
