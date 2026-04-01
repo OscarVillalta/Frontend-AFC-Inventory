@@ -10,7 +10,10 @@ import {
   ReferenceLine,
   Line,
   ComposedChart,
+  Tooltip,
 } from "recharts";
+import { processGraphData, type ProjectedStockPoint } from "../components/charts/processGraphData";
+import CustomTooltip from "../components/charts/CustomTooltip";
 
 import MainLayout from "../layouts/MainLayout";
 import {
@@ -37,13 +40,6 @@ import { useAuth } from "../hooks/useAuth";
 /* ============================================================
    TYPES
 ============================================================ */
-
-interface StockProjection {
-  date: string;
-  level: number;
-  annotation?: string;
-  order_id?: number | null;
-}
 
 interface HistoricalDataPoint {
   date: string;
@@ -124,7 +120,7 @@ export default function ProductDetailPage() {
     cy: number;
   } | null>(null);
   const [hoveredProjPoint, setHoveredProjPoint] = useState<{
-    data: StockProjection;
+    data: ProjectedStockPoint;
     cx: number;
     cy: number;
   } | null>(null);
@@ -511,61 +507,7 @@ export default function ProductDetailPage() {
     );
   }
 
-  // Generate stock projection from pending transactions with their order ETA
-  const generateStockProjection = (): StockProjection[] => {
-    const data: StockProjection[] = [];
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    // Collect future events from pending transactions (with ETA from linked orders)
-    const events: { date: Date; delta: number; label: string; id: number }[] = [];
-
-    pendingProjection.forEach((txn) => {
-      if (!txn.eta) return;
-      const date = new Date(txn.eta);
-      if (date > today) {
-        events.push({
-          date,
-          delta: txn.quantity_delta,
-          label: txn.order_number || `Order #${txn.order_id}`,
-          id: txn.order_id ?? txn.id,
-        });
-      }
-    });
-
-    events.sort((a, b) => a.date.getTime() - b.date.getTime());
-
-    let level = product.quantity.on_hand;
-    let eventIdx = 0;
-
-    for (let i = 0; i <= 60; i += 1) {
-      const checkDate = new Date(today);
-      checkDate.setDate(checkDate.getDate() + i);
-      const prevDate = new Date(today);
-      prevDate.setDate(prevDate.getDate() + i - 10);
-
-      let annotation: string | undefined;
-      let currentOrderId: number | null = null;
-      while (eventIdx < events.length && events[eventIdx].date <= checkDate) {
-        if (i > 0 && events[eventIdx].date > prevDate) {
-          level += events[eventIdx].delta;
-          annotation = events[eventIdx].label;
-          currentOrderId = events[eventIdx].id;
-        }
-        eventIdx++;
-      }
-
-      const dateStr = checkDate.toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-      });
-      data.push({ date: dateStr, level, annotation, order_id: currentOrderId });
-    }
-
-    return data;
-  };
-
-  const stockProjection = generateStockProjection();
+  const stockProjection = processGraphData(pendingProjection, product.quantity.on_hand);
 
   // Extract details
   const isAirFilter = product.category === "Air Filters";
@@ -954,7 +896,7 @@ export default function ProductDetailPage() {
 
           <div className="p-6">
             {graphTab === "projected" && (() => {
-              const projLevels = stockProjection.map(p => p.level);
+              const projLevels = stockProjection.map(p => p.projectedStock);
               const projMax = projLevels.length ? Math.max(...projLevels) : 0;
               const projMin = projLevels.length ? Math.min(...projLevels) : 0;
               const projGradientOffset =
@@ -974,19 +916,16 @@ export default function ProductDetailPage() {
                       <defs>
                         <linearGradient id="colorStock" x1="0" y1="0" x2="0" y2="1">
                           {projGradientOffset >= 1 ? (
-                            // All positive — pure blue gradient
                             <>
                               <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.3} />
                               <stop offset="100%" stopColor="#3b82f6" stopOpacity={0.05} />
                             </>
                           ) : projGradientOffset <= 0 ? (
-                            // All negative — pure red gradient
                             <>
                               <stop offset="0%" stopColor="#ef4444" stopOpacity={0.2} />
                               <stop offset="100%" stopColor="#ef4444" stopOpacity={0.05} />
                             </>
                           ) : (
-                            // Mixed — blue above zero, red below zero
                             <>
                               <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.3} />
                               <stop offset={`${projGradientOffset * 100}%`} stopColor="#3b82f6" stopOpacity={0.1} />
@@ -1000,16 +939,17 @@ export default function ProductDetailPage() {
                       <XAxis dataKey="date" style={{ fontSize: "12px" }} stroke="#6b7280" />
                       <YAxis style={{ fontSize: "12px" }} stroke="#6b7280" />
                       <ReferenceLine y={0} stroke="#363b4c" strokeWidth={2} />
+                      <Tooltip content={<CustomTooltip />} />
                       <Area
                         type="monotone"
-                        dataKey="level"
+                        dataKey="projectedStock"
                         stroke="#363b4c"
                         strokeWidth={2}
                         fill="url(#colorStock)"
-                        dot={(props: ClickableDotProps<StockProjection>) => {
+                        dot={(props: ClickableDotProps<ProjectedStockPoint>) => {
                           const { cx, cy, payload } = props;
                           if (cx == null || cy == null || !payload) return null;
-                          const hasOrder = Boolean(payload.order_id);
+                          const hasOrder = payload.dailyOrders.some(o => o.order_id != null);
                           const isHovered = hoveredProjPoint?.data.date === payload.date;
                           return (
                             <circle
@@ -1023,7 +963,8 @@ export default function ProductDetailPage() {
                               style={{ cursor: hasOrder ? "pointer" : "default" }}
                               onMouseEnter={() => setHoveredProjPoint({ data: payload, cx, cy })}
                               onClick={() => {
-                                if (payload.order_id) window.open(`/orders/${payload.order_id}`, "_blank");
+                                const firstOrderId = payload.dailyOrders.find(o => o.order_id)?.order_id;
+                                if (firstOrderId) window.open(`/orders/${firstOrderId}`, "_blank");
                               }}
                             />
                           );
@@ -1032,30 +973,6 @@ export default function ProductDetailPage() {
                       />
                     </AreaChart>
                   </ResponsiveContainer>
-                  {hoveredProjPoint && (() => {
-                    const containerWidth = projContainerRef.current?.offsetWidth ?? 0;
-                    const isRightThird = containerWidth > 0 && hoveredProjPoint.cx > (containerWidth * 2) / 3;
-                    return (
-                      <div
-                        className="pointer-events-none absolute z-10 bg-white border border-gray-200 rounded-lg shadow-lg p-3 text-sm whitespace-nowrap"
-                        style={{
-                          ...(isRightThird
-                            ? { right: containerWidth - hoveredProjPoint.cx + 12 }
-                            : { left: hoveredProjPoint.cx + 12 }),
-                          top: Math.max(4, hoveredProjPoint.cy - 60),
-                        }}
-                      >
-                        <p className="font-semibold text-gray-800">{hoveredProjPoint.data.date}</p>
-                        <p className="text-gray-600 mt-1">Stock level: {hoveredProjPoint.data.level}</p>
-                        {hoveredProjPoint.data.annotation && (
-                          <p className="text-blue-600 mt-1">{hoveredProjPoint.data.annotation}</p>
-                        )}
-                        {hoveredProjPoint.data.order_id && (
-                          <p className="text-blue-500 mt-1">Click dot to open order</p>
-                        )}
-                      </div>
-                    );
-                  })()}
                   </div>
                 </>
               );
