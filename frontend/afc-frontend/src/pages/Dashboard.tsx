@@ -36,7 +36,8 @@ export default function Dashboard() {
           setLoading(false);
         }
       })
-      .catch(() => {
+      .catch((err: unknown) => {
+        console.error("Failed to load dashboard stats", err);
         if (!cancelled) {
           setData(null);
           setLoading(false);
@@ -111,7 +112,7 @@ export default function Dashboard() {
     },
     {
       label: "Stock Transfer",
-      to: "#",
+      to: "/inventory",
       permission: "inventory:transfer",
       bg: "bg-gray-700 hover:bg-gray-800",
     },

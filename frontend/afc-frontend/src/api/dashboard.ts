@@ -21,7 +21,7 @@ export interface RecentOrder {
   id: number;
   order_number: string;
   type: string;
-  completed_at: string;
+  completed_at: string | null;
 }
 
 export interface DashboardStatsResponse {
