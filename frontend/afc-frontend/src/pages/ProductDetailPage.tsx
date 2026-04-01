@@ -10,7 +10,6 @@ import {
   ReferenceLine,
   Line,
   ComposedChart,
-  Tooltip,
 } from "recharts";
 import { processGraphData, type ProjectedStockPoint } from "../components/charts/processGraphData";
 import CustomTooltip from "../components/charts/CustomTooltip";
@@ -36,6 +35,7 @@ import { patchAirFilter } from "../api/airfilters";
 import { patchStockItem } from "../api/stockItems";
 import { useWarehouse } from "../hooks/useWarehouse";
 import { useAuth } from "../hooks/useAuth";
+import { useProjectionDateRange } from "../hooks/useProjectionDateRange";
 
 /* ============================================================
    TYPES
@@ -124,6 +124,15 @@ export default function ProductDetailPage() {
     cx: number;
     cy: number;
   } | null>(null);
+
+  // Projection interval state
+  const {
+    todayStr, defaultEndStr, maxEndStr,
+    projStart, setProjStart,
+    projEnd, setProjEnd,
+    projFillerInterval, setProjFillerInterval,
+    resetRange: resetProjRange,
+  } = useProjectionDateRange();
 
   const projContainerRef = useRef<HTMLDivElement>(null);
   const histContainerRef = useRef<HTMLDivElement>(null);
@@ -507,7 +516,11 @@ export default function ProductDetailPage() {
     );
   }
 
-  const stockProjection = processGraphData(pendingProjection, product.quantity.on_hand);
+  const stockProjection = processGraphData(pendingProjection, product.quantity.on_hand, {
+    fillerIntervalDays: projFillerInterval,
+    startDate: projStart,
+    endDate: projEnd,
+  });
 
   // Extract details
   const isAirFilter = product.category === "Air Filters";
@@ -903,9 +916,62 @@ export default function ProductDetailPage() {
                 projMax <= 0 ? 0 : projMin >= 0 ? 1 : projMax / (projMax - projMin);
               return (
                 <>
-                  <h2 className="text-xl font-semibold text-[#363b4c] mb-4">
-                    Projected Stock Level
-                  </h2>
+                  <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
+                    <h2 className="text-xl font-semibold text-[#363b4c]">
+                      Projected Stock Level
+                    </h2>
+                    <div className="flex items-center gap-3 flex-wrap">
+                      {/* Filler interval toggle */}
+                      <div className="flex items-center gap-1">
+                        <span className="text-xs text-gray-500">Interval:</span>
+                        {([1, 2] as const).map((days) => (
+                          <button
+                            key={days}
+                            onClick={() => setProjFillerInterval(days)}
+                            className={`text-xs px-2 py-1 rounded-full border transition-colors ${
+                              projFillerInterval === days
+                                ? "bg-[#363b4c] text-white border-[#363b4c]"
+                                : "bg-white text-gray-600 border-gray-300 hover:border-[#363b4c]"
+                            }`}
+                          >
+                            {days}d
+                          </button>
+                        ))}
+                      </div>
+                      {/* Date range */}
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="date"
+                          className="text-xs border border-gray-300 rounded px-2 py-1"
+                          value={projStart}
+                          min={todayStr}
+                          max={projEnd}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            if (val >= todayStr) setProjStart(val);
+                          }}
+                        />
+                        <span className="text-xs text-gray-500">to</span>
+                        <input
+                          type="date"
+                          className="text-xs border border-gray-300 rounded px-2 py-1"
+                          value={projEnd}
+                          min={projStart}
+                          max={maxEndStr}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            if (val <= maxEndStr && val >= projStart) setProjEnd(val);
+                          }}
+                        />
+                      </div>
+                      <button
+                        className="text-xs px-2 py-1 rounded-full border border-gray-300 bg-white text-gray-600 hover:border-[#363b4c] transition-colors"
+                        onClick={() => resetProjRange()}
+                      >
+                        Reset
+                      </button>
+                    </div>
+                  </div>
                   <div
                     ref={projContainerRef}
                     className="relative"
@@ -939,7 +1005,6 @@ export default function ProductDetailPage() {
                       <XAxis dataKey="date" style={{ fontSize: "12px" }} stroke="#6b7280" />
                       <YAxis style={{ fontSize: "12px" }} stroke="#6b7280" />
                       <ReferenceLine y={0} stroke="#363b4c" strokeWidth={2} />
-                      <Tooltip content={<CustomTooltip />} />
                       <Area
                         type="monotone"
                         dataKey="projectedStock"
@@ -956,9 +1021,9 @@ export default function ProductDetailPage() {
                               key={`proj-dot-${payload.date}`}
                               cx={cx}
                               cy={cy}
-                              r={isHovered ? (hasOrder ? 8 : 6) : (hasOrder ? 6 : 4)}
+                              r={isHovered ? (hasOrder ? 8 : 6) : (hasOrder ? 6 : (payload.isFiller ? 0 : 4))}
                               fill={getDotFill(isHovered, hasOrder)}
-                              stroke="white"
+                              stroke={payload.isFiller && !isHovered ? "transparent" : "white"}
                               strokeWidth={2}
                               style={{ cursor: hasOrder ? "pointer" : "default" }}
                               onMouseEnter={() => setHoveredProjPoint({ data: payload, cx, cy })}
@@ -973,6 +1038,23 @@ export default function ProductDetailPage() {
                       />
                     </AreaChart>
                   </ResponsiveContainer>
+                  {hoveredProjPoint && (() => {
+                    const containerWidth = projContainerRef.current?.offsetWidth ?? 0;
+                    const isRightThird = containerWidth > 0 && hoveredProjPoint.cx > (containerWidth * 2) / 3;
+                    return (
+                      <div
+                        className="pointer-events-auto absolute z-10"
+                        style={{
+                          ...(isRightThird
+                            ? { right: containerWidth - hoveredProjPoint.cx + 12 }
+                            : { left: hoveredProjPoint.cx + 12 }),
+                          top: Math.max(4, hoveredProjPoint.cy - 60),
+                        }}
+                      >
+                        <CustomTooltip point={hoveredProjPoint.data} />
+                      </div>
+                    );
+                  })()}
                   </div>
                 </>
               );
