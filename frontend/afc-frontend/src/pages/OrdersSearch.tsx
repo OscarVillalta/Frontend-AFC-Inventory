@@ -242,7 +242,7 @@ export default function OrdersSearchPage() {
                 Search Orders
               </h1>
               <div className="flex gap-3">
-                {hasPermission("orders:create") && (
+                {hasPermission("qb:pull_orders") && (
                 <button
                   className="
                     px-5 py-2.5 rounded-lg
