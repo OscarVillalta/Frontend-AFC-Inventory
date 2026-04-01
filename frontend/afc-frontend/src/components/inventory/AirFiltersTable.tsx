@@ -359,7 +359,11 @@ export default function AirFiltersTable({
 
   /* ===================== TABLE COLUMNS ===================== */
 
-  const columns = ["Part Number", "Description", "Supplier", "Category", "Dimensions", "MERV", "", "On Hand", "Ordered", "Reserved", "Available", "Backorder", "Actions"];
+  const columns = ["Part Number", "Description", "Supplier", "Category", "Dimensions", "MERV", "", "On Hand", "Ordered", "Reserved", "Available", "Backorder"];
+
+   if(hasPermission("inventory:manual_adjust")){
+    columns.push("Actions");
+  }
 
   /* ===================== ROW RENDER HELPER ===================== */
 

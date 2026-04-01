@@ -221,7 +221,11 @@ export default function StockItemsTable({
 
   /* ===================== TABLE COLUMNS ===================== */
 
-  const columns = ["Name", "Description", "Category", "Supplier", "", "On Hand", "Ordered", "Reserved", "Available", "Backord.", "Actions"];
+  const columns = ["Name", "Description", "Category", "Supplier", "", "On Hand", "Ordered", "Reserved", "Available", "Backorder"];
+
+  if(hasPermission("inventory:manual_adjust")){
+    columns.push("Actions");
+  }
 
   /* ===================== INLINE EDIT HANDLERS ===================== */
 
