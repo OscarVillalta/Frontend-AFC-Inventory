@@ -594,7 +594,13 @@ export default function OrderItemRow({ item, orderType, onRefresh, txnRefreshKey
                 onClick={() => {
                     if (hasPermission("orders:edit")) setIsEditingQty(true);
                 }}
-                title={!hasPermission("orders:edit") ? undefined : item.quantity_fulfilled > 0 ? "Cannot edit fulfilled items" : "Click to edit"}
+                title={
+                  !hasPermission("orders:edit")
+                    ? undefined
+                    : item.quantity_fulfilled > 0
+                      ? "Cannot edit fulfilled items"
+                      : "Click to edit"
+                }
               >
                 {item.quantity_ordered}
               </span>
