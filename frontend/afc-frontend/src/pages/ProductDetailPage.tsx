@@ -1021,7 +1021,7 @@ export default function ProductDetailPage() {
                               key={`proj-dot-${payload.date}`}
                               cx={cx}
                               cy={cy}
-                              r={isHovered ? (hasOrder ? 8 : 6) : (hasOrder ? 6 : (payload.isFiller ? 0 : 4))}
+                              r={isHovered ? (hasOrder ? 8 : 6) : (hasOrder ? 6 : (payload.isFiller ? 4 : 4))}
                               fill={getDotFill(isHovered, hasOrder)}
                               stroke={payload.isFiller && !isHovered ? "transparent" : "white"}
                               strokeWidth={2}
@@ -1049,9 +1049,12 @@ export default function ProductDetailPage() {
                             ? { right: containerWidth - hoveredProjPoint.cx + 12 }
                             : { left: hoveredProjPoint.cx + 12 }),
                           top: Math.max(4, hoveredProjPoint.cy - 60),
+                          zIndex: 100
                         }}
                       >
-                        <CustomTooltip point={hoveredProjPoint.data} />
+                        <CustomTooltip 
+                        point={hoveredProjPoint.data} 
+                        />
                       </div>
                     );
                   })()}
