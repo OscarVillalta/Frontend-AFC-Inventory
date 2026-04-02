@@ -648,7 +648,7 @@ export default function ProductDetailPage() {
               <div className="flex items-start justify-between">
                 <h1 className="text-3xl font-bold text-[#363b4c]">{partNumber}</h1>
                 <div className="flex gap-2 flex-shrink-0">
-                  {hasPermission("invetory:edit") && (
+                  {hasPermission("inventory:edit") && (
                   <>
                   {!editingDetails ? (
                     <button
