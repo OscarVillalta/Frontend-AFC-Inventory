@@ -1286,7 +1286,7 @@ export default function ProductDetailPage() {
         <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden col-span-1">
           <div className="bg-[#363b4c] text-white px-4 py-2 flex justify-between items-center">
             <h3 className="font-semibold">Child Products</h3>
-            {hasPermission("products:manage") && (
+            {hasPermission("invenvtory:edit") && (
             <button
               className="text-white text-sm hover:text-gray-300 transition-colors"
               onClick={() => setAddChildProductOpen(true)}
@@ -1333,7 +1333,7 @@ export default function ProductDetailPage() {
             ) : (
               <div className="text-center py-6">
                 <p className="text-gray-500 mb-4">No child products</p>
-                {hasPermission("products:manage") && (
+                {hasPermission("inventory:edit") && (
                 <button
                   className="bg-[#363b4c] text-white px-6 py-2 rounded hover:bg-[#4a5063] transition-colors"
                   onClick={() => setAddChildProductOpen(true)}
