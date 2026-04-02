@@ -1001,9 +1001,6 @@ export default function ConversionsPage() {
         .then((res) => {
           setDetail(res);
           const hasReversed = res.conversions.some((c) => c.state === "rolled_back");
-          if (hasReversed) {
-            setReversedBatchIds((prev) => new Set([...prev, selectedBatchId]));
-          }
         })
         .catch(() => setError("Failed to load conversion details."));
     } catch (e) {
