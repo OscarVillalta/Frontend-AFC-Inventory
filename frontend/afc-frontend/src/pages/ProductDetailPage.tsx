@@ -648,7 +648,7 @@ export default function ProductDetailPage() {
               <div className="flex items-start justify-between">
                 <h1 className="text-3xl font-bold text-[#363b4c]">{partNumber}</h1>
                 <div className="flex gap-2 flex-shrink-0">
-                  {hasPermission("products:manage") && (
+                  {hasPermission("invetory:edit") && (
                   <>
                   {!editingDetails ? (
                     <button
@@ -1043,7 +1043,7 @@ export default function ProductDetailPage() {
                     const isRightThird = containerWidth > 0 && hoveredProjPoint.cx > (containerWidth * 2) / 3;
                     return (
                       <div
-                        className="pointer-events-auto absolute z-10"
+                        className="pointer-events-auto absolute z-50"
                         style={{
                           ...(isRightThird
                             ? { right: containerWidth - hoveredProjPoint.cx + 12 }

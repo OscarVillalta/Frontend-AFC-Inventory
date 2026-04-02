@@ -442,7 +442,11 @@ export default function AirFiltersTable({
                 {/* Supplier */}
                 <td
                   className={`${rowPadding} text-sm text-gray-700 whitespace-nowrap`}
-                  onClick={(e) => { e.stopPropagation(); setInlineEdit({ rowId: group.parent.id, field: "supplier" }); }}
+                  onClick={(e) => { e.stopPropagation(); 
+                    if(hasPermission("inventory:edit")) {
+                      setInlineEdit({ rowId: group.parent.id, field: "supplier" }); 
+                    }
+                  }}
                 >
                   {inlineEdit?.rowId === group.parent.id && inlineEdit.field === "supplier" ? (
                     <select
@@ -467,7 +471,11 @@ export default function AirFiltersTable({
                 {/* Category */}
                 <td
                   className={`${rowPadding} text-sm text-gray-700`}
-                  onClick={(e) => { e.stopPropagation(); setInlineEdit({ rowId: group.parent.id, field: "category" }); }}
+                  onClick={(e) => { e.stopPropagation(); 
+                    if(hasPermission("inventory:edit")) {
+                      setInlineEdit({ rowId: group.parent.id, field: "category" }); 
+                    }                   
+                  }}
                 >
                   {inlineEdit?.rowId === group.parent.id && inlineEdit.field === "category" ? (
                     <select
@@ -499,7 +507,11 @@ export default function AirFiltersTable({
                 {/* MERV */}
                 <td
                   className={`${rowPadding} text-sm text-center`}
-                  onClick={(e) => { e.stopPropagation(); setInlineEdit({ rowId: group.parent.id, field: "merv_rating" }); }}
+                  onClick={(e) => { e.stopPropagation(); 
+                    if(hasPermission("inventory:edit")) {
+                      setInlineEdit({ rowId: group.parent.id, field: "merv_rating" }); 
+                    }    
+                  }}
                 >
                   {inlineEdit?.rowId === group.parent.id && inlineEdit.field === "merv_rating" ? (
                     <select
@@ -532,10 +544,10 @@ export default function AirFiltersTable({
                 {/* Stock cells */}
                 {renderStockCells(group.parent)}
                 {/* Actions */}
-                {(hasPermission("catalog:edit") || hasPermission("catalog:archive")) && (
+                {(hasPermission("inventory:edit") || hasPermission("catalog:archive")) && (
                 <td className={`${rowPadding} text-right pr-3`}>              
                   <div className="flex items-center justify-end gap-2 opacity-40 group-hover:opacity-100 transition-opacity">
-                    {hasPermission("catalog:edit") && (
+                    {hasPermission("inventory:edit") && (
                     <button
                       onClick={(e) => { e.stopPropagation(); handleEdit(group.parent); }}
                       className="text-gray-500 hover:text-blue-600 transition cursor-pointer"

@@ -295,7 +295,11 @@ export default function StockItemsTable({
             {/* Category */}
             <td
               className={`${rowPadding} text-sm text-gray-700`}
-              onClick={(e) => { e.stopPropagation(); setInlineEdit({ rowId: row.id, field: "category" }); }}
+              onClick={(e) => { e.stopPropagation(); 
+                if(hasPermission("inventory:edit")) {
+                      setInlineEdit({ rowId: row.id, field: "category" }); 
+                    }  
+              }}
             >
               {inlineEdit?.rowId === row.id && inlineEdit.field === "category" ? (
                 <select
@@ -320,7 +324,11 @@ export default function StockItemsTable({
             {/* Supplier */}
             <td
               className={`${rowPadding} text-sm text-gray-700 whitespace-nowrap`}
-              onClick={(e) => { e.stopPropagation(); setInlineEdit({ rowId: row.id, field: "supplier" }); }}
+              onClick={(e) => { e.stopPropagation(); 
+                if(hasPermission("inventory:edit")) {
+                      setInlineEdit({ rowId: row.id, field: "supplier" }); 
+                    }  
+              }}
             >
               {inlineEdit?.rowId === row.id && inlineEdit.field === "supplier" ? (
                 <select
@@ -386,10 +394,10 @@ export default function StockItemsTable({
               )}
             </td>
             {/* Actions */}
-            {(hasPermission("catalog:edit") || hasPermission("catalog:archive")) && (
+            {(hasPermission("inventory:edit") || hasPermission("catalog:archive")) && (
             <td className={`${rowPadding} text-right pr-3`}>
               <div className="flex items-center justify-end gap-2 opacity-40 group-hover:opacity-100 transition-opacity">
-                {hasPermission("catalog:edit") && (
+                {hasPermission("inventory:edit") && (
                 <button
                   onClick={(e) => { e.stopPropagation(); handleEdit(row); }}
                   className="text-gray-500 hover:text-blue-600 transition"

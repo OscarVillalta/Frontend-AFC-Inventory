@@ -411,7 +411,11 @@ export default function MediaTable({
                 {/* Supplier */}
                 <td
                   className={`${rowPadding} text-sm text-gray-700 whitespace-nowrap`}
-                  onClick={(e) => { e.stopPropagation(); setInlineEdit({ rowId: group.parent.id, field: "supplier" }); }}
+                  onClick={(e) => { e.stopPropagation(); 
+                    if(hasPermission("inventory:edit")) {
+                      setInlineEdit({ rowId: group.parent.id, field: "supplier" }); 
+                    }
+                  }}
                 >
                   {inlineEdit?.rowId === group.parent.id && inlineEdit.field === "supplier" ? (
                     <select
@@ -436,7 +440,11 @@ export default function MediaTable({
                 {/* Category */}
                 <td
                   className={`${rowPadding} text-sm text-gray-700`}
-                  onClick={(e) => { e.stopPropagation(); setInlineEdit({ rowId: group.parent.id, field: "category" }); }}
+                  onClick={(e) => { e.stopPropagation(); 
+                    if(hasPermission("inventory:edit")) {
+                      setInlineEdit({ rowId: group.parent.id, field: "category" }); 
+                    } 
+                  }}
                 >
                   {inlineEdit?.rowId === group.parent.id && inlineEdit.field === "category" ? (
                     <select
