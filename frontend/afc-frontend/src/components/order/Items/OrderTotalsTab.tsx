@@ -24,7 +24,7 @@ function hasEnoughStock(product: ProductSummary, orderType: OrderType): boolean 
   const remaining = product.total_ordered - product.total_fulfilled;
   if (isOutgoingType(orderType)) {
     // Available stock + what's already reserved for this order covers the remaining
-    const effectiveAvailable = (product.available ?? 0) + product.total_pending;
+    const effectiveAvailable = (product.available ?? 0);
     return effectiveAvailable >= remaining;
   }
   // For incoming: fully allocated if pending + fulfilled >= ordered
