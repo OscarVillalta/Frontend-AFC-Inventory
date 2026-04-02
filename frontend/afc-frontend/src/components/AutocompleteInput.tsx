@@ -125,7 +125,7 @@ export default function AutocompleteInput({
 
   return (
     <div className={`relative ${className}`} ref={wrapperRef}>
-      <label className="block text-sm font-medium text-gray-700 mb-2">
+      <label className="block text-sm font-medium text-gray-700">
         {label}
       </label>
       <input

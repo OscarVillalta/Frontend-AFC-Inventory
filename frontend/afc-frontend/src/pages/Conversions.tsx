@@ -378,7 +378,7 @@ function ConversionBuilder({
               {draft.sources.map((source, idx) => (
                 <div key={idx} className="col-span-2 py-2 relative">
                   <div className="flex gap-3">
-                    <div className="flex-1">
+                    <div className="flex">
                       <AutocompleteInput
                         label=""
                         placeholder="Search product..."
