@@ -618,7 +618,7 @@ export default function TransactionsTable() {
                     ${idx % 2 === 0 ? "bg-white" : "bg-gray-50/50"}
                   `}
                 >
-                  <td className="py-1 px-1.5 font-medium text-gray-900 text-xs">
+                  <td className="py-3 px-1.5 font-medium text-gray-900 text-xs">
                     {row.rawTxn.child_product_id ? (
                       <Link
                         to={`/child-products/${row.rawTxn.child_product_id}`}

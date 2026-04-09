@@ -39,7 +39,7 @@ export default function OrdersSearchPage() {
   const [showPullQBModal, setShowPullQBModal] = useState(false);
 
   // Collapsible Advanced Filters sidebar
-  const LG_BREAKPOINT = 1024;
+  const LG_BREAKPOINT = 1200;
   const [filtersOpen, setFiltersOpen] = useState(() => window.innerWidth >= LG_BREAKPOINT);
 
   const handleResize = useCallback(() => {
