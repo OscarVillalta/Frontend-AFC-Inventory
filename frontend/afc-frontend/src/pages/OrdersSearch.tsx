@@ -1,4 +1,4 @@
-import { useState, useEffect} from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import MainLayout from "../layouts/MainLayout";
 import { fetchOrders, type OrderRowItemPayload } from "../api/ordersTable";
@@ -37,6 +37,19 @@ export default function OrdersSearchPage() {
   // Create Order Modal state
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showPullQBModal, setShowPullQBModal] = useState(false);
+
+  // Collapsible Advanced Filters sidebar
+  const LG_BREAKPOINT = 1024;
+  const [filtersOpen, setFiltersOpen] = useState(() => window.innerWidth >= LG_BREAKPOINT);
+
+  const handleResize = useCallback(() => {
+    setFiltersOpen(window.innerWidth >= LG_BREAKPOINT);
+  }, []);
+
+  useEffect(() => {
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, [handleResize]);
   
   // Type options for autocomplete
   const typeOptions = [
@@ -232,9 +245,9 @@ export default function OrdersSearchPage() {
 
   return (
     <MainLayout>
-      <div className="flex h-full gap-6">
+      <div className="flex gap-6">
         {/* Main Content Area */}
-        <div className="flex-1 flex flex-col">
+        <div className="flex-1 min-w-0">
           {/* Header Search Controls */}
           <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
             <div className="flex items-center justify-between mb-6">
@@ -374,6 +387,17 @@ export default function OrdersSearchPage() {
                   "Search"
                 )}
               </button>
+
+              {/* Toggle Advanced Filters */}
+              <button
+                className="btn btn-outline px-4"
+                onClick={() => setFiltersOpen((o) => !o)}
+                title={filtersOpen ? "Hide advanced filters" : "Show advanced filters"}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                </svg>
+              </button>
             </div>
           </div>
 
@@ -417,7 +441,7 @@ export default function OrdersSearchPage() {
           )}
 
           {/* Results List */}
-          <div className="flex-1 overflow-y-auto space-y-3">
+          <div className="space-y-3">
             {loading ? (
               <div className="bg-white rounded-lg shadow-sm p-12 text-center">
                 <span className="loading loading-spinner loading-lg text-primary"></span>
@@ -502,11 +526,21 @@ export default function OrdersSearchPage() {
         </div>
 
         {/* Right Sidebar - Advanced Filters */}
+        {filtersOpen && (
         <div className="w-80 flex-shrink-0">
           <div className="bg-white rounded-lg shadow-sm p-6 sticky top-0">
-            <h2 className="text-lg font-semibold text-gray-800 mb-6">
-              Advanced Filters
-            </h2>
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-lg font-semibold text-gray-800">
+                Advanced Filters
+              </h2>
+              <button
+                className="btn btn-ghost btn-sm btn-square"
+                onClick={() => setFiltersOpen(false)}
+                title="Close filters"
+              >
+                ✕
+              </button>
+            </div>
 
             {/* Date Filters */}
             <div className="mb-6">
@@ -679,6 +713,7 @@ export default function OrdersSearchPage() {
             </button>
           </div>
         </div>
+        )}
       </div>
 
       {/* ===================== CREATE MODAL ===================== */}
