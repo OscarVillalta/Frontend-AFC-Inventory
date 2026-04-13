@@ -618,7 +618,7 @@ export default function TransactionsTable() {
                     ${idx % 2 === 0 ? "bg-white" : "bg-gray-50/50"}
                   `}
                 >
-                  <td className="py-3 px-2 font-medium text-gray-900">
+                  <td className="py-3 px-1.5 font-medium text-gray-900 text-xs">
                     {row.rawTxn.child_product_id ? (
                       <Link
                         to={`/child-products/${row.rawTxn.child_product_id}`}
@@ -640,7 +640,7 @@ export default function TransactionsTable() {
                     )}
                   </td>
 
-                  <td className="py-3 px-2">
+                  <td className="py-1 px-1.5 text-xs">
                     {row.orderId ? (
                       <Link
                         to={`/orders/${row.orderId}`}
@@ -655,10 +655,10 @@ export default function TransactionsTable() {
                   </td>
 
                   {/* State badge */}
-                  <td className="py-3 px-2">
+                  <td className="py-1 px-1.5 text-xs">
                     <span
                       className={`
-                        px-3 py-1 rounded-full text-xs font-medium
+                        px-2 py-0.5 rounded-full text-xs font-medium
                         ${
                           row.state === "committed"
                             ? "bg-green-100 text-green-700"
@@ -672,10 +672,10 @@ export default function TransactionsTable() {
                     </span>
                   </td>
 
-                  <td className="py-3 px-2">
+                  <td className="py-1 px-1.5 text-xs">
                     <span
                       className={`
-                        px-3 py-1 rounded-full text-xs font-medium
+                        px-2 py-0.5 rounded-full text-xs font-medium
                         ${
                           row.qty > 0
                             ? "bg-green-100 text-green-700"
@@ -688,7 +688,7 @@ export default function TransactionsTable() {
                   </td>
 
                   {/* Reason badge with color coding */}
-                  <td className="py-3 px-2">
+                  <td className="py-1 px-1.5 text-xs">
                     <span
                       className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${
                         REASON_BADGE_STYLES[row.source] ?? "bg-gray-100 text-gray-600"
@@ -699,28 +699,28 @@ export default function TransactionsTable() {
                   </td>
 
                   {/* Notes / Related transaction indicator */}
-                  <td className="py-3 px-2">
+                  <td className="py-1 px-1.5 text-xs max-w-[200px]">
                     {row.isRollback && row.relatedTxnId ? (
                       <span className="inline-flex items-center gap-1 text-xs text-amber-700 bg-amber-50 rounded-md px-2 py-0.5">
                         <span>↔</span>
                         <span>Reversal of #{row.relatedTxnId}</span>
                       </span>
                     ) : row.note ? (
-                      <span className="text-gray-600 text-sm">{row.note}</span>
+                      <span className="text-gray-600 text-xs block truncate" title={row.note}>{row.note}</span>
                     ) : (
-                      <span className="text-gray-300 text-sm">—</span>
+                      <span className="text-gray-300 text-xs">—</span>
                     )}
                   </td>
 
-                  <td className="py-3 px-2 text-gray-400 text-sm">{row.date}</td>
-                  <td className="py-3 px-2 text-gray-400 text-sm">{row.lastUpdated}</td>
+                  <td className="py-1 px-1.5 text-gray-400 text-xs">{row.date}</td>
+                  <td className="py-1 px-1.5 text-gray-400 text-xs">{row.lastUpdated}</td>
                 </tr>
               ))}
           </MDTable>
         </div>
 
         {/* Right Column: Detail Drawer (sticky, desktop only) */}
-        <div className="hidden lg:block w-[380px] shrink-0">
+        <div className="hidden min-[1300px]:block w-[380px] shrink-0">
           <TransactionDetailDrawer
             transaction={selectedTxn}
             productLabel={selectedProductLabel}
@@ -731,7 +731,7 @@ export default function TransactionsTable() {
 
       {/* Mobile Detail Drawer (overlay on small screens) */}
       {selectedTxn && (
-        <div className="lg:hidden fixed inset-0 z-40">
+        <div className="min-[1300px]:hidden fixed inset-0 z-40">
           <div
             className="absolute inset-0 bg-black/30"
             onClick={() => setSelectedTxn(null)}

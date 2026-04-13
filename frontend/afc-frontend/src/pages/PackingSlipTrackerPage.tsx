@@ -780,7 +780,7 @@ function KpiCards({
 // Main Page
 // ─────────────────────────────────────────────
 
-const PAGE_SIZE = 10;
+const PAGE_SIZE = 100;
 
 const DEFAULT_STATUS_COUNTS = { "Not Started": 0, "In Progress": 0, Completed: 0, Backordered: 0 };
 

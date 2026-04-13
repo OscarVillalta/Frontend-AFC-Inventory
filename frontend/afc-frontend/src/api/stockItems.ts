@@ -45,6 +45,7 @@ export interface StockItemSearchParams {
   ordered_min?: number;
   available_min?: number;
   backordered_min?: number;
+  warehouse_view?: "current" | "total";
 }
 
 export interface StockItemCategory {
@@ -86,6 +87,7 @@ export function fetchStockItems(
   if (filters.ordered_min !== undefined) params.set("ordered", String(filters.ordered_min));
   if (filters.available_min !== undefined) params.set("available", String(filters.available_min));
   if (filters.backordered_min !== undefined) params.set("backordered", String(filters.backordered_min));
+  if (filters.warehouse_view) params.set("warehouse_view", filters.warehouse_view);
 
   return apiRequest(`/stock_items/search?${params.toString()}`, {
     method: "GET",

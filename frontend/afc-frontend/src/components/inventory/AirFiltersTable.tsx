@@ -54,6 +54,7 @@ interface Props {
   filterAvailableMin?: number;
   filterBackorderedMin?: number;
   quickView?: "all" | "low_stock" | "backordered" | "has_orders" | "recently_updated";
+  warehouseView?: "current" | "total";
   compact?: boolean;
   suppliers?: Supplier[];
   airFilterCategories?: AirFilterCategory[];
@@ -156,6 +157,7 @@ export default function AirFiltersTable({
   filterAvailableMin,
   filterBackorderedMin,
   quickView = "all",
+  warehouseView = "current",
   compact = false,
   suppliers = [],
   airFilterCategories = [],
@@ -210,6 +212,7 @@ export default function AirFiltersTable({
       ordered: filterOrderedMin,
       available: filterAvailableMin,
       backordered: filterBackorderedMin,
+      warehouse_view: warehouseView,
     })
       .then((res) => {
         setData(res);
@@ -228,7 +231,7 @@ export default function AirFiltersTable({
 
   useEffect(() => {
     setPage(1);
-  }, [globalSearch, filterDescription, filterSupplier, filterCategory, filterMerv, quickView, pageSize,
+  }, [globalSearch, filterDescription, filterSupplier, filterCategory, filterMerv, quickView, warehouseView, pageSize,
       filterHeight, filterWidth, filterDepth,
       filterOnHandMin, filterReservedMin, filterOrderedMin, filterAvailableMin, filterBackorderedMin]);
 
@@ -236,7 +239,7 @@ export default function AirFiltersTable({
     loadData();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, pageSize, globalSearch, filterDescription, filterSupplier, filterCategory, filterMerv, refreshToken,
-      filterHeight, filterWidth, filterDepth, quickView,
+      filterHeight, filterWidth, filterDepth, quickView, warehouseView,
       filterOnHandMin, filterReservedMin, filterOrderedMin, filterAvailableMin, filterBackorderedMin, activeWarehouseId]);
 
   const rows: AirFilterPayload[] = data?.results ?? [];

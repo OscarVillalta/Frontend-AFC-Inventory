@@ -62,7 +62,7 @@ export default function Topbar({ onMenuToggle }: Props) {
       <div className="flex items-center gap-2 text-sm font-medium text-[#7B809A]">
         {onMenuToggle && (
           <button
-            className="btn btn-sm btn-ghost lg:hidden"
+            className="btn btn-sm btn-ghost min-[1300px]:hidden"
             onClick={onMenuToggle}
             aria-label="Toggle sidebar"
           >
