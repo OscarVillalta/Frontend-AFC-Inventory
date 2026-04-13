@@ -70,6 +70,7 @@ export interface AirFilterSearchParams {
   ordered?: number;
   available?: number;
   backordered?: number;
+  warehouse_view?: "current" | "total";
 }
 
 /* ============================================================
@@ -104,6 +105,7 @@ export function fetchAirFilters(
   if (filters.ordered !== undefined) params.set("ordered", String(filters.ordered));
   if (filters.available !== undefined) params.set("available", String(filters.available));
   if (filters.backordered !== undefined) params.set("backordered", String(filters.backordered));
+  if (filters.warehouse_view) params.set("warehouse_view", filters.warehouse_view);
 
   return apiRequest(`/air_filters/search?${params.toString()}`, {
     method: "GET",
