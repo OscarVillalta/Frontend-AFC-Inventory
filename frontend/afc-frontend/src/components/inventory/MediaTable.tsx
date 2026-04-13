@@ -49,6 +49,7 @@ interface Props {
   filterAvailableMin?: number;
   filterBackorderedMin?: number;
   quickView?: "all" | "low_stock" | "backordered" | "has_orders" | "recently_updated";
+  warehouseView?: "current" | "total";
   compact?: boolean;
   suppliers?: Supplier[];
   mediaCategories?: MediaCategory[];
@@ -147,6 +148,7 @@ export default function MediaTable({
   filterAvailableMin,
   filterBackorderedMin,
   quickView = "all",
+  warehouseView = "current",
   compact = false,
   suppliers = [],
   mediaCategories = [],
@@ -196,6 +198,7 @@ export default function MediaTable({
       ordered_min: filterOrderedMin,
       available_min: filterAvailableMin,
       backordered_min: filterBackorderedMin,
+      warehouse_view: warehouseView,
     })
       .then((res) => {
         setData(res);
@@ -214,13 +217,13 @@ export default function MediaTable({
 
   useEffect(() => {
     setPage(1);
-  }, [globalSearch, filterDescription, filterSupplier, filterCategory, quickView, pageSize,
+  }, [globalSearch, filterDescription, filterSupplier, filterCategory, quickView, warehouseView, pageSize,
       filterOnHandMin, filterReservedMin, filterOrderedMin, filterAvailableMin, filterBackorderedMin]);
 
   useEffect(() => {
     loadData();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, pageSize, globalSearch, filterDescription, filterSupplier, filterCategory, refreshToken, quickView,
+  }, [page, pageSize, globalSearch, filterDescription, filterSupplier, filterCategory, refreshToken, quickView, warehouseView,
       filterOnHandMin, filterReservedMin, filterOrderedMin, filterAvailableMin, filterBackorderedMin, activeWarehouseId]);
 
   const rows: MediaPayload[] = data?.results ?? [];
