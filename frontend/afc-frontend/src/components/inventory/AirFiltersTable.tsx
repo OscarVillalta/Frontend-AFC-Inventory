@@ -417,7 +417,7 @@ export default function AirFiltersTable({
           return (
             <Fragment key={group.parent.id}>
               {/* PARENT ROW (or orphaned child styled as child) */}
-              <tr className={isOrphaned ? "bg-blue-50/30 hover:bg-blue-50/60 transition cursor-pointer group" : "hover:bg-blue-50/40 transition cursor-pointer group"}>
+              <tr className={isOrphaned ? "bg-blue-50/30 hover:bg-blue-50/60 transition group" : "hover:bg-blue-50/40 transition cursor-pointer group"}>
                 {/* Part Number */}
                 <td
                   className={isOrphaned ? `${rowPadding} text-sm pl-8 text-gray-500` : `${rowPadding} font-semibold text-blue-600 hover:underline text-sm whitespace-nowrap`}
@@ -535,7 +535,7 @@ export default function AirFiltersTable({
                       <option value={18}>99.999%</option>
                     </select>
                   ) : group.parent.merv_rating === 0 ? (
-                    <span className="text-gray-300 cursor-pointer" title={isOrphaned ? "" : "Click to edit"}>–</span>
+                    <span className={isOrphaned ? "text-gray-300" : "text-gray-300 cursor-pointer"} title={isOrphaned ? "" : "Click to edit"}>–</span>
                   ) : (
                     <span
                       className={isOrphaned ? "px-2 py-0.5 text-xs rounded bg-gray-100 text-gray-500" : "px-2 py-0.5 text-xs rounded bg-gray-100 text-gray-600 font-medium cursor-pointer hover:bg-blue-100 hover:text-blue-700"}
