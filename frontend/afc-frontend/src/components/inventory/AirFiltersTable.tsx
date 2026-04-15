@@ -580,7 +580,7 @@ export default function AirFiltersTable({
                     {/* Part Number */}
                     <td
                       className={`${rowPadding} text-sm pl-8 text-gray-500`}
-                      onClick={() => navigate(`/child-products/${child.product_id}`)}
+                      onClick={() => navigate(`/child-products/${child.id}`)}
                     >
                       <span className="text-gray-400 mr-1">↳</span>
                       {child.part_number}
@@ -588,16 +588,16 @@ export default function AirFiltersTable({
                     {/* Description */}
                     <td
                       className={`${rowPadding} max-w-[160px]`}
-                      onClick={() => navigate(`/child-products/${child.product_id}`)}
+                      onClick={() => navigate(`/child-products/${child.id}`)}
                     >
                       <span className="block truncate text-sm text-gray-500" title={child.description ?? ""}>
                         {child.description || <span className="text-gray-300">—</span>}
                       </span>
                     </td>
-                    <td className={`${rowPadding} text-sm text-gray-500`} onClick={() => navigate(`/child-products/${child.product_id}`)}>{child.supplier_name ?? "—"}</td>
-                    <td className={`${rowPadding} text-sm text-gray-500`} onClick={() => navigate(`/child-products/${child.product_id}`)}>{child.filter_category}</td>
-                    <td className={`${rowPadding} text-sm text-gray-500 whitespace-nowrap`} onClick={() => navigate(`/child-products/${child.product_id}`)}>{dimVal(child.height)} × {dimVal(child.width)} × {dimVal(child.depth)}</td>
-                    <td className={`${rowPadding} text-center`} onClick={() => navigate(`/child-products/${child.product_id}`)}>
+                    <td className={`${rowPadding} text-sm text-gray-500`} onClick={() => navigate(`/child-products/${child.id}`)}>{child.supplier_name ?? "—"}</td>
+                    <td className={`${rowPadding} text-sm text-gray-500`} onClick={() => navigate(`/child-products/${child.id}`)}>{child.filter_category}</td>
+                    <td className={`${rowPadding} text-sm text-gray-500 whitespace-nowrap`} onClick={() => navigate(`/child-products/${child.id}`)}>{dimVal(child.height)} × {dimVal(child.width)} × {dimVal(child.depth)}</td>
+                    <td className={`${rowPadding} text-center`} onClick={() => navigate(`/child-products/${child.id}`)}>
                       {child.merv_rating === 0
                         ? <span className="text-gray-300">–</span>
                         : <span className="px-2 py-0.5 text-xs rounded bg-gray-100 text-gray-500">{mervLabel(child.merv_rating)}</span>}
