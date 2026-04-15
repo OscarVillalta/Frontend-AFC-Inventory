@@ -337,47 +337,59 @@ export default function ChildProductDetailPage() {
                 </span>
               </div>
 
+              {/* Prominent detail fields */}
               {isAirFilter ? (
-                <div className="mt-3 space-y-1">
-                  <div className="flex flex-wrap gap-4 text-sm text-gray-600">
-                    <div>
-                      <span className="font-medium">Part #:</span> {partNumber}
-                    </div>
-                    <div>
-                      <span className="font-medium">Vendor:</span> {vendor}
-                    </div>
+                <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-4">
+                  {/* MERV Rating */}
+                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">MERV Rating</p>
+                    <span className="inline-flex items-center px-2.5 py-1 rounded-full text-sm font-bold bg-blue-100 text-blue-700">
+                      MERV {childProduct.details.merv_rating}
+                    </span>
                   </div>
-                  <div className="flex flex-wrap gap-4 text-sm text-gray-600 mt-2">
-                    <div>
-                      <span className="font-medium">Dimensions:</span>{" "}
+
+                  {/* Dimensions */}
+                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Dimensions</p>
+                    <p className="text-base font-semibold text-[#363b4c]">
                       {childProduct.details.height} × {childProduct.details.width} × {childProduct.details.depth}
-                    </div>
-                    <div>
-                      <span className="font-medium">MERV Rating:</span>{" "}
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-700">
-                        MERV {childProduct.details.merv_rating}
-                      </span>
-                    </div>
+                    </p>
                   </div>
-                  {description && (
-                    <div className="mt-2 text-sm text-gray-600">
-                      <span className="font-medium">Description:</span>{" "}
-                      {description}
-                    </div>
-                  )}
+
+                  {/* Supplier */}
+                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Supplier</p>
+                    <p className="text-base font-semibold text-[#363b4c]">{vendor}</p>
+                  </div>
+
+                  {/* Description */}
+                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Description</p>
+                    <p className="text-base font-semibold text-[#363b4c]">
+                      {description || <span className="text-gray-400 font-normal italic">None</span>}
+                    </p>
+                  </div>
                 </div>
               ) : (
-                <div className="flex gap-6 mt-4 text-sm text-gray-600">
-                  <div>
-                    <span className="font-medium">Part #:</span> {partNumber}
+                <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 gap-4">
+                  {/* Name (Stock Items) */}
+                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Name</p>
+                    <p className="text-base font-semibold text-[#363b4c]">{partNumber}</p>
                   </div>
-                  {description && (
-                    <div>
-                      <span className="font-medium">Description:</span> {description}
-                    </div>
-                  )}
-                  <div>
-                    <span className="font-medium">Vendor:</span> {vendor}
+
+                  {/* Supplier */}
+                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Supplier</p>
+                    <p className="text-base font-semibold text-[#363b4c]">{vendor}</p>
+                  </div>
+
+                  {/* Description */}
+                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Description</p>
+                    <p className="text-base font-semibold text-[#363b4c]">
+                      {description || <span className="text-gray-400 font-normal italic">None</span>}
+                    </p>
                   </div>
                 </div>
               )}
