@@ -31,6 +31,7 @@ interface EditFormState {
 interface GroupedProduct {
   parent: AirFilterPayload;
   children: AirFilterPayload[];
+  isOrphanedChild?: boolean;
 }
 
 interface InlineEdit {
@@ -81,7 +82,7 @@ function groupProducts(products: AirFilterPayload[]): GroupedProduct[] {
     if (parentGroup) {
       parentGroup.children.push(child);
     } else {
-      parentMap.set(child.product_id, { parent: child, children: [] });
+      parentMap.set(child.product_id, { parent: child, children: [], isOrphanedChild: true });
     }
   });
 
