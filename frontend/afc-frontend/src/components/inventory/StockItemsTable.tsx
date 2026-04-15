@@ -41,6 +41,7 @@ interface Props {
   filterAvailableMin?: number;
   filterBackorderedMin?: number;
   quickView?: "all" | "low_stock" | "backordered" | "has_orders";
+  warehouseView?: "current" | "total";
   compact?: boolean;
   suppliers?: Supplier[];
   stockItemCategories?: StockItemCategory[];
@@ -111,6 +112,7 @@ export default function StockItemsTable({
   filterAvailableMin,
   filterBackorderedMin,
   quickView = "all",
+  warehouseView = "current",
   compact = false,
   suppliers = [],
   stockItemCategories = [],
@@ -157,16 +159,17 @@ export default function StockItemsTable({
       ordered_min: filterOrderedMin,
       available_min: filterAvailableMin,
       backordered_min: filterBackorderedMin,
+      warehouse_view: warehouseView,
     })
       .then((res) => setData(res))
       .catch(() => setError("Failed to load stock items"))
       .finally(() => setLoading(false));
-  }, [page, pageSize, globalSearch, filterDescription, filterSupplier, filterCategory, quickView,
+  }, [page, pageSize, globalSearch, filterDescription, filterSupplier, filterCategory, quickView, warehouseView,
       filterOnHandMin, filterReservedMin, filterOrderedMin, filterAvailableMin, filterBackorderedMin]);
 
   useEffect(() => {
     setPage(1);
-  }, [globalSearch, filterDescription, filterSupplier, filterCategory, quickView, pageSize,
+  }, [globalSearch, filterDescription, filterSupplier, filterCategory, quickView, warehouseView, pageSize,
       filterOnHandMin, filterReservedMin, filterOrderedMin, filterAvailableMin, filterBackorderedMin]);
 
   useEffect(() => {

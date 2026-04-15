@@ -19,6 +19,7 @@ import { useAuth } from "../hooks/useAuth";
 
 type TabKey = "filters" | "stock" | "media";
 type QuickView = "all" | "low_stock" | "backordered" | "has_orders";
+type WarehouseView = "current" | "total";
 
 const QUICK_VIEWS: { key: QuickView; label: string; color: string }[] = [
   { key: "all",        label: "All",           color: "bg-gray-100 text-gray-600 hover:bg-gray-200" },
@@ -40,6 +41,7 @@ function loadSavedFilters(): Record<string, string> {
 
 const VALID_TABS: TabKey[] = ["filters", "stock", "media"];
 const VALID_QUICK_VIEWS: QuickView[] = ["all", "low_stock", "backordered", "has_orders"];
+const VALID_WAREHOUSE_VIEWS: WarehouseView[] = ["current", "total"];
 
 export default function Inventory() {
   const { activeWarehouseId } = useWarehouse();
@@ -51,6 +53,9 @@ export default function Inventory() {
   );
   const [quickView, setQuickView] = useState<QuickView>(
     VALID_QUICK_VIEWS.includes(saved.quickView as QuickView) ? (saved.quickView as QuickView) : "all"
+  );
+  const [warehouseView, setWarehouseView] = useState<WarehouseView>(
+    VALID_WAREHOUSE_VIEWS.includes(saved.warehouseView as WarehouseView) ? (saved.warehouseView as WarehouseView) : "current"
   );
   const [showAddProduct, setShowAddProduct] = useState(false);
   const [showProduceProduct, setShowProduceProduct] = useState(false);
@@ -94,6 +99,7 @@ export default function Inventory() {
     const data: Record<string, string> = {
       tab,
       quickView,
+      warehouseView,
       globalSearch,
       filterSupplier,
       filterCategory,
@@ -111,7 +117,7 @@ export default function Inventory() {
     };
     localStorage.setItem(LS_KEY, JSON.stringify(data));
   }, [
-    tab, quickView, globalSearch, filterSupplier, filterCategory, filterMerv,
+    tab, quickView, warehouseView, globalSearch, filterSupplier, filterCategory, filterMerv,
     filterDescription, compact, filterHeight, filterWidth, filterDepth,
     filterOnHandMin, filterReservedMin, filterOrderedMin, filterAvailableMin, filterBackorderedMin,
   ]);
@@ -133,6 +139,7 @@ export default function Inventory() {
     setFilterAvailableMin("");
     setFilterBackorderedMin("");
     setQuickView("all");
+    setWarehouseView("current");
   };
 
   const hasActiveFilters =
@@ -149,7 +156,8 @@ export default function Inventory() {
     filterOrderedMin !== "" ||
     filterAvailableMin !== "" ||
     filterBackorderedMin !== "" ||
-    quickView !== "all";
+    quickView !== "all" ||
+    warehouseView !== "current";
 
   const categories = tab === "filters" ? airFilterCategories : tab === "stock" ? stockItemCategories : mediaCategories;
 
@@ -260,6 +268,19 @@ export default function Inventory() {
               <option value="low_stock">Low Stock</option>
               <option value="backordered">Backordered</option>
               <option value="has_orders">Has Open Orders</option>
+            </select>
+          </div>
+
+          {/* Warehouse View */}
+          <div className="flex flex-col gap-0.5 min-w-[180px]">
+            <label className="text-xs text-gray-400 font-medium uppercase tracking-wide">Warehouse View</label>
+            <select
+              className={inputCls}
+              value={warehouseView}
+              onChange={(e) => setWarehouseView(e.target.value as WarehouseView)}
+            >
+              <option value="current">View Current Warehouse Count</option>
+              <option value="total">View Total Warehouse Count</option>
             </select>
           </div>
 
@@ -487,6 +508,7 @@ export default function Inventory() {
               filterAvailableMin={filterAvailableMin !== "" ? Number(filterAvailableMin) : undefined}
               filterBackorderedMin={filterBackorderedMin !== "" ? Number(filterBackorderedMin) : undefined}
               quickView={quickView}
+              warehouseView={warehouseView}
               compact={compact}
               suppliers={suppliers}
               airFilterCategories={airFilterCategories}
@@ -505,6 +527,7 @@ export default function Inventory() {
               filterAvailableMin={filterAvailableMin !== "" ? Number(filterAvailableMin) : undefined}
               filterBackorderedMin={filterBackorderedMin !== "" ? Number(filterBackorderedMin) : undefined}
               quickView={quickView}
+              warehouseView={warehouseView}
               compact={compact}
               suppliers={suppliers}
               stockItemCategories={stockItemCategories}
@@ -523,6 +546,7 @@ export default function Inventory() {
               filterAvailableMin={filterAvailableMin !== "" ? Number(filterAvailableMin) : undefined}
               filterBackorderedMin={filterBackorderedMin !== "" ? Number(filterBackorderedMin) : undefined}
               quickView={quickView}
+              warehouseView={warehouseView}
               compact={compact}
               suppliers={suppliers}
               mediaCategories={mediaCategories}

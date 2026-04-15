@@ -67,6 +67,7 @@ export interface MediaSearchParams {
   ordered_min?: number;
   available_min?: number;
   backordered_min?: number;
+  warehouse_view?: "current" | "total";
 }
 
 /* ============================================================
@@ -100,6 +101,7 @@ export function fetchMedia(
   if (filters.ordered_min !== undefined) params.set("ordered", String(filters.ordered_min));
   if (filters.available_min !== undefined) params.set("available", String(filters.available_min));
   if (filters.backordered_min !== undefined) params.set("backordered", String(filters.backordered_min));
+  if (filters.warehouse_view) params.set("warehouse_view", filters.warehouse_view);
 
   return apiRequest(`/media/search?${params.toString()}`, {
     method: "GET",
