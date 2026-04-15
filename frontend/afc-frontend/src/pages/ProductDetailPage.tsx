@@ -1329,6 +1329,12 @@ export default function ProductDetailPage() {
                     </div>
                   );
                 })}
+                <button
+                  className="bg-[#363b4c] text-white px-6 py-2 rounded hover:bg-[#4a5063] transition-colors"
+                  onClick={() => setAddChildProductOpen(true)}
+                >
+                  Create Child Product
+                </button>
               </div>
             ) : (
               <div className="text-center py-6">
