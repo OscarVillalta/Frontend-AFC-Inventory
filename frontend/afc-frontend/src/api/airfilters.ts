@@ -107,6 +107,8 @@ export function fetchAirFilters(
   if (filters.backordered !== undefined) params.set("backordered", String(filters.backordered));
   if (filters.warehouse_view) params.set("warehouse_view", filters.warehouse_view);
 
+  console.log(params.toString())
+
   return apiRequest(`/air_filters/search?${params.toString()}`, {
     method: "GET",
   });
