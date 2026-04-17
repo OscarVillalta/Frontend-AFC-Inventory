@@ -274,23 +274,25 @@ export default function OrdersSearchPage() {
                   Pull From QB
                 </button>
                 )}
-                <button
-                  className="
-                    px-5 py-2.5 rounded-lg
-                    text-sm font-semibold text-white
-                    shadow-md transition
-                    cursor-pointer
-                    hover:shadow-lg hover:-translate-y-0.5
-                    active:translate-y-0
-                  "
-                  style={{
-                    background:
-                      "linear-gradient(90deg, #3A7BD5 0%, #2B60C8 100%)",
-                  }}
-                  onClick={() => setShowCreateModal(true)}
-                >
-                  + Create Order
-                </button>
+                {hasPermission("orders:create") && (
+                  <button
+                    className="
+                      px-5 py-2.5 rounded-lg
+                      text-sm font-semibold text-white
+                      shadow-md transition
+                      cursor-pointer
+                      hover:shadow-lg hover:-translate-y-0.5
+                      active:translate-y-0
+                    "
+                    style={{
+                      background:
+                        "linear-gradient(90deg, #3A7BD5 0%, #2B60C8 100%)",
+                    }}
+                    onClick={() => setShowCreateModal(true)}
+                  >
+                    + Create Order
+                  </button>
+                )}
               </div>
             </div>
             

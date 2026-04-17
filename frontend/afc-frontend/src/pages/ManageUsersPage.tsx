@@ -4,6 +4,7 @@ import { fetchUsers, fetchRoles, createUser, updateUser, deleteUser } from "../a
 import type { User, Role, CreateUserPayload, UpdateUserPayload } from "../api/users";
 import { fetchPermissions, createRole, updateRole } from "../api/admin";
 import type { Permission, RoleDetail, CreateRolePayload, UpdateRolePayload } from "../api/admin";
+import { useAuth } from "../hooks/useAuth";
 
 /* ------------------------------------------------------------------ */
 /*  Add / Edit Modal                                                   */
@@ -366,6 +367,9 @@ export default function ManageUsersPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  //permission Checker function
+  const {hasPermission} = useAuth()
+
   // User modal state – modalKey forces remount so form state resets
   const [modalOpen, setModalOpen] = useState(false);
   const [modalKey, setModalKey] = useState(0);
@@ -556,7 +560,8 @@ export default function ManageUsersPage() {
                           </span>
                         </td>
                         <td className="text-right">
-                          <button
+                          {hasPermission("user:edit") && (
+                            <button
                             className="btn btn-ghost btn-xs"
                             onClick={() => openEditModal(u)}
                             title="Edit user"
@@ -564,7 +569,9 @@ export default function ManageUsersPage() {
                           >
                             ✏️
                           </button>
-                          <button
+                          )}
+                          {hasPermission("user:delete") && (
+                            <button
                             className="btn btn-ghost btn-xs text-error"
                             onClick={() => openDeleteModal(u)}
                             title="Delete user"
@@ -572,6 +579,7 @@ export default function ManageUsersPage() {
                           >
                             🗑️
                           </button>
+                          )}
                         </td>
                       </tr>
                     ))
@@ -581,11 +589,13 @@ export default function ManageUsersPage() {
             </div>
 
             {/* Add User button */}
+            {hasPermission("user:create") && (
             <div className="flex justify-end mt-4">
               <button className="btn btn-primary" onClick={openAddModal}>
                 + Add User
               </button>
             </div>
+            )}
 
             {/* ========== Role Management Section ========== */}
             <div className="divider my-8" />
@@ -629,7 +639,8 @@ export default function ManageUsersPage() {
                             )}
                           </div>
                         </td>
-                        <td className="text-right">
+                        {hasPermission("roles:manage") && (
+                          <td className="text-right">
                           <button
                             className="btn btn-ghost btn-xs"
                             onClick={() => openEditRoleModal(r)}
@@ -639,6 +650,7 @@ export default function ManageUsersPage() {
                             ✏️
                           </button>
                         </td>
+                        )}
                       </tr>
                     ))
                   )}
@@ -647,11 +659,13 @@ export default function ManageUsersPage() {
             </div>
 
             {/* Add Role button */}
-            <div className="flex justify-end mt-4">
-              <button className="btn btn-secondary" onClick={openAddRoleModal}>
-                + Add Role
-              </button>
-            </div>
+            {hasPermission("roles:manage") && (
+              <div className="flex justify-end mt-4">
+                <button className="btn btn-secondary" onClick={openAddRoleModal}>
+                  + Add Role
+                </button>
+              </div>               
+            )}
           </>
         )}
       </div>

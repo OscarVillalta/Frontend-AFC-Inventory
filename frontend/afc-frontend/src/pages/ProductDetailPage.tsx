@@ -648,7 +648,7 @@ export default function ProductDetailPage() {
               <div className="flex items-start justify-between">
                 <h1 className="text-3xl font-bold text-[#363b4c]">{partNumber}</h1>
                 <div className="flex gap-2 flex-shrink-0">
-                  {hasPermission("inventory:edit") && (
+                  {hasPermission("catalog:edit") && (
                   <>
                   {!editingDetails ? (
                     <button
@@ -677,17 +677,19 @@ export default function ProductDetailPage() {
                   )}
                   </>
                   )}
-                  <button
-                    className="btn btn-sm bg-[#363b4c] text-white hover:bg-[#4a5063] border-0"
-                    onClick={() => {
-                      setAdjustOnHand(on_hand);
-                      setAdjustReason("");
-                      setAdjustNotes("");
-                      setAdjustStockOpen(true);
-                    }}
-                  >
-                    Adjust Stock
-                  </button>
+                  {hasPermission("inventory:edit") && (
+                      <button
+                      className="btn btn-sm bg-[#363b4c] text-white hover:bg-[#4a5063] border-0"
+                      onClick={() => {
+                        setAdjustOnHand(on_hand);
+                        setAdjustReason("");
+                        setAdjustNotes("");
+                        setAdjustStockOpen(true);
+                      }}
+                    >
+                      Adjust Stock
+                    </button>
+                  )}
                 </div>
               </div>
 

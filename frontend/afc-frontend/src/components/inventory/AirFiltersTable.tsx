@@ -449,7 +449,7 @@ export default function AirFiltersTable({
                 <td
                   className={`${rowPadding} text-sm ${isOrphaned ? "text-gray-500" : "text-gray-700"} whitespace-nowrap`}
                   onClick={(e) => { e.stopPropagation(); 
-                    if(hasPermission("inventory:edit") && !isOrphaned) {
+                    if(hasPermission("catalog:edit") && !isOrphaned) {
                       setInlineEdit({ rowId: group.parent.id, field: "supplier" }); 
                     }
                   }}
@@ -478,7 +478,7 @@ export default function AirFiltersTable({
                 <td
                   className={`${rowPadding} text-sm ${isOrphaned ? "text-gray-500" : "text-gray-700"}`}
                   onClick={(e) => { e.stopPropagation(); 
-                    if(hasPermission("inventory:edit") && !isOrphaned) {
+                    if(hasPermission("catalog:edit") && !isOrphaned) {
                       setInlineEdit({ rowId: group.parent.id, field: "category" }); 
                     }                   
                   }}
@@ -514,7 +514,7 @@ export default function AirFiltersTable({
                 <td
                   className={`${rowPadding} text-sm text-center`}
                   onClick={(e) => { e.stopPropagation(); 
-                    if(hasPermission("inventory:edit") && !isOrphaned) {
+                    if(hasPermission("catalog:edit") && !isOrphaned) {
                       setInlineEdit({ rowId: group.parent.id, field: "merv_rating" }); 
                     }    
                   }}
@@ -550,19 +550,19 @@ export default function AirFiltersTable({
                 {/* Stock cells */}
                 {renderStockCells(group.parent, isOrphaned)}
                 {/* Actions */}
-                {(hasPermission("inventory:edit") || hasPermission("catalog:archive")) && (
+                
                 <td className={`${rowPadding} text-right pr-3`}>              
                   {!isOrphaned && (
                   <div className="flex items-center justify-end gap-2 opacity-40 group-hover:opacity-100 transition-opacity">
-                    {hasPermission("inventory:edit") && (
-                    <button
-                      onClick={(e) => { e.stopPropagation(); handleEdit(group.parent); }}
-                      className="text-gray-500 hover:text-blue-600 transition cursor-pointer"
-                      title="Edit"
-                    >
-                      <PencilIcon />
-                    </button>
-                    )}
+                    {(hasPermission("inventory:edit")) && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleEdit(group.parent); }}
+                        className="text-gray-500 hover:text-blue-600 transition cursor-pointer"
+                        title="Edit"
+                      >
+                        <PencilIcon />
+                      </button>
+                      )}
                     {hasPermission("catalog:archive") && (
                     <button
                       onClick={(e) => { e.stopPropagation(); setDeleteTarget(group.parent); }}
@@ -575,7 +575,7 @@ export default function AirFiltersTable({
                   </div>
                   )}
                 </td>
-                )}
+                
               </tr>
 
               {/* CHILD ROWS */}

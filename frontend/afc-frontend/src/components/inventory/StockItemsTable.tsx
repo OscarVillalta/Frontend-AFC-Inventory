@@ -397,33 +397,32 @@ export default function StockItemsTable({
               )}
             </td>
             {/* Actions */}
-            {(hasPermission("inventory:edit") || hasPermission("catalog:archive")) && (
+            
             <td className={`${rowPadding} text-right pr-3`}>
               <div className="flex items-center justify-end gap-2 opacity-40 group-hover:opacity-100 transition-opacity">
-                {hasPermission("inventory:edit") && (
-                <button
-                  onClick={(e) => { e.stopPropagation(); handleEdit(row); }}
-                  className="text-gray-500 hover:text-blue-600 transition"
-                  title="Edit"
-                >
-                  <PencilIcon />
-                </button>
+                {(hasPermission("inventory:edit") ) && (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); handleEdit(row); }}
+                    className="text-gray-500 hover:text-blue-600 transition"
+                    title="Edit"
+                  >
+                    <PencilIcon />
+                  </button>
                 )}
                 {hasPermission("catalog:archive") && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    alert("Delete functionality not yet available for stock items.");
-                  }}
-                  className="text-gray-500 hover:text-red-600 transition"
-                  title="Delete"
-                >
-                  <TrashIcon />
-                </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      alert("Delete functionality not yet available for stock items.");
+                    }}
+                    className="text-gray-500 hover:text-red-600 transition"
+                    title="Delete"
+                  >
+                    <TrashIcon />
+                  </button>
                 )}
               </div>  
             </td>
-            )}
           </tr>
         ))}
 

@@ -415,7 +415,7 @@ export default function MediaTable({
                 <td
                   className={`${rowPadding} text-sm text-gray-700 whitespace-nowrap`}
                   onClick={(e) => { e.stopPropagation(); 
-                    if(hasPermission("inventory:edit")) {
+                    if(hasPermission("catalog:edit")) {
                       setInlineEdit({ rowId: group.parent.id, field: "supplier" }); 
                     }
                   }}
@@ -444,7 +444,7 @@ export default function MediaTable({
                 <td
                   className={`${rowPadding} text-sm text-gray-700`}
                   onClick={(e) => { e.stopPropagation(); 
-                    if(hasPermission("inventory:edit")) {
+                    if(hasPermission("catalog:edit")) {
                       setInlineEdit({ rowId: group.parent.id, field: "category" }); 
                     } 
                   }}
@@ -490,9 +490,10 @@ export default function MediaTable({
                 {/* Stock cells */}
                 {renderStockCells(group.parent)}
                 {/* Actions */}
-                {hasPermission("inventory:manual_adjust") && (
+                
                 <td className={`${rowPadding} text-right pr-3`}>            
                   <div className="flex items-center justify-end gap-2 opacity-40 group-hover:opacity-100 transition-opacity">
+                    {hasPermission("inventory:edit") && (
                     <button
                       onClick={(e) => { e.stopPropagation(); handleEdit(group.parent); }}
                       className="text-gray-500 hover:text-blue-600 transition cursor-pointer"
@@ -500,6 +501,8 @@ export default function MediaTable({
                     >
                       <PencilIcon />
                     </button>
+                    )}
+                    {hasPermission("catalog:archive") && (
                     <button
                       onClick={(e) => { e.stopPropagation(); setDeleteTarget(group.parent); }}
                       className="text-gray-500 hover:text-red-600 transition"
@@ -507,9 +510,10 @@ export default function MediaTable({
                     >
                       <TrashIcon />
                     </button>
+                    )}
                   </div>
                 </td>
-                )}
+                
               </tr>
 
               {/* CHILD ROWS */}
