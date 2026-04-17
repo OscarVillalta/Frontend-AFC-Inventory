@@ -1,8 +1,8 @@
-import { useEffect, useState, useMemo, Fragment } from "react";
+import { useEffect, useState, Fragment } from "react";
 import { useNavigate } from "react-router-dom";
 import MDTable from "../table/MDtable";
 import { fetchAirFilters, deleteAirFilter, patchAirFilter } from "../../api/airfilters";
-import type { AirFilterResponse, AirFilterPayload, AirFilterCategory } from "../../api/airfilters";
+import type { AirFilterResponse, AirFilterPayload, AirFilterChild, AirFilterCategory } from "../../api/airfilters";
 import { autocommitTxn } from "../../api/transactions";
 import type { createTxnRequest } from "../../api/transactions";
 import type { Supplier } from "../../api/suppliers";
@@ -26,12 +26,6 @@ interface EditFormState {
   on_hand: number;
   ordered: number;
   reserved: number;
-}
-
-interface GroupedProduct {
-  parent: AirFilterPayload;
-  children: AirFilterPayload[];
-  isOrphanedChild?: boolean;
 }
 
 interface InlineEdit {
@@ -59,34 +53,6 @@ interface Props {
   compact?: boolean;
   suppliers?: Supplier[];
   airFilterCategories?: AirFilterCategory[];
-}
-
-/* ============================================================
-   HELPER: group products by parent-child
-============================================================ */
-
-function groupProducts(products: AirFilterPayload[]): GroupedProduct[] {
-  const parentMap = new Map<number, GroupedProduct>();
-  const childProducts: AirFilterPayload[] = [];
-
-  products.forEach((product) => {
-    if (product.parent_product_id) {
-      childProducts.push(product);
-    } else {
-      parentMap.set(product.product_id, { parent: product, children: [] });
-    }
-  });
-
-  childProducts.forEach((child) => {
-    const parentGroup = parentMap.get(child.parent_product_id!);
-    if (parentGroup) {
-      parentGroup.children.push(child);
-    } else {
-      parentMap.set(child.product_id, { parent: child, children: [], isOrphanedChild: true });
-    }
-  });
-
-  return Array.from(parentMap.values());
 }
 
 /* ============================================================
@@ -217,15 +183,6 @@ export default function AirFiltersTable({
     })
       .then((res) => {
         setData(res);
-        if (globalSearch && res.results) {
-          setExpandedRows((prev) => {
-            const next = new Set(prev);
-            res.results.forEach((p) => {
-              if (p.parent_product_id) next.add(p.parent_product_id);
-            });
-            return next;
-          });
-        }
       })
       .finally(() => setLoading(false));
   };
@@ -243,9 +200,7 @@ export default function AirFiltersTable({
       filterHeight, filterWidth, filterDepth, quickView, warehouseView,
       filterOnHandMin, filterReservedMin, filterOrderedMin, filterAvailableMin, filterBackorderedMin, activeWarehouseId]);
 
-  const rows: AirFilterPayload[] = data?.results ?? [];
-
-  const groupedProducts = useMemo(() => groupProducts(rows), [rows]);
+  const parents: AirFilterPayload[] = data?.results ?? [];
 
   /* ===================== EXPAND/COLLAPSE ===================== */
 
@@ -371,7 +326,7 @@ export default function AirFiltersTable({
 
   /* ===================== ROW RENDER HELPER ===================== */
 
-  const renderStockCells = (row: AirFilterPayload, isChild = false) => (
+  const renderStockCells = (row: AirFilterPayload | AirFilterChild, isChild = false) => (
     <>
       <td className={`${rowPadding} text-center text-sm ${isChild ? "text-gray-400" : ""}`}>{isChild ? "—" : row.on_hand}</td>
       <td className={`${rowPadding} text-center text-sm ${isChild ? "text-gray-400" : ""}`}>{isChild ? "—" : row.ordered}</td>
@@ -409,58 +364,56 @@ export default function AirFiltersTable({
         onPageSizeChange={setPageSize}
       >
         {/* ── DATA ROWS ── */}
-        {groupedProducts.map((group) => {
-          const isExpanded = expandedRows.has(group.parent.product_id);
-          const hasChildren = group.children.length > 0;
-          const isOrphaned = group.isOrphanedChild === true;
+        {parents.map((parent) => {
+          const isExpanded = expandedRows.has(parent.product_id);
+          const hasChildren = parent.children.length > 0;
 
           return (
-            <Fragment key={group.parent.id}>
-              {/* PARENT ROW (or orphaned child styled as child) */}
-              <tr className={isOrphaned ? "bg-blue-50/30 hover:bg-blue-50/60 transition group" : "hover:bg-blue-50/40 transition cursor-pointer group"}>
+            <Fragment key={parent.id}>
+              {/* PARENT ROW */}
+              <tr className="hover:bg-blue-50/40 transition cursor-pointer group">
                 {/* Part Number */}
                 <td
-                  className={isOrphaned ? `${rowPadding} text-sm pl-8 text-gray-500` : `${rowPadding} font-semibold text-blue-600 hover:underline text-sm whitespace-nowrap`}
-                  onClick={() => navigate(`/products/${group.parent.product_id}`)}
+                  className={`${rowPadding} font-semibold text-blue-600 hover:underline text-sm whitespace-nowrap`}
+                  onClick={() => navigate(`/products/${parent.product_id}`)}
                 >
                   <div className="flex items-center gap-1.5">
-                    {!isOrphaned && hasChildren && (
+                    {hasChildren && (
                       <button
-                        onClick={(e) => { e.stopPropagation(); toggleExpand(group.parent.product_id); }}
+                        onClick={(e) => { e.stopPropagation(); toggleExpand(parent.product_id); }}
                         className="text-gray-400 hover:text-gray-600 transition w-4 text-center"
                       >
                         {isExpanded ? "▼" : "▶"}
                       </button>
                     )}
-                    {isOrphaned && <span className="text-gray-400 mr-1">↳</span>}
-                    <span>{group.parent.part_number}</span>
+                    <span>{parent.part_number}</span>
                   </div>
                 </td>
                 {/* Description */}
                 <td
                   className={`${rowPadding} max-w-[160px]`}
-                  onClick={() => navigate(`/products/${group.parent.product_id}`)}
+                  onClick={() => navigate(`/products/${parent.product_id}`)}
                 >
-                  <span className={`block truncate text-sm ${isOrphaned ? "text-gray-500" : "text-gray-600"}`} title={group.parent.description ?? ""}>
-                    {group.parent.description || <span className="text-gray-300">—</span>}
+                  <span className="block truncate text-sm text-gray-600" title={parent.description ?? ""}>
+                    {parent.description || <span className="text-gray-300">—</span>}
                   </span>
                 </td>
                 {/* Supplier */}
                 <td
-                  className={`${rowPadding} text-sm ${isOrphaned ? "text-gray-500" : "text-gray-700"} whitespace-nowrap`}
+                  className={`${rowPadding} text-sm text-gray-700 whitespace-nowrap`}
                   onClick={(e) => { e.stopPropagation(); 
-                    if(hasPermission("catalog:edit") && !isOrphaned) {
-                      setInlineEdit({ rowId: group.parent.id, field: "supplier" }); 
+                    if(hasPermission("catalog:edit")) {
+                      setInlineEdit({ rowId: parent.id, field: "supplier" }); 
                     }
                   }}
                 >
-                  {!isOrphaned && inlineEdit?.rowId === group.parent.id && inlineEdit.field === "supplier" ? (
+                  {inlineEdit?.rowId === parent.id && inlineEdit.field === "supplier" ? (
                     <select
                       autoFocus
                       className="border border-blue-400 rounded px-1 py-0.5 text-xs text-gray-700 bg-white focus:outline-none focus:ring-1 focus:ring-blue-400"
-                      defaultValue={group.parent.supplier_name ?? ""}
-                      onBlur={(e) => handleInlineSave(group.parent, "supplier", e.target.value)}
-                      onChange={(e) => handleInlineSave(group.parent, "supplier", e.target.value)}
+                      defaultValue={parent.supplier_name ?? ""}
+                      onBlur={(e) => handleInlineSave(parent, "supplier", e.target.value)}
+                      onChange={(e) => handleInlineSave(parent, "supplier", e.target.value)}
                       onClick={(e) => e.stopPropagation()}
                     >
                       <option value="">— Select —</option>
@@ -469,27 +422,27 @@ export default function AirFiltersTable({
                       ))}
                     </select>
                   ) : (
-                    <span className={isOrphaned ? "" : "cursor-pointer hover:text-blue-600 hover:underline"} title={isOrphaned ? "" : "Click to edit"}>
-                      {group.parent.supplier_name ?? "—"}
+                    <span className="cursor-pointer hover:text-blue-600 hover:underline" title="Click to edit">
+                      {parent.supplier_name ?? "—"}
                     </span>
                   )}
                 </td>
                 {/* Category */}
                 <td
-                  className={`${rowPadding} text-sm ${isOrphaned ? "text-gray-500" : "text-gray-700"}`}
+                  className={`${rowPadding} text-sm text-gray-700`}
                   onClick={(e) => { e.stopPropagation(); 
-                    if(hasPermission("catalog:edit") && !isOrphaned) {
-                      setInlineEdit({ rowId: group.parent.id, field: "category" }); 
+                    if(hasPermission("catalog:edit")) {
+                      setInlineEdit({ rowId: parent.id, field: "category" }); 
                     }                   
                   }}
                 >
-                  {!isOrphaned && inlineEdit?.rowId === group.parent.id && inlineEdit.field === "category" ? (
+                  {inlineEdit?.rowId === parent.id && inlineEdit.field === "category" ? (
                     <select
                       autoFocus
                       className="border border-blue-400 rounded px-1 py-0.5 text-xs text-gray-700 bg-white focus:outline-none focus:ring-1 focus:ring-blue-400"
-                      defaultValue={group.parent.filter_category ?? ""}
-                      onBlur={(e) => handleInlineSave(group.parent, "category", e.target.value)}
-                      onChange={(e) => handleInlineSave(group.parent, "category", e.target.value)}
+                      defaultValue={parent.filter_category ?? ""}
+                      onBlur={(e) => handleInlineSave(parent, "category", e.target.value)}
+                      onChange={(e) => handleInlineSave(parent, "category", e.target.value)}
                       onClick={(e) => e.stopPropagation()}
                     >
                       <option value="">— Select —</option>
@@ -498,34 +451,34 @@ export default function AirFiltersTable({
                       ))}
                     </select>
                   ) : (
-                    <span className={isOrphaned ? "" : "cursor-pointer hover:text-blue-600 hover:underline"} title={isOrphaned ? "" : "Click to edit"}>
-                      {group.parent.filter_category}
+                    <span className="cursor-pointer hover:text-blue-600 hover:underline" title="Click to edit">
+                      {parent.filter_category}
                     </span>
                   )}
                 </td>
                 {/* Dimensions */}
                 <td
-                  className={`${rowPadding} text-sm ${isOrphaned ? "text-gray-500" : "text-gray-700"} whitespace-nowrap`}
-                  onClick={() => navigate(`/products/${group.parent.product_id}`)}
+                  className={`${rowPadding} text-sm text-gray-700 whitespace-nowrap`}
+                  onClick={() => navigate(`/products/${parent.product_id}`)}
                 >
-                  {dimVal(group.parent.height)} × {dimVal(group.parent.width)} × {dimVal(group.parent.depth)}
+                  {dimVal(parent.height)} × {dimVal(parent.width)} × {dimVal(parent.depth)}
                 </td>
                 {/* MERV */}
                 <td
                   className={`${rowPadding} text-sm text-center`}
                   onClick={(e) => { e.stopPropagation(); 
-                    if(hasPermission("catalog:edit") && !isOrphaned) {
-                      setInlineEdit({ rowId: group.parent.id, field: "merv_rating" }); 
+                    if(hasPermission("catalog:edit")) {
+                      setInlineEdit({ rowId: parent.id, field: "merv_rating" }); 
                     }    
                   }}
                 >
-                  {!isOrphaned && inlineEdit?.rowId === group.parent.id && inlineEdit.field === "merv_rating" ? (
+                  {inlineEdit?.rowId === parent.id && inlineEdit.field === "merv_rating" ? (
                     <select
                       autoFocus
                       className="border border-blue-400 rounded px-1 py-0.5 text-xs text-gray-700 bg-white focus:outline-none focus:ring-1 focus:ring-blue-400"
-                      defaultValue={group.parent.merv_rating}
-                      onBlur={(e) => handleInlineSave(group.parent, "merv_rating", e.target.value)}
-                      onChange={(e) => handleInlineSave(group.parent, "merv_rating", e.target.value)}
+                      defaultValue={parent.merv_rating}
+                      onBlur={(e) => handleInlineSave(parent, "merv_rating", e.target.value)}
+                      onChange={(e) => handleInlineSave(parent, "merv_rating", e.target.value)}
                       onClick={(e) => e.stopPropagation()}
                     >
                       {Array.from({ length: 16 }, (_, i) => i + 1).map((m) => (
@@ -534,29 +487,28 @@ export default function AirFiltersTable({
                       <option value={17}>99.99%</option>
                       <option value={18}>99.999%</option>
                     </select>
-                  ) : group.parent.merv_rating === 0 ? (
-                    <span className={isOrphaned ? "text-gray-300" : "text-gray-300 cursor-pointer"} title={isOrphaned ? "" : "Click to edit"}>–</span>
+                  ) : parent.merv_rating === 0 ? (
+                    <span className="text-gray-300 cursor-pointer" title="Click to edit">–</span>
                   ) : (
                     <span
-                      className={isOrphaned ? "px-2 py-0.5 text-xs rounded bg-gray-100 text-gray-500" : "px-2 py-0.5 text-xs rounded bg-gray-100 text-gray-600 font-medium cursor-pointer hover:bg-blue-100 hover:text-blue-700"}
-                      title={isOrphaned ? "" : "Click to edit"}
+                      className="px-2 py-0.5 text-xs rounded bg-gray-100 text-gray-600 font-medium cursor-pointer hover:bg-blue-100 hover:text-blue-700"
+                      title="Click to edit"
                     >
-                      {mervLabel(group.parent.merv_rating)}
+                      {mervLabel(parent.merv_rating)}
                     </span>
                   )}
                 </td>
                 {/* spacer */}
                 <td className="w-4" />
                 {/* Stock cells */}
-                {renderStockCells(group.parent, isOrphaned)}
+                {renderStockCells(parent, false)}
                 {/* Actions */}
                 
                 <td className={`${rowPadding} text-right pr-3`}>              
-                  {!isOrphaned && (
                   <div className="flex items-center justify-end gap-2 opacity-40 group-hover:opacity-100 transition-opacity">
                     {(hasPermission("inventory:edit")) && (
                       <button
-                        onClick={(e) => { e.stopPropagation(); handleEdit(group.parent); }}
+                        onClick={(e) => { e.stopPropagation(); handleEdit(parent); }}
                         className="text-gray-500 hover:text-blue-600 transition cursor-pointer"
                         title="Edit"
                       >
@@ -565,7 +517,7 @@ export default function AirFiltersTable({
                       )}
                     {hasPermission("catalog:archive") && (
                     <button
-                      onClick={(e) => { e.stopPropagation(); setDeleteTarget(group.parent); }}
+                      onClick={(e) => { e.stopPropagation(); setDeleteTarget(parent); }}
                       className="text-gray-500 hover:text-red-600 transition"
                       title="Delete"
                     >
@@ -573,14 +525,13 @@ export default function AirFiltersTable({
                     </button>
                     )}
                   </div>
-                  )}
                 </td>
                 
               </tr>
 
               {/* CHILD ROWS */}
-              {!isOrphaned && isExpanded &&
-                group.children.map((child) => (
+              {isExpanded &&
+                parent.children.map((child) => (
                   <tr key={child.id} className="bg-blue-50/30 hover:bg-blue-50/60 transition cursor-pointer group">
                     {/* Part Number */}
                     <td
@@ -616,7 +567,7 @@ export default function AirFiltersTable({
           );
         })}
 
-        {!loading && groupedProducts.length === 0 && (
+        {!loading && parents.length === 0 && (
           <tr>
             <td colSpan={columns.length} className="text-center py-8 text-gray-400 text-sm">
               No items found.
