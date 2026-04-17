@@ -4,11 +4,9 @@ import { apiRequest } from "./apiClient";
    TYPES — match /air_filters/search
 ============================================================ */
 
-export interface AirFilterPayload {
+export interface AirFilterChild {
   id: number;
-  product_id: number;
-  child_product_id?: number | null;
-  parent_product_id?: number | null;
+  child_product_id: number;
   part_number: string;
   description?: string | null;
   merv_rating: number;
@@ -23,8 +21,33 @@ export interface AirFilterPayload {
   on_hand: number;
   reserved: number;
   ordered: number;
+  location: number | null;
   available: number;
   backordered: number;
+}
+
+export interface AirFilterPayload {
+  id: number;
+  product_id: number;
+  part_number: string;
+  description?: string | null;
+  merv_rating: number;
+
+  height: number;
+  width: number;
+  depth: number;
+
+  filter_category: string;
+  supplier_name: string;
+
+  on_hand: number;
+  reserved: number;
+  ordered: number;
+  location: number | null;
+  available: number;
+  backordered: number;
+  
+  children: AirFilterChild[];
 }
 
 export type CreateAirFilterPayload = Partial<AirFilterPayload> & {
