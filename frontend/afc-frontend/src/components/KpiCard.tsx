@@ -28,7 +28,9 @@ export default function KpiCard({ label, value, icon, color, percentageChange }:
     <div className={`${bgColorClasses[color]} rounded-xl shadow-lg p-6 text-white`}>
       <div className="flex items-center justify-between mb-2">
         <div className="text-sm font-medium uppercase opacity-90">{label}</div>
-        <span className="text-3xl opacity-80">{icon}</span>
+        <span className="text-3xl opacity-80" role="img" aria-label={label}>
+          {icon}
+        </span>
       </div>
       <div className="text-4xl font-bold mb-1">
         {value != null ? formatNumber(value) : '0'}

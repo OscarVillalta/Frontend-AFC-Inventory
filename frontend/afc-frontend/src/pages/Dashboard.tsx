@@ -390,16 +390,9 @@ export default function Dashboard() {
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 {/* Multi-Product Projection Graph - Takes full height on left */}
                 <div className="bg-white rounded-lg shadow p-6 lg:row-span-2">
-                  <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-sm font-semibold uppercase text-gray-700">
-                      Projected Stock Graph - Future Outlook
-                    </h2>
-                    <button className="text-gray-400 hover:text-gray-600">
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
-                      </svg>
-                    </button>
-                  </div>
+                  <h2 className="text-sm font-semibold uppercase text-gray-700 mb-4">
+                    Projected Stock Graph - Future Outlook
+                  </h2>
                   <MultiSelectAutocomplete
                     label="Select Items"
                     placeholder="Search products..."
@@ -453,16 +446,9 @@ export default function Dashboard() {
 
                 {/* Historical Daily Stock Graph - Top Right */}
                 <div className="bg-white rounded-lg shadow p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-sm font-semibold uppercase text-gray-700">
-                      Historical Changes Graph
-                    </h2>
-                    <button className="text-gray-400 hover:text-gray-600">
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
-                      </svg>
-                    </button>
-                  </div>
+                  <h2 className="text-sm font-semibold uppercase text-gray-700 mb-4">
+                    Historical Changes Graph
+                  </h2>
                   <MultiSelectAutocomplete
                     label="Select Items"
                     placeholder="Search products..."
@@ -516,16 +502,9 @@ export default function Dashboard() {
 
                 {/* Top 20 Distribution Pie Chart - Bottom Right */}
                 <div className="bg-white rounded-lg shadow p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-sm font-semibold uppercase text-gray-700">
-                      Top 20 Items - Stock Distribution
-                    </h2>
-                    <button className="text-gray-400 hover:text-gray-600">
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
-                      </svg>
-                    </button>
-                  </div>
+                  <h2 className="text-sm font-semibold uppercase text-gray-700 mb-4">
+                    Top 20 Items - Stock Distribution
+                  </h2>
                   <select
                     className="select select-bordered select-sm w-full mb-4"
                     value={topField}
@@ -579,25 +558,28 @@ export default function Dashboard() {
                         </ResponsiveContainer>
                       </div>
                       <div className="flex-1 text-xs space-y-1">
-                        {pieChartData.slice(0, 9).map((entry, index) => (
-                          <div key={index} className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <div
-                                className="w-3 h-3 rounded-sm"
-                                style={{
-                                  backgroundColor:
-                                    entry.name === "All Others"
-                                      ? "#9ca3af"
-                                      : CHART_COLORS[index % CHART_COLORS.length],
-                                }}
-                              />
-                              <span className="text-gray-700">{entry.name}</span>
+                        {(() => {
+                          const totalValue = pieChartData.reduce((sum, e) => sum + e.value, 0);
+                          return pieChartData.slice(0, 9).map((entry, index) => (
+                            <div key={index} className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <div
+                                  className="w-3 h-3 rounded-sm"
+                                  style={{
+                                    backgroundColor:
+                                      entry.name === "All Others"
+                                        ? "#9ca3af"
+                                        : CHART_COLORS[index % CHART_COLORS.length],
+                                  }}
+                                />
+                                <span className="text-gray-700">{entry.name}</span>
+                              </div>
+                              <span className="font-semibold text-gray-900">
+                                {((entry.value / totalValue) * 100).toFixed(1)}%
+                              </span>
                             </div>
-                            <span className="font-semibold text-gray-900">
-                              {((entry.value / pieChartData.reduce((sum, e) => sum + e.value, 0)) * 100).toFixed(1)}%
-                            </span>
-                          </div>
-                        ))}
+                          ));
+                        })()}
                       </div>
                     </div>
                   )}
