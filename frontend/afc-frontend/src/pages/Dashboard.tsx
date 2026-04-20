@@ -53,12 +53,12 @@ export default function Dashboard() {
 
   // Multi-Product Projection state
   const [projectionProductIds, setProjectionProductIds] = useState<number[]>([]);
-  const [projectionData, setProjectionData] = useState<BulkProjectionsResponse>({});
+  const [projectionData, setProjectionData] = useState<BulkProjectionsResponse>([]);
   const [projectionLoading, setProjectionLoading] = useState(false);
 
   // Historical Daily Stock state
   const [historyProductIds, setHistoryProductIds] = useState<number[]>([]);
-  const [historyData, setHistoryData] = useState<DailyHistoryResponse>({});
+  const [historyData, setHistoryData] = useState<DailyHistoryResponse>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
 
   // Top 20 Distribution state
@@ -139,7 +139,7 @@ export default function Dashboard() {
     async function loadProjections() {
       if (projectionProductIds.length === 0) {
         if (!cancelled) {
-          setProjectionData({});
+          setProjectionData([]);
         }
         return;
       }
@@ -154,7 +154,7 @@ export default function Dashboard() {
       } catch (err: unknown) {
         console.error("Failed to load bulk projections", err);
         if (!cancelled) {
-          setProjectionData({});
+          setProjectionData([]);
           setProjectionLoading(false);
         }
       }
@@ -174,7 +174,7 @@ export default function Dashboard() {
     async function loadHistory() {
       if (historyProductIds.length === 0) {
         if (!cancelled) {
-          setHistoryData({});
+          setHistoryData([]);
         }
         return;
       }
@@ -193,7 +193,7 @@ export default function Dashboard() {
       } catch (err: unknown) {
         console.error("Failed to load daily history", err);
         if (!cancelled) {
-          setHistoryData({});
+          setHistoryData([]);
           setHistoryLoading(false);
         }
       }
@@ -240,13 +240,33 @@ export default function Dashboard() {
   const projectionChartData = useMemo(() => {
     const dateMap = new Map<string, Record<string, number | string>>();
 
-    Object.entries(projectionData).forEach(([productId, items]) => {
-      items.forEach((item) => {
-        if (!dateMap.has(item.date)) {
-          dateMap.set(item.date, { date: item.date });
+    projectionData.forEach((productData) => {
+      const productId = productData.product_id;
+      
+      // Add current on_hand as the first point (use UTC today's date to match server)
+      const today = new Date().toISOString().split('T')[0];
+      if (!dateMap.has(today)) {
+        dateMap.set(today, { date: today });
+      }
+      const todayPoint = dateMap.get(today)!;
+      todayPoint[`product_${productId}`] = productData.current_on_hand;
+      
+      // Add projection points
+      productData.projections.forEach((projection) => {
+        // Use eta if available, otherwise use created_at
+        const dateStr = projection.eta || projection.created_at;
+        if (!dateStr) {
+          console.warn(`Projection missing both eta and created_at for product ${productId}, transaction ${projection.transaction_id}`);
+          return;
         }
-        const point = dateMap.get(item.date)!;
-        point[`product_${productId}`] = item.projected_stock;
+        
+        const date = dateStr.split('T')[0]; // Extract date portion (YYYY-MM-DD)
+        
+        if (!dateMap.has(date)) {
+          dateMap.set(date, { date });
+        }
+        const point = dateMap.get(date)!;
+        point[`product_${productId}`] = projection.projected_stock;
       });
     });
 
@@ -259,13 +279,18 @@ export default function Dashboard() {
   const historyChartData = useMemo(() => {
     const dateMap = new Map<string, Record<string, number | string>>();
 
-    Object.entries(historyData).forEach(([productId, items]) => {
-      items.forEach((item) => {
-        if (!dateMap.has(item.date)) {
-          dateMap.set(item.date, { date: item.date });
+    historyData.forEach((productData) => {
+      const productId = productData.product_id;
+      
+      // Add daily series points
+      productData.daily_series.forEach((dailyItem) => {
+        const date = dailyItem.date;
+        
+        if (!dateMap.has(date)) {
+          dateMap.set(date, { date });
         }
-        const point = dateMap.get(item.date)!;
-        point[`product_${productId}`] = item.on_hand;
+        const point = dateMap.get(date)!;
+        point[`product_${productId}`] = dailyItem.closing_balance;
       });
     });
 

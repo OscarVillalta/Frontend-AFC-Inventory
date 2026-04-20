@@ -49,34 +49,39 @@ export interface NetKpisResponse {
 
 /* ── Bulk Projections ───────────────────────────────────────────── */
 
-export interface BulkProjectionItem {
-  date: string;
-  eta: string | null;
-  product_id: number;
-  projected_stock: number;
+export interface ProjectionItem {
+  transaction_id: number;
   quantity_delta: number;
-  order_id: number | null;
-  order_number: string | null;
-  external_order_number: string | null;
-  order_type: string | null;
-  reason: string;
+  projected_stock: number;
+  eta: string | null;
+  created_at: string | null;
 }
 
-export interface BulkProjectionsResponse {
-  [productId: string]: BulkProjectionItem[];
+export interface ProductProjection {
+  product_id: number;
+  current_on_hand: number;
+  projections: ProjectionItem[];
 }
+
+export type BulkProjectionsResponse = ProductProjection[];
 
 /* ── Daily History ──────────────────────────────────────────────── */
 
-export interface DailyHistoryItem {
+export interface DailySeriesItem {
   date: string;
-  product_id: number;
-  on_hand: number;
+  closing_balance: number;
+  daily_change: number;
 }
 
-export interface DailyHistoryResponse {
-  [productId: string]: DailyHistoryItem[];
+export interface ProductDailyHistory {
+  product_id: number;
+  start_date: string;
+  opening_balance: number;
+  current_on_hand: number;
+  daily_series: DailySeriesItem[];
 }
+
+export type DailyHistoryResponse = ProductDailyHistory[];
 
 /* ── Top Ranked Items ───────────────────────────────────────────── */
 
