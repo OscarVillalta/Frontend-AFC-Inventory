@@ -40,6 +40,11 @@ export interface NetKpisResponse {
   net_reserved: number;
   net_ordered: number;
   net_backordered: number;
+  net_delivered_pct?: number;
+  net_received_pct?: number;
+  net_reserved_pct?: number;
+  net_ordered_pct?: number;
+  net_backordered_pct?: number;
 }
 
 /* ── Bulk Projections ───────────────────────────────────────────── */

@@ -303,11 +303,16 @@ export default function Dashboard() {
 
   return (
     <MainLayout>
-      <div className="p-6 space-y-10">
+      <div className="p-6 space-y-6">
         {/* PAGE TITLE */}
-        <h1 className="text-3xl font-bold text-gray-800">
-          Advanced Operations Dashboard
-        </h1>
+        <div className="flex items-center justify-between">
+          <h1 className="text-2xl font-bold text-gray-800">
+            ENTERPRISE OPERATIONS DASHBOARD
+          </h1>
+          <div className="text-sm text-gray-500">
+            Apr 20, 2026
+          </div>
+        </div>
 
         {/* LOADING INDICATOR */}
         {loading && (
@@ -321,54 +326,46 @@ export default function Dashboard() {
             {/* ── TRANSACTION KPI ROW ─────────────────────────── */}
             {hasPermission("inventory:view") && (
               <div>
-                <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-2xl font-semibold">Transaction KPIs</h2>
-                  <select
-                    className="select select-bordered"
-                    value={selectedDays}
-                    onChange={(e) => setSelectedDays(Number(e.target.value))}
-                  >
-                    <option value={7}>Last 7 Days</option>
-                    <option value={30}>Last 30 Days</option>
-                    <option value={90}>Last 90 Days</option>
-                  </select>
-                </div>
-
                 {kpisLoading ? (
                   <div className="flex justify-center py-8">
                     <span className="loading loading-spinner loading-md text-primary" />
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
                     <KpiCard
                       label="Net Delivered"
                       value={netKpis?.net_delivered}
                       icon="🚚"
                       color="success"
+                      percentageChange={netKpis?.net_delivered_pct}
                     />
                     <KpiCard
                       label="Net Received"
                       value={netKpis?.net_received}
-                      icon="📥"
+                      icon="📦"
                       color="info"
+                      percentageChange={netKpis?.net_received_pct}
                     />
                     <KpiCard
                       label="Net Reserved"
                       value={netKpis?.net_reserved}
                       icon="🔒"
                       color="warning"
+                      percentageChange={netKpis?.net_reserved_pct}
                     />
                     <KpiCard
                       label="Net Ordered"
                       value={netKpis?.net_ordered}
-                      icon="📝"
+                      icon="🛒"
                       color="primary"
+                      percentageChange={netKpis?.net_ordered_pct}
                     />
                     <KpiCard
                       label="Net Backordered"
                       value={netKpis?.net_backordered}
                       icon="⚠️"
                       color="error"
+                      percentageChange={netKpis?.net_backordered_pct}
                     />
                   </div>
                 )}
@@ -377,30 +374,40 @@ export default function Dashboard() {
 
             {/* ── CHARTS SECTION ──────────────────────────────── */}
             {hasPermission("inventory:view") && (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Multi-Product Projection Graph */}
-                <div className="bg-white rounded-xl shadow border border-gray-100 p-6">
-                  <h2 className="text-xl font-semibold mb-4">
-                    Multi-Product Projection
-                  </h2>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {/* Multi-Product Projection Graph - Takes full height on left */}
+                <div className="bg-white rounded-lg shadow p-6 lg:row-span-2">
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-sm font-semibold uppercase text-gray-700">
+                      Projected Stock Graph - Future Outlook
+                    </h2>
+                    <button className="text-gray-400 hover:text-gray-600">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                      </svg>
+                    </button>
+                  </div>
                   <MultiSelectAutocomplete
-                    label="Select Products"
+                    label="Select Items"
                     placeholder="Search products..."
                     options={productOptions}
                     selectedIds={projectionProductIds}
                     onChange={setProjectionProductIds}
                     className="mb-4"
                   />
+                  <div className="text-sm font-medium text-gray-600 mb-2">
+                    PROJECTED STOCK - NEXT 60 DAYS
+                  </div>
                   {projectionLoading ? (
-                    <div className="flex justify-center py-8">
+                    <div className="flex justify-center py-12">
                       <span className="loading loading-spinner loading-md text-primary" />
                     </div>
                   ) : projectionProductIds.length === 0 ? (
-                    <p className="text-gray-400 text-center py-8">
+                    <p className="text-gray-400 text-center py-12">
                       Select products to view projections
                     </p>
                   ) : (
-                    <ResponsiveContainer width="100%" height={300}>
+                    <ResponsiveContainer width="100%" height={400}>
                       <AreaChart data={projectionChartData}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                         <XAxis
@@ -422,7 +429,7 @@ export default function Dashboard() {
                               name={productName}
                               stroke={CHART_COLORS[idx % CHART_COLORS.length]}
                               fill={CHART_COLORS[idx % CHART_COLORS.length]}
-                              fillOpacity={0.2}
+                              fillOpacity={0.3}
                             />
                           );
                         })}
@@ -431,19 +438,29 @@ export default function Dashboard() {
                   )}
                 </div>
 
-                {/* Historical Daily Stock Graph */}
-                <div className="bg-white rounded-xl shadow border border-gray-100 p-6">
-                  <h2 className="text-xl font-semibold mb-4">
-                    Historical Daily Stock (30 Days)
-                  </h2>
+                {/* Historical Daily Stock Graph - Top Right */}
+                <div className="bg-white rounded-lg shadow p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-sm font-semibold uppercase text-gray-700">
+                      Historical Changes Graph
+                    </h2>
+                    <button className="text-gray-400 hover:text-gray-600">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                      </svg>
+                    </button>
+                  </div>
                   <MultiSelectAutocomplete
-                    label="Select Products"
+                    label="Select Items"
                     placeholder="Search products..."
                     options={productOptions}
                     selectedIds={historyProductIds}
                     onChange={setHistoryProductIds}
                     className="mb-4"
                   />
+                  <div className="text-sm font-medium text-gray-600 mb-2">
+                    HISTORICAL CHANGES - PAST 30 DAYS
+                  </div>
                   {historyLoading ? (
                     <div className="flex justify-center py-8">
                       <span className="loading loading-spinner loading-md text-primary" />
@@ -453,7 +470,7 @@ export default function Dashboard() {
                       Select products to view history
                     </p>
                   ) : (
-                    <ResponsiveContainer width="100%" height={300}>
+                    <ResponsiveContainer width="100%" height={250}>
                       <LineChart data={historyChartData}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                         <XAxis
@@ -484,23 +501,31 @@ export default function Dashboard() {
                   )}
                 </div>
 
-                {/* Top 20 Distribution Pie Chart */}
-                <div className="bg-white rounded-xl shadow border border-gray-100 p-6 lg:col-span-2">
-                  <div className="flex justify-between items-center mb-4">
-                    <h2 className="text-xl font-semibold">
-                      Top 20 Distribution by Field
+                {/* Top 20 Distribution Pie Chart - Bottom Right */}
+                <div className="bg-white rounded-lg shadow p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-sm font-semibold uppercase text-gray-700">
+                      Top 20 Items - Stock Distribution
                     </h2>
-                    <select
-                      className="select select-bordered"
-                      value={topField}
-                      onChange={(e) => setTopField(e.target.value)}
-                    >
-                      <option value="onHand">On Hand</option>
-                      <option value="available">Available</option>
-                      <option value="backordered">Backordered</option>
-                      <option value="reserved">Reserved</option>
-                      <option value="ordered">Ordered</option>
-                    </select>
+                    <button className="text-gray-400 hover:text-gray-600">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                      </svg>
+                    </button>
+                  </div>
+                  <select
+                    className="select select-bordered select-sm w-full mb-4"
+                    value={topField}
+                    onChange={(e) => setTopField(e.target.value)}
+                  >
+                    <option value="onHand">On Hand</option>
+                    <option value="available">Available</option>
+                    <option value="backordered">Backordered</option>
+                    <option value="reserved">Reserved</option>
+                    <option value="ordered">Ordered</option>
+                  </select>
+                  <div className="text-sm font-semibold text-gray-700 mb-2 text-right">
+                    TOP 20 ITEMS BY FIELD
                   </div>
                   {topItemsLoading ? (
                     <div className="flex justify-center py-8">
@@ -511,33 +536,57 @@ export default function Dashboard() {
                       No data available
                     </p>
                   ) : (
-                    <ResponsiveContainer width="100%" height={400}>
-                      <PieChart>
-                        <Pie
-                          data={pieChartData}
-                          cx="50%"
-                          cy="50%"
-                          labelLine={false}
-                          label={(entry) => entry.name}
-                          outerRadius={120}
-                          fill="#8884d8"
-                          dataKey="value"
-                        >
-                          {pieChartData.map((entry, index) => (
-                            <Cell
-                              key={`cell-${index}`}
-                              fill={
-                                entry.name === "All Others"
-                                  ? "#9ca3af"
-                                  : CHART_COLORS[index % CHART_COLORS.length]
-                              }
-                            />
-                          ))}
-                        </Pie>
-                        <Tooltip />
-                        <Legend />
-                      </PieChart>
-                    </ResponsiveContainer>
+                    <div className="flex items-center gap-6">
+                      <div className="flex-1">
+                        <ResponsiveContainer width="100%" height={200}>
+                          <PieChart>
+                            <Pie
+                              data={pieChartData}
+                              cx="50%"
+                              cy="50%"
+                              innerRadius={40}
+                              outerRadius={80}
+                              fill="#8884d8"
+                              dataKey="value"
+                              label={false}
+                            >
+                              {pieChartData.map((entry, index) => (
+                                <Cell
+                                  key={`cell-${index}`}
+                                  fill={
+                                    entry.name === "All Others"
+                                      ? "#9ca3af"
+                                      : CHART_COLORS[index % CHART_COLORS.length]
+                                  }
+                                />
+                              ))}
+                            </Pie>
+                            <Tooltip />
+                          </PieChart>
+                        </ResponsiveContainer>
+                      </div>
+                      <div className="flex-1 text-xs space-y-1">
+                        {pieChartData.slice(0, 9).map((entry, index) => (
+                          <div key={index} className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <div
+                                className="w-3 h-3 rounded-sm"
+                                style={{
+                                  backgroundColor:
+                                    entry.name === "All Others"
+                                      ? "#9ca3af"
+                                      : CHART_COLORS[index % CHART_COLORS.length],
+                                }}
+                              />
+                              <span className="text-gray-700">{entry.name}</span>
+                            </div>
+                            <span className="font-semibold text-gray-900">
+                              {((entry.value / pieChartData.reduce((sum, e) => sum + e.value, 0)) * 100).toFixed(1)}%
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   )}
                 </div>
               </div>
