@@ -42,24 +42,6 @@ export default function MultiSelectAutocomplete({
     };
   }, []);
 
-  // Reset highlighted index when options change
-  useEffect(() => {
-    setHighlightedIndex(-1);
-  }, [inputValue]);
-
-  // Scroll highlighted item into view
-  useEffect(() => {
-    if (highlightedIndex >= 0 && listRef.current) {
-      const items = listRef.current.children;
-      if (items[highlightedIndex]) {
-        items[highlightedIndex].scrollIntoView({
-          block: "nearest",
-          behavior: "smooth",
-        });
-      }
-    }
-  }, [highlightedIndex]);
-
   // Filter options based on input value and exclude already selected
   const filteredOptions = options.filter(
     (option) =>
@@ -80,6 +62,10 @@ export default function MultiSelectAutocomplete({
     onChange([...selectedIds, optionId]);
     setInputValue("");
     setHighlightedIndex(-1);
+    // Scroll to top when item is selected
+    if (listRef.current) {
+      listRef.current.scrollTop = 0;
+    }
   };
 
   const handleRemoveOption = (optionId: number) => {
@@ -102,13 +88,41 @@ export default function MultiSelectAutocomplete({
     switch (e.key) {
       case "ArrowDown":
         e.preventDefault();
-        setHighlightedIndex((prev) =>
-          prev < filteredOptions.length - 1 ? prev + 1 : prev
-        );
+        setHighlightedIndex((prev) => {
+          const newIndex = prev < filteredOptions.length - 1 ? prev + 1 : prev;
+          // Scroll highlighted item into view
+          setTimeout(() => {
+            if (listRef.current) {
+              const items = listRef.current.children;
+              if (items[newIndex]) {
+                items[newIndex].scrollIntoView({
+                  block: "nearest",
+                  behavior: "smooth",
+                });
+              }
+            }
+          }, 0);
+          return newIndex;
+        });
         break;
       case "ArrowUp":
         e.preventDefault();
-        setHighlightedIndex((prev) => (prev > 0 ? prev - 1 : -1));
+        setHighlightedIndex((prev) => {
+          const newIndex = prev > 0 ? prev - 1 : -1;
+          // Scroll highlighted item into view
+          setTimeout(() => {
+            if (listRef.current && newIndex >= 0) {
+              const items = listRef.current.children;
+              if (items[newIndex]) {
+                items[newIndex].scrollIntoView({
+                  block: "nearest",
+                  behavior: "smooth",
+                });
+              }
+            }
+          }, 0);
+          return newIndex;
+        });
         break;
       case "Enter":
         e.preventDefault();
