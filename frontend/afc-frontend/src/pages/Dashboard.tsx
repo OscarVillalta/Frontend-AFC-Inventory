@@ -1,5 +1,4 @@
 import { useState, useEffect, useMemo } from "react";
-import { Link } from "react-router-dom";
 import {
   ResponsiveContainer,
   AreaChart,
@@ -36,18 +35,6 @@ import { fetchProducts, type Product } from "../api/products";
 import KpiCard from "../components/KpiCard";
 import MultiSelectAutocomplete from "../components/MultiSelectAutocomplete";
 
-/* ── helpers ────────────────────────────────────────────────────── */
-
-function fmtDate(iso: string) {
-  const d = new Date(iso);
-  return d.toLocaleString("en-US", {
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
-}
-
 /* ── component ──────────────────────────────────────────────────── */
 
 export default function Dashboard() {
@@ -59,7 +46,6 @@ export default function Dashboard() {
 
   // Net KPIs state
   const [netKpis, setNetKpis] = useState<NetKpisResponse | null>(null);
-  const [selectedDays, setSelectedDays] = useState(30);
   const [kpisLoading, setKpisLoading] = useState(false);
 
   // Products for autocomplete
@@ -121,48 +107,61 @@ export default function Dashboard() {
   // Load Net KPIs
   useEffect(() => {
     let cancelled = false;
-    setKpisLoading(true);
-    fetchNetKpis(selectedDays)
-      .then((res) => {
+    
+    async function loadKpis() {
+      setKpisLoading(true);
+      try {
+        const res = await fetchNetKpis(30);
         if (!cancelled) {
           setNetKpis(res);
           setKpisLoading(false);
         }
-      })
-      .catch((err: unknown) => {
+      } catch (err: unknown) {
         console.error("Failed to load net KPIs", err);
         if (!cancelled) {
           setNetKpis(null);
           setKpisLoading(false);
         }
-      });
+      }
+    }
+    
+    loadKpis();
+    
     return () => {
       cancelled = true;
     };
-  }, [selectedDays, activeWarehouseId]);
+  }, [activeWarehouseId]);
 
   // Load Bulk Projections
   useEffect(() => {
-    if (projectionProductIds.length === 0) {
-      setProjectionData({});
-      return;
-    }
     let cancelled = false;
-    setProjectionLoading(true);
-    fetchBulkProjections(projectionProductIds)
-      .then((res) => {
+    
+    async function loadProjections() {
+      if (projectionProductIds.length === 0) {
+        if (!cancelled) {
+          setProjectionData({});
+        }
+        return;
+      }
+      
+      setProjectionLoading(true);
+      try {
+        const res = await fetchBulkProjections(projectionProductIds);
         if (!cancelled) {
           setProjectionData(res);
           setProjectionLoading(false);
         }
-      })
-      .catch((err: unknown) => {
+      } catch (err: unknown) {
         console.error("Failed to load bulk projections", err);
         if (!cancelled) {
           setProjectionData({});
           setProjectionLoading(false);
         }
-      });
+      }
+    }
+    
+    loadProjections();
+    
     return () => {
       cancelled = true;
     };
@@ -170,29 +169,38 @@ export default function Dashboard() {
 
   // Load Daily History
   useEffect(() => {
-    if (historyProductIds.length === 0) {
-      setHistoryData({});
-      return;
-    }
     let cancelled = false;
-    setHistoryLoading(true);
-    const startDate = new Date();
-    startDate.setDate(startDate.getDate() - 30);
-    const startDateStr = startDate.toISOString().split("T")[0];
-    fetchDailyHistory(historyProductIds, startDateStr)
-      .then((res) => {
+    
+    async function loadHistory() {
+      if (historyProductIds.length === 0) {
+        if (!cancelled) {
+          setHistoryData({});
+        }
+        return;
+      }
+      
+      setHistoryLoading(true);
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - 30);
+      const startDateStr = startDate.toISOString().split("T")[0];
+      
+      try {
+        const res = await fetchDailyHistory(historyProductIds, startDateStr);
         if (!cancelled) {
           setHistoryData(res);
           setHistoryLoading(false);
         }
-      })
-      .catch((err: unknown) => {
+      } catch (err: unknown) {
         console.error("Failed to load daily history", err);
         if (!cancelled) {
           setHistoryData({});
           setHistoryLoading(false);
         }
-      });
+      }
+    }
+    
+    loadHistory();
+    
     return () => {
       cancelled = true;
     };
@@ -201,21 +209,26 @@ export default function Dashboard() {
   // Load Top Items
   useEffect(() => {
     let cancelled = false;
-    setTopItemsLoading(true);
-    fetchTopRankedItems(topField, 20)
-      .then((res) => {
+    
+    async function loadTopItems() {
+      setTopItemsLoading(true);
+      try {
+        const res = await fetchTopRankedItems(topField, 20);
         if (!cancelled) {
           setTopItemsData(res);
           setTopItemsLoading(false);
         }
-      })
-      .catch((err: unknown) => {
+      } catch (err: unknown) {
         console.error("Failed to load top items", err);
         if (!cancelled) {
           setTopItemsData(null);
           setTopItemsLoading(false);
         }
-      });
+      }
+    }
+    
+    loadTopItems();
+    
     return () => {
       cancelled = true;
     };
@@ -303,11 +316,16 @@ export default function Dashboard() {
 
   return (
     <MainLayout>
-      <div className="p-6 space-y-10">
+      <div className="p-6 space-y-6">
         {/* PAGE TITLE */}
-        <h1 className="text-3xl font-bold text-gray-800">
-          Advanced Operations Dashboard
-        </h1>
+        <div className="flex items-center justify-between">
+          <h1 className="text-2xl font-bold text-gray-800">
+            ENTERPRISE OPERATIONS DASHBOARD
+          </h1>
+          <div className="text-sm text-gray-500">
+            Apr 20, 2026
+          </div>
+        </div>
 
         {/* LOADING INDICATOR */}
         {loading && (
@@ -321,54 +339,46 @@ export default function Dashboard() {
             {/* ── TRANSACTION KPI ROW ─────────────────────────── */}
             {hasPermission("inventory:view") && (
               <div>
-                <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-2xl font-semibold">Transaction KPIs</h2>
-                  <select
-                    className="select select-bordered"
-                    value={selectedDays}
-                    onChange={(e) => setSelectedDays(Number(e.target.value))}
-                  >
-                    <option value={7}>Last 7 Days</option>
-                    <option value={30}>Last 30 Days</option>
-                    <option value={90}>Last 90 Days</option>
-                  </select>
-                </div>
-
                 {kpisLoading ? (
                   <div className="flex justify-center py-8">
                     <span className="loading loading-spinner loading-md text-primary" />
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
                     <KpiCard
                       label="Net Delivered"
                       value={netKpis?.net_delivered}
                       icon="🚚"
                       color="success"
+                      percentageChange={netKpis?.net_delivered_pct}
                     />
                     <KpiCard
                       label="Net Received"
                       value={netKpis?.net_received}
-                      icon="📥"
+                      icon="📦"
                       color="info"
+                      percentageChange={netKpis?.net_received_pct}
                     />
                     <KpiCard
                       label="Net Reserved"
                       value={netKpis?.net_reserved}
                       icon="🔒"
                       color="warning"
+                      percentageChange={netKpis?.net_reserved_pct}
                     />
                     <KpiCard
                       label="Net Ordered"
                       value={netKpis?.net_ordered}
-                      icon="📝"
+                      icon="🛒"
                       color="primary"
+                      percentageChange={netKpis?.net_ordered_pct}
                     />
                     <KpiCard
                       label="Net Backordered"
                       value={netKpis?.net_backordered}
                       icon="⚠️"
                       color="error"
+                      percentageChange={netKpis?.net_backordered_pct}
                     />
                   </div>
                 )}
@@ -377,30 +387,33 @@ export default function Dashboard() {
 
             {/* ── CHARTS SECTION ──────────────────────────────── */}
             {hasPermission("inventory:view") && (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Multi-Product Projection Graph */}
-                <div className="bg-white rounded-xl shadow border border-gray-100 p-6">
-                  <h2 className="text-xl font-semibold mb-4">
-                    Multi-Product Projection
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {/* Multi-Product Projection Graph - Takes full height on left */}
+                <div className="bg-white rounded-lg shadow p-6 lg:row-span-2">
+                  <h2 className="text-sm font-semibold uppercase text-gray-700 mb-4">
+                    Projected Stock Graph - Future Outlook
                   </h2>
                   <MultiSelectAutocomplete
-                    label="Select Products"
+                    label="Select Items"
                     placeholder="Search products..."
                     options={productOptions}
                     selectedIds={projectionProductIds}
                     onChange={setProjectionProductIds}
                     className="mb-4"
                   />
+                  <div className="text-sm font-medium text-gray-600 mb-2">
+                    PROJECTED STOCK - NEXT 60 DAYS
+                  </div>
                   {projectionLoading ? (
-                    <div className="flex justify-center py-8">
+                    <div className="flex justify-center py-12">
                       <span className="loading loading-spinner loading-md text-primary" />
                     </div>
                   ) : projectionProductIds.length === 0 ? (
-                    <p className="text-gray-400 text-center py-8">
+                    <p className="text-gray-400 text-center py-12">
                       Select products to view projections
                     </p>
                   ) : (
-                    <ResponsiveContainer width="100%" height={300}>
+                    <ResponsiveContainer width="100%" height={400}>
                       <AreaChart data={projectionChartData}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                         <XAxis
@@ -422,7 +435,7 @@ export default function Dashboard() {
                               name={productName}
                               stroke={CHART_COLORS[idx % CHART_COLORS.length]}
                               fill={CHART_COLORS[idx % CHART_COLORS.length]}
-                              fillOpacity={0.2}
+                              fillOpacity={0.3}
                             />
                           );
                         })}
@@ -431,19 +444,22 @@ export default function Dashboard() {
                   )}
                 </div>
 
-                {/* Historical Daily Stock Graph */}
-                <div className="bg-white rounded-xl shadow border border-gray-100 p-6">
-                  <h2 className="text-xl font-semibold mb-4">
-                    Historical Daily Stock (30 Days)
+                {/* Historical Daily Stock Graph - Top Right */}
+                <div className="bg-white rounded-lg shadow p-6">
+                  <h2 className="text-sm font-semibold uppercase text-gray-700 mb-4">
+                    Historical Changes Graph
                   </h2>
                   <MultiSelectAutocomplete
-                    label="Select Products"
+                    label="Select Items"
                     placeholder="Search products..."
                     options={productOptions}
                     selectedIds={historyProductIds}
                     onChange={setHistoryProductIds}
                     className="mb-4"
                   />
+                  <div className="text-sm font-medium text-gray-600 mb-2">
+                    HISTORICAL CHANGES - PAST 30 DAYS
+                  </div>
                   {historyLoading ? (
                     <div className="flex justify-center py-8">
                       <span className="loading loading-spinner loading-md text-primary" />
@@ -453,7 +469,7 @@ export default function Dashboard() {
                       Select products to view history
                     </p>
                   ) : (
-                    <ResponsiveContainer width="100%" height={300}>
+                    <ResponsiveContainer width="100%" height={250}>
                       <LineChart data={historyChartData}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                         <XAxis
@@ -484,23 +500,24 @@ export default function Dashboard() {
                   )}
                 </div>
 
-                {/* Top 20 Distribution Pie Chart */}
-                <div className="bg-white rounded-xl shadow border border-gray-100 p-6 lg:col-span-2">
-                  <div className="flex justify-between items-center mb-4">
-                    <h2 className="text-xl font-semibold">
-                      Top 20 Distribution by Field
-                    </h2>
-                    <select
-                      className="select select-bordered"
-                      value={topField}
-                      onChange={(e) => setTopField(e.target.value)}
-                    >
-                      <option value="onHand">On Hand</option>
-                      <option value="available">Available</option>
-                      <option value="backordered">Backordered</option>
-                      <option value="reserved">Reserved</option>
-                      <option value="ordered">Ordered</option>
-                    </select>
+                {/* Top 20 Distribution Pie Chart - Bottom Right */}
+                <div className="bg-white rounded-lg shadow p-6">
+                  <h2 className="text-sm font-semibold uppercase text-gray-700 mb-4">
+                    Top 20 Items - Stock Distribution
+                  </h2>
+                  <select
+                    className="select select-bordered select-sm w-full mb-4"
+                    value={topField}
+                    onChange={(e) => setTopField(e.target.value)}
+                  >
+                    <option value="onHand">On Hand</option>
+                    <option value="available">Available</option>
+                    <option value="backordered">Backordered</option>
+                    <option value="reserved">Reserved</option>
+                    <option value="ordered">Ordered</option>
+                  </select>
+                  <div className="text-sm font-semibold text-gray-700 mb-2 text-right">
+                    TOP 20 ITEMS BY FIELD
                   </div>
                   {topItemsLoading ? (
                     <div className="flex justify-center py-8">
@@ -511,224 +528,64 @@ export default function Dashboard() {
                       No data available
                     </p>
                   ) : (
-                    <ResponsiveContainer width="100%" height={400}>
-                      <PieChart>
-                        <Pie
-                          data={pieChartData}
-                          cx="50%"
-                          cy="50%"
-                          labelLine={false}
-                          label={(entry) => entry.name}
-                          outerRadius={120}
-                          fill="#8884d8"
-                          dataKey="value"
-                        >
-                          {pieChartData.map((entry, index) => (
-                            <Cell
-                              key={`cell-${index}`}
-                              fill={
-                                entry.name === "All Others"
-                                  ? "#9ca3af"
-                                  : CHART_COLORS[index % CHART_COLORS.length]
-                              }
-                            />
-                          ))}
-                        </Pie>
-                        <Tooltip />
-                        <Legend />
-                      </PieChart>
-                    </ResponsiveContainer>
+                    <div className="flex items-center gap-6">
+                      <div className="flex-1">
+                        <ResponsiveContainer width="100%" height={200}>
+                          <PieChart>
+                            <Pie
+                              data={pieChartData}
+                              cx="50%"
+                              cy="50%"
+                              innerRadius={40}
+                              outerRadius={80}
+                              fill="#8884d8"
+                              dataKey="value"
+                              label={false}
+                            >
+                              {pieChartData.map((entry, index) => (
+                                <Cell
+                                  key={`cell-${index}`}
+                                  fill={
+                                    entry.name === "All Others"
+                                      ? "#9ca3af"
+                                      : CHART_COLORS[index % CHART_COLORS.length]
+                                  }
+                                />
+                              ))}
+                            </Pie>
+                            <Tooltip />
+                          </PieChart>
+                        </ResponsiveContainer>
+                      </div>
+                      <div className="flex-1 text-xs space-y-1">
+                        {(() => {
+                          const totalValue = pieChartData.reduce((sum, e) => sum + e.value, 0);
+                          return pieChartData.slice(0, 9).map((entry, index) => (
+                            <div key={index} className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <div
+                                  className="w-3 h-3 rounded-sm"
+                                  style={{
+                                    backgroundColor:
+                                      entry.name === "All Others"
+                                        ? "#9ca3af"
+                                        : CHART_COLORS[index % CHART_COLORS.length],
+                                  }}
+                                />
+                                <span className="text-gray-700">{entry.name}</span>
+                              </div>
+                              <span className="font-semibold text-gray-900">
+                                {((entry.value / totalValue) * 100).toFixed(1)}%
+                              </span>
+                            </div>
+                          ));
+                        })()}
+                      </div>
+                    </div>
                   )}
                 </div>
               </div>
             )}
-
-            {/* ── AT-A-GLANCE KPI ROW ─────────────────────────── */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
-              {[
-                {
-                  label: "Open Orders",
-                  value: data?.kpis.open_orders,
-                  color: "text-primary",
-                  permission: "orders:view",
-                },
-                {
-                  label: "Pending Transactions",
-                  value: data?.kpis.pending_txns,
-                  color: "text-warning",
-                  permission: "inventory:view",
-                },
-                {
-                  label: "Low Stock",
-                  value: data?.kpis.low_stock,
-                  color: "text-error",
-                  permission: "inventory:view",
-                },
-                {
-                  label: "Backordered",
-                  value: data?.kpis.backordered,
-                  color: "text-orange-500",
-                  permission: "inventory:view",
-                },
-                {
-                  label: "Active Batches",
-                  value: data?.kpis.active_batches,
-                  color: "text-purple-600",
-                  permission: "conversions:view",
-                },
-              ].map(
-                (card) =>
-                  hasPermission(card.permission) && (
-                    <div
-                      key={card.label}
-                      className="stat bg-white rounded-xl shadow border border-gray-100 p-4"
-                    >
-                      <div className="stat-title text-gray-500">{card.label}</div>
-                      <div className={`stat-value ${card.color}`}>
-                        {card.value ?? 0}
-                      </div>
-                    </div>
-                  ),
-              )}
-            </div>
-
-            {/* ── QUICK ACTIONS ───────────────────────────────── */}
-            <div className="bg-white rounded-xl shadow border border-gray-100 p-6">
-              <h2 className="text-xl font-semibold mb-4">Quick Actions</h2>
-
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-                {[
-                  {
-                    label: "Pull from QuickBooks",
-                    to: "/orders/search",
-                    permission: "qb:pull_orders",
-                    bg: "bg-indigo-600 hover:bg-indigo-700",
-                  },
-                  {
-                    label: "Create Manual Order",
-                    to: "/order",
-                    permission: "orders:create",
-                    bg: "bg-blue-600 hover:bg-blue-700",
-                  },
-                  {
-                    label: "Add New Product",
-                    to: "/inventory",
-                    permission: "catalog:create",
-                    bg: "bg-green-600 hover:bg-green-700",
-                  },
-                  {
-                    label: "Start Production Batch",
-                    to: "/conversions",
-                    permission: "conversions:create",
-                    bg: "bg-amber-600 hover:bg-amber-700",
-                  },
-                  {
-                    label: "Stock Transfer",
-                    to: "/inventory",
-                    permission: "inventory:transfer",
-                    bg: "bg-gray-700 hover:bg-gray-800",
-                  },
-                ].map(
-                  (action) =>
-                    hasPermission(action.permission) && (
-                      <Link
-                        key={action.label}
-                        to={action.to}
-                        className={`btn text-white w-full ${action.bg}`}
-                      >
-                        {action.label}
-                      </Link>
-                    ),
-                )}
-              </div>
-            </div>
-
-            {/* ── LIVE FEEDS ──────────────────────────────────── */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Recent Transactions */}
-              {hasPermission("inventory:view") && (
-                <div className="bg-white rounded-xl shadow border border-gray-100 p-6">
-                  <h2 className="text-xl font-semibold mb-4">Recent Transactions</h2>
-
-                  {data.feeds.recent_transactions.length === 0 ? (
-                    <p className="text-gray-400 text-sm">No recent transactions.</p>
-                  ) : (
-                    <table className="table w-full text-sm">
-                      <thead>
-                        <tr className="text-gray-500 border-b">
-                          <th className="py-2">ID</th>
-                          <th className="py-2">Qty Δ</th>
-                          <th className="py-2">Reason</th>
-                          <th className="py-2 text-right">Date</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {data.feeds.recent_transactions.map((tx) => (
-                          <tr key={tx.id} className="border-b hover:bg-gray-50">
-                            <td className="py-2 font-medium">{tx.id}</td>
-                            <td
-                              className={`py-2 font-semibold ${
-                                tx.quantity_delta >= 0
-                                  ? "text-green-600"
-                                  : "text-red-600"
-                              }`}
-                            >
-                              {tx.quantity_delta >= 0
-                                ? `+${tx.quantity_delta}`
-                                : tx.quantity_delta}
-                            </td>
-                            <td className="py-2 text-gray-600">{tx.reason}</td>
-                            <td className="py-2 text-right text-gray-500">
-                              {fmtDate(tx.created_at)}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  )}
-                </div>
-              )}
-
-              {/* Recent Orders */}
-              {hasPermission("orders:view") && (
-                <div className="bg-white rounded-xl shadow border border-gray-100 p-6">
-                  <h2 className="text-xl font-semibold mb-4">Recent Orders</h2>
-
-                  {data.feeds.recent_orders.length === 0 ? (
-                    <p className="text-gray-400 text-sm">No recent orders.</p>
-                  ) : (
-                    <table className="table w-full text-sm">
-                      <thead>
-                        <tr className="text-gray-500 border-b">
-                          <th className="py-2">ID</th>
-                          <th className="py-2">Order #</th>
-                          <th className="py-2">Type</th>
-                          <th className="py-2 text-right">Completed</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {data.feeds.recent_orders.map((order) => (
-                          <tr key={order.id} className="border-b hover:bg-gray-50">
-                            <td className="py-2 font-medium">{order.id}</td>
-                            <td className="py-2">{order.order_number}</td>
-                            <td className="py-2">
-                              <span className="badge badge-outline badge-sm">
-                                {order.type}
-                              </span>
-                            </td>
-                            <td className="py-2 text-right text-gray-500">
-                              {order.completed_at
-                                ? fmtDate(order.completed_at)
-                                : "—"}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  )}
-                </div>
-              )}
-            </div>
           </>
         )}
 
