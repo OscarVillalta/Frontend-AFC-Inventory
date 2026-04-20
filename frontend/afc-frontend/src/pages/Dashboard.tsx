@@ -243,7 +243,7 @@ export default function Dashboard() {
     projectionData.forEach((productData) => {
       const productId = productData.product_id;
       
-      // Add current on_hand as the first point (use today's date)
+      // Add current on_hand as the first point (use UTC today's date to match server)
       const today = new Date().toISOString().split('T')[0];
       if (!dateMap.has(today)) {
         dateMap.set(today, { date: today });
@@ -255,9 +255,12 @@ export default function Dashboard() {
       productData.projections.forEach((projection) => {
         // Use eta if available, otherwise use created_at
         const dateStr = projection.eta || projection.created_at;
-        if (!dateStr) return;
+        if (!dateStr) {
+          console.warn(`Projection missing both eta and created_at for product ${productId}, transaction ${projection.transaction_id}`);
+          return;
+        }
         
-        const date = dateStr.split('T')[0]; // Extract date portion
+        const date = dateStr.split('T')[0]; // Extract date portion (YYYY-MM-DD)
         
         if (!dateMap.has(date)) {
           dateMap.set(date, { date });
