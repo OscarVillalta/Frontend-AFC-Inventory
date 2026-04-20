@@ -97,7 +97,7 @@ export default function MultiSelectAutocomplete({
               if (items[newIndex]) {
                 items[newIndex].scrollIntoView({
                   block: "nearest",
-                  behavior: "smooth",
+                  behavior: "auto",
                 });
               }
             }
@@ -116,7 +116,7 @@ export default function MultiSelectAutocomplete({
               if (items[newIndex]) {
                 items[newIndex].scrollIntoView({
                   block: "nearest",
-                  behavior: "smooth",
+                  behavior: "auto",
                 });
               }
             }

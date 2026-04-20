@@ -225,7 +225,7 @@ export default function Dashboard() {
 
   // Process projection data for chart
   const projectionChartData = useMemo(() => {
-    const dateMap = new Map<string, Record<string, number>>();
+    const dateMap = new Map<string, Record<string, number | string>>();
 
     Object.entries(projectionData).forEach(([productId, items]) => {
       items.forEach((item) => {
@@ -237,12 +237,14 @@ export default function Dashboard() {
       });
     });
 
-    return Array.from(dateMap.values()).sort((a, b) => a.date.localeCompare(b.date));
+    return Array.from(dateMap.values()).sort((a, b) => 
+      String(a.date).localeCompare(String(b.date))
+    );
   }, [projectionData]);
 
   // Process history data for chart
   const historyChartData = useMemo(() => {
-    const dateMap = new Map<string, Record<string, number>>();
+    const dateMap = new Map<string, Record<string, number | string>>();
 
     Object.entries(historyData).forEach(([productId, items]) => {
       items.forEach((item) => {
@@ -254,7 +256,9 @@ export default function Dashboard() {
       });
     });
 
-    return Array.from(dateMap.values()).sort((a, b) => a.date.localeCompare(b.date));
+    return Array.from(dateMap.values()).sort((a, b) => 
+      String(a.date).localeCompare(String(b.date))
+    );
   }, [historyData]);
 
   // Process top items for pie chart
