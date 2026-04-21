@@ -65,7 +65,7 @@ export default function Dashboard() {
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historySearch, setHistorySearch] = useState("");
   const [historyShowFilter, setHistoryShowFilter] = useState(false);
-  const [historyDays, setHistoryDays] = useState<30 | 60 | 90 | "custom">(30);
+  const [historyDays, setHistoryDays] = useState<30 | 60 | 90>(30);
 
   // Top 20 Distribution state
   const [topField, setTopField] = useState("on_hand");
@@ -187,8 +187,7 @@ export default function Dashboard() {
       
       setHistoryLoading(true);
       const startDate = new Date();
-      const daysToSubtract = historyDays === "custom" ? 30 : historyDays;
-      startDate.setDate(startDate.getDate() - daysToSubtract);
+      startDate.setDate(startDate.getDate() - historyDays);
       const startDateStr = startDate.toISOString().split("T")[0];
       
       try {
@@ -689,7 +688,7 @@ export default function Dashboard() {
                   
                   <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
                     <h3 className="text-sm font-bold text-gray-800">
-                      HISTORICAL CHANGES - PAST {historyDays === "custom" ? "30" : historyDays} DAYS
+                      HISTORICAL CHANGES - PAST {historyDays} DAYS
                     </h3>
                     {/* Timeframe selector */}
                     <div className="flex items-center gap-2 flex-wrap">
