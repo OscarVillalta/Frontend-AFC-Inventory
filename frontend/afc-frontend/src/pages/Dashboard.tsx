@@ -328,7 +328,7 @@ export default function Dashboard() {
       });
     }
     return data.sort((a,b) => (b.value - a.value));
-  }, [topItemsData]);
+  }, [topItemsData, topField]);
 
   // Colors for charts
   const CHART_COLORS = [
