@@ -148,7 +148,7 @@ export default function MultiSelectAutocomplete({
     <div className={`relative ${className}`} ref={wrapperRef}>
       <div className="flex items-center gap-2 border border-gray-300 rounded px-3 py-2 bg-white">
         <span className="text-sm text-gray-600 whitespace-nowrap">{label}</span>
-        <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
         </svg>
         
