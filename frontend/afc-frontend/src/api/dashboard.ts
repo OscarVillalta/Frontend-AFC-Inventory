@@ -87,13 +87,20 @@ export type DailyHistoryResponse = ProductDailyHistory[];
 
 export interface TopRankedItem {
   product_id: number;
-  part_number: string;
-  value: number;
+  product_name: string;
+  on_hand: number;
+  available: number;
+  reserved: number;
+  ordered: number;
+  backordered: number;
 }
 
 export interface TopRankedItemsResponse {
+  field: number;
+  limit: number;
+  total: number;
   top_items: TopRankedItem[];
-  others: number;
+  all_others: number;
 }
 
 /* ── API calls ──────────────────────────────────────────────────── */

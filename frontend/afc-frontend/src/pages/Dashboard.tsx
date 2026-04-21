@@ -30,6 +30,7 @@ import type {
   BulkProjectionsResponse,
   DailyHistoryResponse,
   TopRankedItemsResponse,
+  TopRankedItem,
 } from "../api/dashboard";
 import { fetchProducts, type Product } from "../api/products";
 import KpiCard from "../components/KpiCard";
@@ -62,7 +63,7 @@ export default function Dashboard() {
   const [historyLoading, setHistoryLoading] = useState(false);
 
   // Top 20 Distribution state
-  const [topField, setTopField] = useState("onHand");
+  const [topField, setTopField] = useState("on_hand");
   const [topItemsData, setTopItemsData] = useState<TopRankedItemsResponse | null>(null);
   const [topItemsLoading, setTopItemsLoading] = useState(false);
 
@@ -303,18 +304,18 @@ export default function Dashboard() {
   const pieChartData = useMemo(() => {
     if (!topItemsData) return [];
     const data = topItemsData.top_items.map((item) => ({
-      name: item.part_number,
-      value: item.value,
+      name: item.product_name,
+      value: item[topField as keyof TopRankedItem] as number,
       product_id: item.product_id,
     }));
-    if (topItemsData.others > 0) {
+    if (topItemsData.all_others > 0) {
       data.push({
         name: "All Others",
-        value: topItemsData.others,
+        value: topItemsData.all_others,
         product_id: -1,
       });
     }
-    return data;
+    return data.sort((a,b) => (b.value - a.value));
   }, [topItemsData]);
 
   // Colors for charts
@@ -345,7 +346,7 @@ export default function Dashboard() {
         {/* PAGE TITLE */}
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold text-gray-800">
-            ENTERPRISE OPERATIONS DASHBOARD
+            INVENTORY DASHBOARD
           </h1>
           <div className="text-sm text-gray-500">
             Apr 20, 2026
@@ -373,35 +374,35 @@ export default function Dashboard() {
                     <KpiCard
                       label="Net Delivered"
                       value={netKpis?.net_delivered}
-                      icon="🚚"
+                      icon={<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="-2.5 -2.5 80 80" id="Shipping-Truck-Style-2--Streamline-Ultimate" height={48} width={48} ><desc>{"\n    Shipping Truck Style 2 Streamline Icon: https://streamlinehq.com\n  "}</desc><path stroke="#ffffff" strokeLinecap="round" strokeLinejoin="round" strokeMiterlimit={10} d="M49.21875 23.4375h6.25c0.9375 0 1.875 0.62496875 2.5 1.24996875L63.28125 32.8125l7.187499999999999 2.5c1.25 0.3125 2.1875 1.5625 2.1875 2.8125v13.4375c0 1.5625 -1.25 3.125 -3.125 3.125h-9.3378125" strokeWidth={5} /><path stroke="#ffffff" strokeLinecap="round" strokeLinejoin="round" strokeMiterlimit={10} d="M53.90625 60.9375c3.4518750000000002 0 6.25 -2.7981249999999998 6.25 -6.25s-2.7981249999999998 -6.25 -6.25 -6.25 -6.25 2.7981249999999998 -6.25 6.25 2.7981249999999998 6.25 6.25 6.25Z" strokeWidth={5} /><path stroke="#ffffff" strokeLinecap="round" strokeLinejoin="round" strokeMiterlimit={10} d="M49.21875 50.596875V17.1875c0 -1.875 -1.25 -3.125 -3.125 -3.125h-40.625c-1.875 0 -3.125 1.25 -3.125 3.125v34.375c0 1.5625 1.25 3.125 3.125 3.125h4.678875m37.4905 0h-12.4896875" strokeWidth={5} /><path stroke="#ffffff" strokeLinecap="round" strokeLinejoin="round" strokeMiterlimit={10} d="M16.40625 60.9375c3.4517812500000002 0 6.25 -2.7981249999999998 6.25 -6.25s-2.7982187499999998 -6.25 -6.25 -6.25 -6.25 2.7981249999999998 -6.25 6.25 2.7982187499999998 6.25 6.25 6.25Z" strokeWidth={5} /><path stroke="#ffffff" strokeLinecap="round" strokeLinejoin="round" strokeMiterlimit={10} d="M28.90625 60.9375c3.4518750000000002 0 6.25 -2.7981249999999998 6.25 -6.25s-2.7981249999999998 -6.25 -6.25 -6.25c-3.4517812500000002 0 -6.25 2.7981249999999998 -6.25 6.25s2.7982187499999998 6.25 6.25 6.25Z" strokeWidth={5} /><path stroke="#ffffff" strokeLinecap="round" strokeLinejoin="round" strokeMiterlimit={10} d="M16.40625 14.0625v21.875" strokeWidth={5} /><path stroke="#ffffff" strokeLinecap="round" strokeLinejoin="round" strokeMiterlimit={10} d="M32.03125 14.0625v21.875" strokeWidth={5} /></svg>}
                       color="success"
                       percentageChange={netKpis?.net_delivered_pct}
                     />
                     <KpiCard
                       label="Net Received"
                       value={netKpis?.net_received}
-                      icon="📦"
+                      icon={<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="-1.5 -1.5 48 48" id="Products-Gifts--Streamline-Ultimate" height={48} width={48} ><desc>{"\n    Products Gifts Streamline Icon: https://streamlinehq.com\n  "}</desc><path stroke="#ffffff" strokeLinecap="round" strokeLinejoin="round" d="M11.349337499999999 37.96875h5.625" strokeWidth={3} /><path stroke="#ffffff" strokeLinecap="round" strokeLinejoin="round" d="M11.349337499999999 8.4375v16.875" strokeWidth={3} /><path stroke="#ffffff" strokeLinecap="round" strokeLinejoin="round" d="M1.505585625 16.875H21.193125000000002" strokeWidth={3} /><path stroke="#ffffff" strokeLinecap="round" strokeLinejoin="round" d="m7.1305875 1.40625 4.21875 7.03125" strokeWidth={3} /><path stroke="#ffffff" strokeLinecap="round" strokeLinejoin="round" d="m15.568087499999999 1.40625 -4.21875 7.03125" strokeWidth={3} /><path stroke="#ffffff" strokeLinecap="round" strokeLinejoin="round" d="M29.625 43.59375c0 -1.49175 -0.5925 -2.9225624999999997 -1.647375 -3.9774375 -1.054875 -1.054875 -2.4856875 -1.6475625 -3.9776249999999997 -1.6475625H16.97446875c0 -1.49175 -0.59263125 -2.9225624999999997 -1.6475250000000001 -3.9774375 -1.0548937500000002 -1.054875 -2.48563125 -1.6475625 -3.9774749999999996 -1.6475625H1.500091875v11.25H29.625Z" strokeWidth={3} /><path stroke="#ffffff" strokeLinecap="round" strokeLinejoin="round" d="M2.4430875 8.4375H20.255625000000002s0.9375 0 0.9375 0.9375v15s0 0.9375 -0.9375 0.9375H2.4430875s-0.937501875 0 -0.937501875 -0.9375V9.375s0 -0.9375 0.937501875 -0.9375Z" strokeWidth={3} /><path stroke="#ffffff" strokeLinecap="round" strokeLinejoin="round" d="m25.987499999999997 16.0781625 0.6693749999999999 -5.015625c0.044625000000000005 -0.3378375 0.21056249999999999 -0.6479437499999999 0.466875 -0.87253125 0.2563125 -0.22456875 0.5855625 -0.34828125 0.92625 -0.34809375000000004h11.600625c0.340875 -0.0001875 0.670125 0.123525 0.9264375 0.34809375000000004 0.2563125 0.2245875 0.42225 0.53469375 0.46668750000000003 0.87253125l2.4375 18.281212500000002c0.021937500000000002 0.1978125 0.0024375 0.397875 -0.0571875 0.5876250000000001 -0.0594375 0.1899375 -0.157875 0.36525 -0.28893749999999996 0.514875 -0.1310625 0.1498125 -0.29174999999999995 0.27056250000000004 -0.47193749999999995 0.35475 -0.18037499999999998 0.08437499999999999 -0.376125 0.13012500000000002 -0.5750624999999999 0.134625H24" strokeWidth={3} /><path stroke="#ffffff" strokeLinecap="round" strokeLinejoin="round" d="M29.625 9.84375v-2.8125c0 -1.1188875 0.4445625 -2.19193125 1.2358125 -2.9831062499999996C31.651875 3.25696875 32.724937499999996 2.8125 33.84375 2.8125c1.119 0 2.1920625 0.44446875 2.983125 1.23564375 0.79125 0.791175 1.235625 1.86421875 1.235625 2.9831062499999996v2.8125" strokeWidth={3} /></svg>}
                       color="info"
                       percentageChange={netKpis?.net_received_pct}
                     />
                     <KpiCard
                       label="Net Reserved"
                       value={netKpis?.net_reserved}
-                      icon="🔒"
+                      icon={<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="-1.5 -1.5 48 48" id="Tool-Box--Streamline-Ultimate" height={48} width={48} ><desc>{"\n    Tool Box Streamline Icon: https://streamlinehq.com\n  "}</desc><path stroke="#ffffff" strokeLinecap="round" strokeLinejoin="round" d="M4.21875 12.65625h36.5625s2.8125 0 2.8125 2.8125v22.5s0 2.8125 -2.8125 2.8125H4.21875s-2.8125 0 -2.8125 -2.8125v-22.5s0 -2.8125 2.8125 -2.8125Z" strokeWidth={3} /><path stroke="#ffffff" strokeLinecap="round" strokeLinejoin="round" d="M30.9375 12.65625c0 -2.23775625 -0.8889375 -4.38388125 -2.47125 -5.966212499999999C26.883937500000002 5.10770625 24.7378125 4.21875 22.5 4.21875s-4.38388125 0.88895625 -5.966212499999999 2.4712875C14.95145625 8.27236875 14.0625 10.418493750000001 14.0625 12.65625" strokeWidth={3} /><path stroke="#ffffff" strokeLinecap="round" strokeLinejoin="round" d="M1.40625 23.90625h16.875" strokeWidth={3} /><path stroke="#ffffff" strokeLinecap="round" strokeLinejoin="round" d="M26.71875 23.90625h16.875" strokeWidth={3} /><path stroke="#ffffff" strokeLinecap="round" strokeLinejoin="round" d="M18.28125 25.78125c0 1.119 0.44446875 2.1920625 1.235625 2.983125 0.79125 0.79125 1.8643125 1.235625 2.983125 1.235625s2.191875 -0.44437499999999996 2.983125 -1.235625c0.7910625 -0.7910625 1.235625 -1.864125 1.235625 -2.983125v-2.25c0 -1.1188125 -0.4445625 -2.191875 -1.235625 -2.9829375 -0.79125 -0.79125 -1.8643125 -1.2358125 -2.983125 -1.2358125s-2.191875 0.4445625 -2.983125 1.2358125c-0.79115625 0.7910625 -1.235625 1.864125 -1.235625 2.9829375v2.25Z" strokeWidth={3} /></svg>}
                       color="warning"
                       percentageChange={netKpis?.net_reserved_pct}
                     />
                     <KpiCard
                       label="Net Ordered"
                       value={netKpis?.net_ordered}
-                      icon="🛒"
+                      icon={<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="-1.5 -1.5 48 48" id="Warehouse-Cart-Package-Ribbon--Streamline-Ultimate" height={48} width={48} ><desc>{"\n    Warehouse Cart Package Ribbon Streamline Icon: https://streamlinehq.com\n  "}</desc><path stroke="#ffffff" strokeLinecap="round" strokeLinejoin="round" d="M30.9375 40.78125c0 0.745875 0.29625 1.4613749999999999 0.8236875 1.9888124999999999s1.2429375 0.8236875 1.9888124999999999 0.8236875c0.745875 0 1.4613749999999999 -0.29625 1.9888124999999999 -0.8236875s0.8236875 -1.2429375 0.8236875 -1.9888124999999999c0 -0.745875 -0.29625 -1.4613749999999999 -0.8236875 -1.9888124999999999S34.495875 37.96875 33.75 37.96875c-0.745875 0 -1.4613749999999999 0.29625 -1.9888124999999999 0.8236875S30.9375 40.035375 30.9375 40.78125Z" strokeWidth={3} /><path stroke="#ffffff" strokeLinecap="round" strokeLinejoin="round" d="M4.21875 40.78125c0 0.745875 0.296325 1.4613749999999999 0.8237625000000001 1.9888124999999999s1.242825 0.8236875 1.9887374999999998 0.8236875c0.7459125 0 1.4613 -0.29625 1.9887374999999998 -0.8236875 0.5274375 -0.5274375 0.8237625000000001 -1.2429375 0.8237625000000001 -1.9888124999999999 0 -0.745875 -0.296325 -1.4613749999999999 -0.8237625000000001 -1.9888124999999999S7.7771625 37.96875 7.03125 37.96875c-0.7459125 0 -1.4613 0.29625 -1.9887374999999998 0.8236875 -0.5274375 0.5274375 -0.8237625000000001 1.2429375 -0.8237625000000001 1.9888124999999999Z" strokeWidth={3} /><path stroke="#ffffff" strokeLinecap="round" strokeLinejoin="round" d="M1.40625 33.75h29.86875c0.6849375 0.0009375 1.346625 -0.2480625 1.8609375000000001 -0.7003125 0.5143125 -0.45225 0.846 -1.0766250000000002 0.9328125 -1.7559375l3.58125 -27.431250000000002c0.0868125 -0.67936875 0.41850000000000004 -1.30374375 0.9328125 -1.755975 0.5143125 -0.452225625 1.176 -0.7012237499999999 1.8609375000000001 -0.700273125h3.15" strokeWidth={3} /><path stroke="#ffffff" strokeLinecap="round" strokeLinejoin="round" d="M8.4375 7.03125h16.875s2.8125 0 2.8125 2.8125v15.46875s0 2.8125 -2.8125 2.8125h-16.875S5.625 28.125 5.625 25.3125V9.84375s0 -2.8125 2.8125 -2.8125Z" strokeWidth={3} /><path stroke="#ffffff" strokeLinecap="round" strokeLinejoin="round" d="M20.15625 16.40625h-6.5625v-9.375h6.5625v9.375Z" strokeWidth={3} /></svg>}
                       color="primary"
                       percentageChange={netKpis?.net_ordered_pct}
                     />
                     <KpiCard
                       label="Net Backordered"
                       value={netKpis?.net_backordered}
-                      icon="⚠️"
+                      icon={<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="-1.5 -1.5 48 48" id="Alert-Octagon-1--Streamline-Ultimate" height={48} width={48} ><desc>{"\n    Alert Octagon 1 Streamline Icon: https://streamlinehq.com\n  "}</desc><path stroke="#ffffff" strokeLinecap="round" strokeLinejoin="round" strokeMiterlimit={10} d="M31.218749999999996 1.500091875h-17.4375L1.40625 13.68759375v17.62509375l12.375 12.1875h17.4375l12.375 -12.1875V13.68759375L31.218749999999996 1.500091875Z" strokeWidth={3} /><path stroke="#ffffff" strokeLinecap="round" strokeLinejoin="round" strokeMiterlimit={10} d="M22.40625 34.6875c1.55325 0 2.8125 -1.2590625 2.8125 -2.8125 0 -1.55325 -1.25925 -2.8125 -2.8125 -2.8125 -1.5534375 0 -2.8125 1.25925 -2.8125 2.8125 0 1.5534375 1.2590625 2.8125 2.8125 2.8125Z" strokeWidth={3} /><path stroke="#ffffff" strokeLinecap="round" strokeLinejoin="round" strokeMiterlimit={10} d="M26.15625 13.125c0 2.0625 -3.75 10.3125 -3.75 10.3125S18.65615625 15.1875 18.65615625 13.125c0 -2.0625 1.68759375 -3.75 3.7500937499999996 -3.75 2.0625 0 3.75 1.6875 3.75 3.75Z" strokeWidth={3} /></svg>}
                       color="error"
                       percentageChange={netKpis?.net_backordered_pct}
                     />
@@ -535,7 +536,7 @@ export default function Dashboard() {
                     value={topField}
                     onChange={(e) => setTopField(e.target.value)}
                   >
-                    <option value="onHand">On Hand</option>
+                    <option value="on_hand">On Hand</option>
                     <option value="available">Available</option>
                     <option value="backordered">Backordered</option>
                     <option value="reserved">Reserved</option>
