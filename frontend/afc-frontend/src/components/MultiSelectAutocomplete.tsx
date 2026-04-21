@@ -146,41 +146,41 @@ export default function MultiSelectAutocomplete({
 
   return (
     <div className={`relative ${className}`} ref={wrapperRef}>
-      <label className="block text-sm font-medium text-gray-700 mb-1">
-        {label}
-      </label>
-
-      {/* Selected items */}
-      {selectedOptions.length > 0 && (
-        <div className="flex flex-wrap gap-2 mb-2">
-          {selectedOptions.map((option) => (
-            <div
-              key={option.id}
-              className="badge badge-primary gap-2"
+      <div className="flex items-center gap-2 border border-gray-300 rounded px-3 py-2 bg-white">
+        <span className="text-sm text-gray-600 whitespace-nowrap">{label}</span>
+        <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+        
+        {/* Selected items inline */}
+        {selectedOptions.map((option) => (
+          <div
+            key={option.id}
+            className="flex items-center gap-1.5 px-2 py-1 bg-gray-100 rounded text-sm text-gray-700"
+          >
+            <span>{option.name}</span>
+            <button
+              type="button"
+              onClick={() => handleRemoveOption(option.id)}
+              className="text-gray-500 hover:text-gray-700 text-xs font-bold"
             >
-              {option.name}
-              <button
-                type="button"
-                onClick={() => handleRemoveOption(option.id)}
-                className="hover:text-error"
-              >
-                ✕
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Input */}
-      <input
-        type="text"
-        placeholder={placeholder}
-        className="input input-bordered w-full"
-        value={inputValue}
-        onChange={handleInputChange}
-        onFocus={handleInputFocus}
-        onKeyDown={handleKeyDown}
-      />
+              ✕
+            </button>
+          </div>
+        ))}
+        
+        {/* Hidden input for dropdown trigger */}
+        <input
+          type="text"
+          placeholder={selectedOptions.length === 0 ? placeholder : ""}
+          className="flex-1 outline-none text-sm min-w-[100px]"
+          value={inputValue}
+          onChange={handleInputChange}
+          onFocus={handleInputFocus}
+          onKeyDown={handleKeyDown}
+          aria-label={label}
+        />
+      </div>
 
       {/* Dropdown */}
       {isOpen && filteredOptions.length > 0 && (
