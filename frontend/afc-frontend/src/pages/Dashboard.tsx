@@ -283,7 +283,7 @@ export default function Dashboard() {
       const diffInWeeks = Math.round(diffInMs / (7 * 24 * 60 * 60 * 1000));
       return {
         ...item,
-        weekLabel: diffInWeeks === 0 ? '1' : String(diffInWeeks + 1),
+        weekLabel: String(diffInWeeks + 1),
       };
     });
   }, [projectionData]);
@@ -432,7 +432,7 @@ export default function Dashboard() {
                     <h2 className="text-xs font-bold uppercase text-gray-700 tracking-wide">
                       Projected Stock Graph - Future Outlook
                     </h2>
-                    <button className="text-gray-400 hover:text-gray-600">
+                    <button className="text-gray-400 hover:text-gray-600" aria-label="Graph options">
                       <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                         <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
                       </svg>
@@ -452,7 +452,7 @@ export default function Dashboard() {
                     <h3 className="text-sm font-bold text-gray-800">
                       PROJECTED STOCK - NEXT 60 DAYS
                     </h3>
-                    <button className="text-gray-400 hover:text-gray-600">
+                    <button className="text-gray-400 hover:text-gray-600" aria-label="View options">
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
                       </svg>
@@ -516,7 +516,7 @@ export default function Dashboard() {
                     <h2 className="text-xs font-bold uppercase text-gray-700 tracking-wide">
                       Historical Changes Graph
                     </h2>
-                    <button className="text-gray-400 hover:text-gray-600">
+                    <button className="text-gray-400 hover:text-gray-600" aria-label="Graph options">
                       <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                         <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
                       </svg>
@@ -536,7 +536,7 @@ export default function Dashboard() {
                     <h3 className="text-sm font-bold text-gray-800">
                       HISTORICAL CHANGES - PAST 30 DAYS
                     </h3>
-                    <button className="text-gray-400 hover:text-gray-600">
+                    <button className="text-gray-400 hover:text-gray-600" aria-label="View options">
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
                       </svg>

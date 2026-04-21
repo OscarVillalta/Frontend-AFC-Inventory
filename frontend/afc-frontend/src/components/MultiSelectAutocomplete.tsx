@@ -178,6 +178,7 @@ export default function MultiSelectAutocomplete({
           onChange={handleInputChange}
           onFocus={handleInputFocus}
           onKeyDown={handleKeyDown}
+          aria-label={label}
         />
       </div>
 
