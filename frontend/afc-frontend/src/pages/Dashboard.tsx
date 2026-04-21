@@ -56,11 +56,16 @@ export default function Dashboard() {
   const [projectionProductIds, setProjectionProductIds] = useState<number[]>([]);
   const [projectionData, setProjectionData] = useState<BulkProjectionsResponse>([]);
   const [projectionLoading, setProjectionLoading] = useState(false);
+  const [projectionSearch, setProjectionSearch] = useState("");
+  const [projectionShowFilter, setProjectionShowFilter] = useState(false);
 
   // Historical Daily Stock state
   const [historyProductIds, setHistoryProductIds] = useState<number[]>([]);
   const [historyData, setHistoryData] = useState<DailyHistoryResponse>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
+  const [historySearch, setHistorySearch] = useState("");
+  const [historyShowFilter, setHistoryShowFilter] = useState(false);
+  const [historyDays, setHistoryDays] = useState<30 | 60 | 90>(30);
 
   // Top 20 Distribution state
   const [topField, setTopField] = useState("on_hand");
@@ -182,7 +187,7 @@ export default function Dashboard() {
       
       setHistoryLoading(true);
       const startDate = new Date();
-      startDate.setDate(startDate.getDate() - 30);
+      startDate.setDate(startDate.getDate() - historyDays);
       const startDateStr = startDate.toISOString().split("T")[0];
       
       try {
@@ -205,7 +210,7 @@ export default function Dashboard() {
     return () => {
       cancelled = true;
     };
-  }, [historyProductIds, activeWarehouseId]);
+  }, [historyProductIds, historyDays, activeWarehouseId]);
 
   // Load Top Items
   useEffect(() => {
@@ -432,31 +437,103 @@ export default function Dashboard() {
                     <h2 className="text-xs font-bold uppercase text-gray-700 tracking-wide">
                       Projected Stock Graph - Future Outlook
                     </h2>
-                    <button className="text-gray-400 hover:text-gray-600" aria-label="Graph options">
+                    <button 
+                      className="text-gray-400 hover:text-gray-600" 
+                      aria-label="Graph options"
+                      onClick={() => setProjectionShowFilter(!projectionShowFilter)}
+                    >
                       <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                         <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
                       </svg>
                     </button>
                   </div>
                   
-                  <MultiSelectAutocomplete
-                    label="Select Items"
-                    placeholder="Search products..."
-                    options={productOptions}
-                    selectedIds={projectionProductIds}
-                    onChange={setProjectionProductIds}
-                    className="mb-6"
-                  />
+                  {/* Product Filter Panel */}
+                  {projectionShowFilter && (
+                    <div className="mb-4 p-4 border border-gray-200 rounded-lg bg-gray-50">
+                      <h3 className="text-sm font-medium text-gray-700 mb-3">
+                        Products Included
+                      </h3>
+                      
+                      {/* Product Search Input */}
+                      <input
+                        type="text"
+                        placeholder="Search products..."
+                        className="input input-bordered input-sm w-full mb-3"
+                        value={projectionSearch}
+                        onChange={(e) => setProjectionSearch(e.target.value)}
+                      />
+                      
+                      {/* Selected Products Count */}
+                      {projectionProductIds.length > 0 && (
+                        <div className="text-xs text-gray-600 mb-2">
+                          {projectionProductIds.length} product{projectionProductIds.length !== 1 ? 's' : ''} selected
+                        </div>
+                      )}
+                      
+                      {/* Product List */}
+                      <div className="max-h-48 overflow-y-auto border border-gray-200 rounded-lg bg-white">
+                        {(() => {
+                          const filteredProducts = products.filter((product) =>
+                            projectionSearch === "" ||
+                            (product.part_number?.toLowerCase().includes(projectionSearch.toLowerCase()) ?? false) ||
+                            product.category.toLowerCase().includes(projectionSearch.toLowerCase())
+                          );
+                          
+                          return filteredProducts.length > 0 ? (
+                            filteredProducts.map((product) => (
+                              <label
+                                key={product.id}
+                                className="flex items-center gap-2 p-2 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+                              >
+                                <input
+                                  type="checkbox"
+                                  className="checkbox checkbox-sm checkbox-primary"
+                                  checked={projectionProductIds.includes(product.id)}
+                                  onChange={(e) => {
+                                    if (e.target.checked) {
+                                      setProjectionProductIds([...projectionProductIds, product.id]);
+                                    } else {
+                                      setProjectionProductIds(
+                                        projectionProductIds.filter((id) => id !== product.id)
+                                      );
+                                    }
+                                  }}
+                                />
+                                <div className="flex-1 min-w-0">
+                                  <div className="text-xs font-medium text-gray-900 truncate">
+                                    {product.part_number}
+                                  </div>
+                                  <div className="text-xs text-gray-500">
+                                    {product.category}
+                                  </div>
+                                </div>
+                              </label>
+                            ))
+                          ) : (
+                            <div className="p-4 text-xs text-gray-400 text-center">
+                              No products found
+                            </div>
+                          );
+                        })()}
+                      </div>
+                      
+                      {/* Clear Products Button */}
+                      {projectionProductIds.length > 0 && (
+                        <button
+                          className="btn btn-ghost btn-sm w-full mt-2"
+                          onClick={() => setProjectionProductIds([])}
+                        >
+                          Clear Selection
+                        </button>
+                      )}
+                    </div>
+                  )}
                   
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-sm font-bold text-gray-800">
                       PROJECTED STOCK - NEXT 60 DAYS
                     </h3>
-                    <button className="text-gray-400 hover:text-gray-600" aria-label="View options">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                      </svg>
-                    </button>
                   </div>
                   
                   {projectionLoading ? (
@@ -516,31 +593,119 @@ export default function Dashboard() {
                     <h2 className="text-xs font-bold uppercase text-gray-700 tracking-wide">
                       Historical Changes Graph
                     </h2>
-                    <button className="text-gray-400 hover:text-gray-600" aria-label="Graph options">
+                    <button 
+                      className="text-gray-400 hover:text-gray-600" 
+                      aria-label="Graph options"
+                      onClick={() => setHistoryShowFilter(!historyShowFilter)}
+                    >
                       <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                         <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
                       </svg>
                     </button>
                   </div>
                   
-                  <MultiSelectAutocomplete
-                    label="Select Items"
-                    placeholder="Search products..."
-                    options={productOptions}
-                    selectedIds={historyProductIds}
-                    onChange={setHistoryProductIds}
-                    className="mb-6"
-                  />
+                  {/* Product Filter Panel */}
+                  {historyShowFilter && (
+                    <div className="mb-4 p-4 border border-gray-200 rounded-lg bg-gray-50">
+                      <h3 className="text-sm font-medium text-gray-700 mb-3">
+                        Products Included
+                      </h3>
+                      
+                      {/* Product Search Input */}
+                      <input
+                        type="text"
+                        placeholder="Search products..."
+                        className="input input-bordered input-sm w-full mb-3"
+                        value={historySearch}
+                        onChange={(e) => setHistorySearch(e.target.value)}
+                      />
+                      
+                      {/* Selected Products Count */}
+                      {historyProductIds.length > 0 && (
+                        <div className="text-xs text-gray-600 mb-2">
+                          {historyProductIds.length} product{historyProductIds.length !== 1 ? 's' : ''} selected
+                        </div>
+                      )}
+                      
+                      {/* Product List */}
+                      <div className="max-h-48 overflow-y-auto border border-gray-200 rounded-lg bg-white">
+                        {(() => {
+                          const filteredProducts = products.filter((product) =>
+                            historySearch === "" ||
+                            (product.part_number?.toLowerCase().includes(historySearch.toLowerCase()) ?? false) ||
+                            product.category.toLowerCase().includes(historySearch.toLowerCase())
+                          );
+                          
+                          return filteredProducts.length > 0 ? (
+                            filteredProducts.map((product) => (
+                              <label
+                                key={product.id}
+                                className="flex items-center gap-2 p-2 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+                              >
+                                <input
+                                  type="checkbox"
+                                  className="checkbox checkbox-sm checkbox-primary"
+                                  checked={historyProductIds.includes(product.id)}
+                                  onChange={(e) => {
+                                    if (e.target.checked) {
+                                      setHistoryProductIds([...historyProductIds, product.id]);
+                                    } else {
+                                      setHistoryProductIds(
+                                        historyProductIds.filter((id) => id !== product.id)
+                                      );
+                                    }
+                                  }}
+                                />
+                                <div className="flex-1 min-w-0">
+                                  <div className="text-xs font-medium text-gray-900 truncate">
+                                    {product.part_number}
+                                  </div>
+                                  <div className="text-xs text-gray-500">
+                                    {product.category}
+                                  </div>
+                                </div>
+                              </label>
+                            ))
+                          ) : (
+                            <div className="p-4 text-xs text-gray-400 text-center">
+                              No products found
+                            </div>
+                          );
+                        })()}
+                      </div>
+                      
+                      {/* Clear Products Button */}
+                      {historyProductIds.length > 0 && (
+                        <button
+                          className="btn btn-ghost btn-sm w-full mt-2"
+                          onClick={() => setHistoryProductIds([])}
+                        >
+                          Clear Selection
+                        </button>
+                      )}
+                    </div>
+                  )}
                   
-                  <div className="flex items-center justify-between mb-4">
+                  <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
                     <h3 className="text-sm font-bold text-gray-800">
-                      HISTORICAL CHANGES - PAST 30 DAYS
+                      HISTORICAL CHANGES - PAST {historyDays} DAYS
                     </h3>
-                    <button className="text-gray-400 hover:text-gray-600" aria-label="View options">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                      </svg>
-                    </button>
+                    {/* Timeframe selector */}
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {([30, 60, 90] as const).map((days) => (
+                        <button
+                          key={days}
+                          onClick={() => setHistoryDays(days)}
+                          className={`text-xs px-3 py-1 rounded-full border transition-colors ${
+                            historyDays === days
+                              ? "bg-[#363b4c] text-white border-[#363b4c]"
+                              : "bg-white text-gray-600 border-gray-300 hover:border-[#363b4c]"
+                          }`}
+                        >
+                          Last {days}d
+                        </button>
+                      ))}
+                    </div>
                   </div>
                   
                   {historyLoading ? (
