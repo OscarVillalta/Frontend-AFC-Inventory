@@ -92,18 +92,6 @@ export default function Dashboard() {
   }, []);
 
   useEffect(() => {
-    if (!projectionShowFilter) {
-      setProjectionMenuOpen(false);
-    }
-  }, [projectionShowFilter]);
-
-  useEffect(() => {
-    if (!historyShowFilter) {
-      setHistoryMenuOpen(false);
-    }
-  }, [historyShowFilter]);
-
-  useEffect(() => {
     let cancelled = false;
     fetchDashboardStats()
       .then((res) => {
@@ -465,7 +453,15 @@ export default function Dashboard() {
                     <button 
                       className="text-gray-400 hover:text-gray-600" 
                       aria-label="Graph options"
-                      onClick={() => setProjectionShowFilter(!projectionShowFilter)}
+                      onClick={() =>
+                        setProjectionShowFilter((prev) => {
+                          const next = !prev;
+                          if (!next) {
+                            setProjectionMenuOpen(false);
+                          }
+                          return next;
+                        })
+                      }
                     >
                       <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                         <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
@@ -684,7 +680,15 @@ export default function Dashboard() {
                     <button 
                       className="text-gray-400 hover:text-gray-600" 
                       aria-label="Graph options"
-                      onClick={() => setHistoryShowFilter(!historyShowFilter)}
+                      onClick={() =>
+                        setHistoryShowFilter((prev) => {
+                          const next = !prev;
+                          if (!next) {
+                            setHistoryMenuOpen(false);
+                          }
+                          return next;
+                        })
+                      }
                     >
                       <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                         <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
