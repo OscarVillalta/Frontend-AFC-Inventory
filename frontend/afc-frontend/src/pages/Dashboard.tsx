@@ -482,7 +482,6 @@ export default function Dashboard() {
                           </svg>
                         </button>
                         <div
-                          tabIndex={0}
                           role="menu"
                           className="dropdown-content z-[1] mt-2 w-full rounded-lg border border-gray-200 bg-white shadow-lg"
                         >
@@ -506,6 +505,8 @@ export default function Dashboard() {
                                   filteredProducts.map((product) => (
                                     <label
                                       key={product.id}
+                                      role="menuitemcheckbox"
+                                      aria-checked={projectionProductIds.includes(product.id)}
                                       className="flex items-center gap-2 rounded-md px-2 py-2 hover:bg-gray-50 cursor-pointer"
                                     >
                                       <input
@@ -697,7 +698,6 @@ export default function Dashboard() {
                           </svg>
                         </button>
                         <div
-                          tabIndex={0}
                           role="menu"
                           className="dropdown-content z-[1] mt-2 w-full rounded-lg border border-gray-200 bg-white shadow-lg"
                         >
@@ -721,6 +721,8 @@ export default function Dashboard() {
                                   filteredProducts.map((product) => (
                                     <label
                                       key={product.id}
+                                      role="menuitemcheckbox"
+                                      aria-checked={historyProductIds.includes(product.id)}
                                       className="flex items-center gap-2 rounded-md px-2 py-2 hover:bg-gray-50 cursor-pointer"
                                     >
                                       <input
