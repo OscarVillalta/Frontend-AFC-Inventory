@@ -34,7 +34,6 @@ import type {
 } from "../api/dashboard";
 import { fetchProducts, type Product } from "../api/products";
 import KpiCard from "../components/KpiCard";
-import MultiSelectAutocomplete from "../components/MultiSelectAutocomplete";
 
 /* ── component ──────────────────────────────────────────────────── */
 
@@ -349,12 +348,6 @@ export default function Dashboard() {
     "#6366f1", // indigo
   ];
 
-  // Product options for autocomplete
-  const productOptions = products.map((p) => ({
-    id: p.id,
-    name: p.part_number || `Product ${p.id}`,
-  }));
-
   /* ── render ─────────────────────────────────────────────────── */
 
   return (
@@ -455,73 +448,121 @@ export default function Dashboard() {
                         Products Included
                       </h3>
                       
-                      {/* Product Search Input */}
-                      <input
-                        type="text"
-                        placeholder="Search products..."
-                        className="input input-bordered input-sm w-full mb-3"
-                        value={projectionSearch}
-                        onChange={(e) => setProjectionSearch(e.target.value)}
-                      />
+                      <div className="dropdown dropdown-bottom w-full">
+                        <button
+                          type="button"
+                          tabIndex={0}
+                          className="btn btn-sm w-full justify-between"
+                        >
+                          <span>
+                            {projectionProductIds.length > 0
+                              ? `${projectionProductIds.length} product${projectionProductIds.length !== 1 ? "s" : ""} selected`
+                              : "Select products"}
+                          </span>
+                          <svg
+                            className="w-4 h-4 text-gray-400"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                            aria-hidden="true"
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </button>
+                        <div
+                          tabIndex={0}
+                          className="dropdown-content z-[1] mt-2 w-full rounded-lg border border-gray-200 bg-white shadow-lg"
+                        >
+                          <div className="p-3">
+                            <input
+                              type="text"
+                              placeholder="Search products..."
+                              className="input input-bordered input-sm w-full mb-2"
+                              value={projectionSearch}
+                              onChange={(e) => setProjectionSearch(e.target.value)}
+                            />
+                            <div className="max-h-48 overflow-y-auto">
+                              {(() => {
+                                const filteredProducts = products.filter((product) =>
+                                  projectionSearch === "" ||
+                                  (product.part_number?.toLowerCase().includes(projectionSearch.toLowerCase()) ?? false) ||
+                                  product.category.toLowerCase().includes(projectionSearch.toLowerCase())
+                                );
+                                
+                                return filteredProducts.length > 0 ? (
+                                  filteredProducts.map((product) => (
+                                    <label
+                                      key={product.id}
+                                      className="flex items-center gap-2 rounded-md px-2 py-2 hover:bg-gray-50 cursor-pointer"
+                                    >
+                                      <input
+                                        type="checkbox"
+                                        className="checkbox checkbox-sm checkbox-primary"
+                                        checked={projectionProductIds.includes(product.id)}
+                                        onChange={(e) => {
+                                          if (e.target.checked) {
+                                            setProjectionProductIds([...projectionProductIds, product.id]);
+                                          } else {
+                                            setProjectionProductIds(
+                                              projectionProductIds.filter((id) => id !== product.id)
+                                            );
+                                          }
+                                        }}
+                                      />
+                                      <div className="flex-1 min-w-0">
+                                        <div className="text-xs font-medium text-gray-900 truncate">
+                                          {product.part_number}
+                                        </div>
+                                        <div className="text-xs text-gray-500">
+                                          {product.category}
+                                        </div>
+                                      </div>
+                                    </label>
+                                  ))
+                                ) : (
+                                  <div className="p-4 text-xs text-gray-400 text-center">
+                                    No products found
+                                  </div>
+                                );
+                              })()}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
                       
-                      {/* Selected Products Count */}
                       {projectionProductIds.length > 0 && (
-                        <div className="text-xs text-gray-600 mb-2">
-                          {projectionProductIds.length} product{projectionProductIds.length !== 1 ? 's' : ''} selected
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          {projectionProductIds.map((productId) => {
+                            const product = products.find((p) => p.id === productId);
+                            const productName = product?.part_number || `Product ${productId}`;
+                            return (
+                              <div
+                                key={productId}
+                                className="flex items-center gap-1 rounded-lg border border-gray-200 bg-white px-2 py-1 text-xs text-gray-700 shadow-sm"
+                              >
+                                <span className="max-w-[140px] truncate">{productName}</span>
+                                <button
+                                  type="button"
+                                  className="text-gray-400 hover:text-gray-600"
+                                  onClick={() =>
+                                    setProjectionProductIds(
+                                      projectionProductIds.filter((id) => id !== productId)
+                                    )
+                                  }
+                                  aria-label={`Remove ${productName}`}
+                                >
+                                  ✕
+                                </button>
+                              </div>
+                            );
+                          })}
                         </div>
                       )}
                       
-                      {/* Product List */}
-                      <div className="max-h-48 overflow-y-auto border border-gray-200 rounded-lg bg-white">
-                        {(() => {
-                          const filteredProducts = products.filter((product) =>
-                            projectionSearch === "" ||
-                            (product.part_number?.toLowerCase().includes(projectionSearch.toLowerCase()) ?? false) ||
-                            product.category.toLowerCase().includes(projectionSearch.toLowerCase())
-                          );
-                          
-                          return filteredProducts.length > 0 ? (
-                            filteredProducts.map((product) => (
-                              <label
-                                key={product.id}
-                                className="flex items-center gap-2 p-2 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0"
-                              >
-                                <input
-                                  type="checkbox"
-                                  className="checkbox checkbox-sm checkbox-primary"
-                                  checked={projectionProductIds.includes(product.id)}
-                                  onChange={(e) => {
-                                    if (e.target.checked) {
-                                      setProjectionProductIds([...projectionProductIds, product.id]);
-                                    } else {
-                                      setProjectionProductIds(
-                                        projectionProductIds.filter((id) => id !== product.id)
-                                      );
-                                    }
-                                  }}
-                                />
-                                <div className="flex-1 min-w-0">
-                                  <div className="text-xs font-medium text-gray-900 truncate">
-                                    {product.part_number}
-                                  </div>
-                                  <div className="text-xs text-gray-500">
-                                    {product.category}
-                                  </div>
-                                </div>
-                              </label>
-                            ))
-                          ) : (
-                            <div className="p-4 text-xs text-gray-400 text-center">
-                              No products found
-                            </div>
-                          );
-                        })()}
-                      </div>
-                      
-                      {/* Clear Products Button */}
                       {projectionProductIds.length > 0 && (
                         <button
-                          className="btn btn-ghost btn-sm w-full mt-2"
+                          type="button"
+                          className="btn btn-ghost btn-xs w-full mt-3"
                           onClick={() => setProjectionProductIds([])}
                         >
                           Clear Selection
@@ -611,73 +652,121 @@ export default function Dashboard() {
                         Products Included
                       </h3>
                       
-                      {/* Product Search Input */}
-                      <input
-                        type="text"
-                        placeholder="Search products..."
-                        className="input input-bordered input-sm w-full mb-3"
-                        value={historySearch}
-                        onChange={(e) => setHistorySearch(e.target.value)}
-                      />
+                      <div className="dropdown dropdown-bottom w-full">
+                        <button
+                          type="button"
+                          tabIndex={0}
+                          className="btn btn-sm w-full justify-between"
+                        >
+                          <span>
+                            {historyProductIds.length > 0
+                              ? `${historyProductIds.length} product${historyProductIds.length !== 1 ? "s" : ""} selected`
+                              : "Select products"}
+                          </span>
+                          <svg
+                            className="w-4 h-4 text-gray-400"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                            aria-hidden="true"
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </button>
+                        <div
+                          tabIndex={0}
+                          className="dropdown-content z-[1] mt-2 w-full rounded-lg border border-gray-200 bg-white shadow-lg"
+                        >
+                          <div className="p-3">
+                            <input
+                              type="text"
+                              placeholder="Search products..."
+                              className="input input-bordered input-sm w-full mb-2"
+                              value={historySearch}
+                              onChange={(e) => setHistorySearch(e.target.value)}
+                            />
+                            <div className="max-h-48 overflow-y-auto">
+                              {(() => {
+                                const filteredProducts = products.filter((product) =>
+                                  historySearch === "" ||
+                                  (product.part_number?.toLowerCase().includes(historySearch.toLowerCase()) ?? false) ||
+                                  product.category.toLowerCase().includes(historySearch.toLowerCase())
+                                );
+                                
+                                return filteredProducts.length > 0 ? (
+                                  filteredProducts.map((product) => (
+                                    <label
+                                      key={product.id}
+                                      className="flex items-center gap-2 rounded-md px-2 py-2 hover:bg-gray-50 cursor-pointer"
+                                    >
+                                      <input
+                                        type="checkbox"
+                                        className="checkbox checkbox-sm checkbox-primary"
+                                        checked={historyProductIds.includes(product.id)}
+                                        onChange={(e) => {
+                                          if (e.target.checked) {
+                                            setHistoryProductIds([...historyProductIds, product.id]);
+                                          } else {
+                                            setHistoryProductIds(
+                                              historyProductIds.filter((id) => id !== product.id)
+                                            );
+                                          }
+                                        }}
+                                      />
+                                      <div className="flex-1 min-w-0">
+                                        <div className="text-xs font-medium text-gray-900 truncate">
+                                          {product.part_number}
+                                        </div>
+                                        <div className="text-xs text-gray-500">
+                                          {product.category}
+                                        </div>
+                                      </div>
+                                    </label>
+                                  ))
+                                ) : (
+                                  <div className="p-4 text-xs text-gray-400 text-center">
+                                    No products found
+                                  </div>
+                                );
+                              })()}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
                       
-                      {/* Selected Products Count */}
                       {historyProductIds.length > 0 && (
-                        <div className="text-xs text-gray-600 mb-2">
-                          {historyProductIds.length} product{historyProductIds.length !== 1 ? 's' : ''} selected
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          {historyProductIds.map((productId) => {
+                            const product = products.find((p) => p.id === productId);
+                            const productName = product?.part_number || `Product ${productId}`;
+                            return (
+                              <div
+                                key={productId}
+                                className="flex items-center gap-1 rounded-lg border border-gray-200 bg-white px-2 py-1 text-xs text-gray-700 shadow-sm"
+                              >
+                                <span className="max-w-[140px] truncate">{productName}</span>
+                                <button
+                                  type="button"
+                                  className="text-gray-400 hover:text-gray-600"
+                                  onClick={() =>
+                                    setHistoryProductIds(
+                                      historyProductIds.filter((id) => id !== productId)
+                                    )
+                                  }
+                                  aria-label={`Remove ${productName}`}
+                                >
+                                  ✕
+                                </button>
+                              </div>
+                            );
+                          })}
                         </div>
                       )}
                       
-                      {/* Product List */}
-                      <div className="max-h-48 overflow-y-auto border border-gray-200 rounded-lg bg-white">
-                        {(() => {
-                          const filteredProducts = products.filter((product) =>
-                            historySearch === "" ||
-                            (product.part_number?.toLowerCase().includes(historySearch.toLowerCase()) ?? false) ||
-                            product.category.toLowerCase().includes(historySearch.toLowerCase())
-                          );
-                          
-                          return filteredProducts.length > 0 ? (
-                            filteredProducts.map((product) => (
-                              <label
-                                key={product.id}
-                                className="flex items-center gap-2 p-2 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0"
-                              >
-                                <input
-                                  type="checkbox"
-                                  className="checkbox checkbox-sm checkbox-primary"
-                                  checked={historyProductIds.includes(product.id)}
-                                  onChange={(e) => {
-                                    if (e.target.checked) {
-                                      setHistoryProductIds([...historyProductIds, product.id]);
-                                    } else {
-                                      setHistoryProductIds(
-                                        historyProductIds.filter((id) => id !== product.id)
-                                      );
-                                    }
-                                  }}
-                                />
-                                <div className="flex-1 min-w-0">
-                                  <div className="text-xs font-medium text-gray-900 truncate">
-                                    {product.part_number}
-                                  </div>
-                                  <div className="text-xs text-gray-500">
-                                    {product.category}
-                                  </div>
-                                </div>
-                              </label>
-                            ))
-                          ) : (
-                            <div className="p-4 text-xs text-gray-400 text-center">
-                              No products found
-                            </div>
-                          );
-                        })()}
-                      </div>
-                      
-                      {/* Clear Products Button */}
                       {historyProductIds.length > 0 && (
                         <button
-                          className="btn btn-ghost btn-sm w-full mt-2"
+                          type="button"
+                          className="btn btn-ghost btn-xs w-full mt-3"
                           onClick={() => setHistoryProductIds([])}
                         >
                           Clear Selection
