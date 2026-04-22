@@ -517,9 +517,7 @@ export default function Dashboard() {
                       
                       <div
                         ref={projectionMenuRef}
-                        className={`dropdown dropdown-bottom w-full ${
-                          projectionMenuOpen ? "dropdown-open" : ""
-                        }`}
+                        className={`dropdown dropdown-bottom w-full ${projectionMenuOpen ? "dropdown-open" : ""}`}
                         onKeyDown={(event) => {
                           if (event.key === "Escape") {
                             setProjectionMenuOpen(false);
