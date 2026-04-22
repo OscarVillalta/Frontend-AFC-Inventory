@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import {
   ResponsiveContainer,
   AreaChart,
@@ -72,6 +72,36 @@ export default function Dashboard() {
   const [topField, setTopField] = useState("on_hand");
   const [topItemsData, setTopItemsData] = useState<TopRankedItemsResponse | null>(null);
   const [topItemsLoading, setTopItemsLoading] = useState(false);
+
+  const projectionMenuRef = useRef<HTMLDivElement>(null);
+  const historyMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (projectionMenuRef.current && !projectionMenuRef.current.contains(event.target as Node)) {
+        setProjectionMenuOpen(false);
+      }
+      if (historyMenuRef.current && !historyMenuRef.current.contains(event.target as Node)) {
+        setHistoryMenuOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!projectionShowFilter) {
+      setProjectionMenuOpen(false);
+    }
+  }, [projectionShowFilter]);
+
+  useEffect(() => {
+    if (!historyShowFilter) {
+      setHistoryMenuOpen(false);
+    }
+  }, [historyShowFilter]);
 
   useEffect(() => {
     let cancelled = false;
@@ -451,10 +481,10 @@ export default function Dashboard() {
                       </h3>
                       
                       <div
+                        ref={projectionMenuRef}
                         className="dropdown dropdown-bottom w-full"
-                        onFocus={() => setProjectionMenuOpen(true)}
-                        onBlur={(event) => {
-                          if (!event.currentTarget.contains(event.relatedTarget as Node)) {
+                        onKeyDown={(event) => {
+                          if (event.key === "Escape") {
                             setProjectionMenuOpen(false);
                           }
                         }}
@@ -464,6 +494,7 @@ export default function Dashboard() {
                           tabIndex={0}
                           aria-haspopup="menu"
                           aria-expanded={projectionMenuOpen}
+                          onClick={() => setProjectionMenuOpen((prev) => !prev)}
                           className="btn btn-sm w-full justify-between"
                         >
                           <span>
@@ -481,67 +512,69 @@ export default function Dashboard() {
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                           </svg>
                         </button>
-                        <div
-                          role="menu"
-                          className="dropdown-content z-[1] mt-2 w-full rounded-lg border border-gray-200 bg-white shadow-lg"
-                        >
-                          <div className="p-3">
-                            <input
-                              type="text"
-                              placeholder="Search products..."
-                              className="input input-bordered input-sm w-full mb-2"
-                              value={projectionSearch}
-                              onChange={(e) => setProjectionSearch(e.target.value)}
-                            />
-                            <div className="max-h-48 overflow-y-auto">
-                              {(() => {
-                                const filteredProducts = products.filter((product) =>
-                                  projectionSearch === "" ||
-                                  (product.part_number?.toLowerCase().includes(projectionSearch.toLowerCase()) ?? false) ||
-                                  product.category.toLowerCase().includes(projectionSearch.toLowerCase())
-                                );
-                                
-                                return filteredProducts.length > 0 ? (
-                                  filteredProducts.map((product) => (
-                                    <label
-                                      key={product.id}
-                                      role="menuitemcheckbox"
-                                      aria-checked={projectionProductIds.includes(product.id)}
-                                      className="flex items-center gap-2 rounded-md px-2 py-2 hover:bg-gray-50 cursor-pointer"
-                                    >
-                                      <input
-                                        type="checkbox"
-                                        className="checkbox checkbox-sm checkbox-primary"
-                                        checked={projectionProductIds.includes(product.id)}
-                                        onChange={(e) => {
-                                          if (e.target.checked) {
-                                            setProjectionProductIds([...projectionProductIds, product.id]);
-                                          } else {
-                                            setProjectionProductIds(
-                                              projectionProductIds.filter((id) => id !== product.id)
-                                            );
-                                          }
-                                        }}
-                                      />
-                                      <div className="flex-1 min-w-0">
-                                        <div className="text-xs font-medium text-gray-900 truncate">
-                                          {product.part_number}
+                        {projectionMenuOpen && (
+                          <div
+                            role="menu"
+                            className="dropdown-content z-[1] mt-2 w-full rounded-lg border border-gray-200 bg-white shadow-lg"
+                          >
+                            <div className="p-3">
+                              <input
+                                type="text"
+                                placeholder="Search products..."
+                                className="input input-bordered input-sm w-full mb-2"
+                                value={projectionSearch}
+                                onChange={(e) => setProjectionSearch(e.target.value)}
+                              />
+                              <div className="max-h-48 overflow-y-auto">
+                                {(() => {
+                                  const filteredProducts = products.filter((product) =>
+                                    projectionSearch === "" ||
+                                    (product.part_number?.toLowerCase().includes(projectionSearch.toLowerCase()) ?? false) ||
+                                    product.category.toLowerCase().includes(projectionSearch.toLowerCase())
+                                  );
+                                  
+                                  return filteredProducts.length > 0 ? (
+                                    filteredProducts.map((product) => (
+                                      <label
+                                        key={product.id}
+                                        role="menuitemcheckbox"
+                                        aria-checked={projectionProductIds.includes(product.id)}
+                                        className="flex items-center gap-2 rounded-md px-2 py-2 hover:bg-gray-50 cursor-pointer"
+                                      >
+                                        <input
+                                          type="checkbox"
+                                          className="checkbox checkbox-sm checkbox-primary"
+                                          checked={projectionProductIds.includes(product.id)}
+                                          onChange={(e) => {
+                                            if (e.target.checked) {
+                                              setProjectionProductIds([...projectionProductIds, product.id]);
+                                            } else {
+                                              setProjectionProductIds(
+                                                projectionProductIds.filter((id) => id !== product.id)
+                                              );
+                                            }
+                                          }}
+                                        />
+                                        <div className="flex-1 min-w-0">
+                                          <div className="text-xs font-medium text-gray-900 truncate">
+                                            {product.part_number}
+                                          </div>
+                                          <div className="text-xs text-gray-500">
+                                            {product.category}
+                                          </div>
                                         </div>
-                                        <div className="text-xs text-gray-500">
-                                          {product.category}
-                                        </div>
-                                      </div>
-                                    </label>
-                                  ))
-                                ) : (
-                                  <div className="p-4 text-xs text-gray-400 text-center">
-                                    No products found
-                                  </div>
-                                );
-                              })()}
+                                      </label>
+                                    ))
+                                  ) : (
+                                    <div className="p-4 text-xs text-gray-400 text-center">
+                                      No products found
+                                    </div>
+                                  );
+                                })()}
+                              </div>
                             </div>
                           </div>
-                        </div>
+                        )}
                       </div>
                       
                       {projectionProductIds.length > 0 && (
@@ -667,10 +700,10 @@ export default function Dashboard() {
                       </h3>
                       
                       <div
+                        ref={historyMenuRef}
                         className="dropdown dropdown-bottom w-full"
-                        onFocus={() => setHistoryMenuOpen(true)}
-                        onBlur={(event) => {
-                          if (!event.currentTarget.contains(event.relatedTarget as Node)) {
+                        onKeyDown={(event) => {
+                          if (event.key === "Escape") {
                             setHistoryMenuOpen(false);
                           }
                         }}
@@ -680,6 +713,7 @@ export default function Dashboard() {
                           tabIndex={0}
                           aria-haspopup="menu"
                           aria-expanded={historyMenuOpen}
+                          onClick={() => setHistoryMenuOpen((prev) => !prev)}
                           className="btn btn-sm w-full justify-between"
                         >
                           <span>
@@ -697,67 +731,69 @@ export default function Dashboard() {
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                           </svg>
                         </button>
-                        <div
-                          role="menu"
-                          className="dropdown-content z-[1] mt-2 w-full rounded-lg border border-gray-200 bg-white shadow-lg"
-                        >
-                          <div className="p-3">
-                            <input
-                              type="text"
-                              placeholder="Search products..."
-                              className="input input-bordered input-sm w-full mb-2"
-                              value={historySearch}
-                              onChange={(e) => setHistorySearch(e.target.value)}
-                            />
-                            <div className="max-h-48 overflow-y-auto">
-                              {(() => {
-                                const filteredProducts = products.filter((product) =>
-                                  historySearch === "" ||
-                                  (product.part_number?.toLowerCase().includes(historySearch.toLowerCase()) ?? false) ||
-                                  product.category.toLowerCase().includes(historySearch.toLowerCase())
-                                );
-                                
-                                return filteredProducts.length > 0 ? (
-                                  filteredProducts.map((product) => (
-                                    <label
-                                      key={product.id}
-                                      role="menuitemcheckbox"
-                                      aria-checked={historyProductIds.includes(product.id)}
-                                      className="flex items-center gap-2 rounded-md px-2 py-2 hover:bg-gray-50 cursor-pointer"
-                                    >
-                                      <input
-                                        type="checkbox"
-                                        className="checkbox checkbox-sm checkbox-primary"
-                                        checked={historyProductIds.includes(product.id)}
-                                        onChange={(e) => {
-                                          if (e.target.checked) {
-                                            setHistoryProductIds([...historyProductIds, product.id]);
-                                          } else {
-                                            setHistoryProductIds(
-                                              historyProductIds.filter((id) => id !== product.id)
-                                            );
-                                          }
-                                        }}
-                                      />
-                                      <div className="flex-1 min-w-0">
-                                        <div className="text-xs font-medium text-gray-900 truncate">
-                                          {product.part_number}
+                        {historyMenuOpen && (
+                          <div
+                            role="menu"
+                            className="dropdown-content z-[1] mt-2 w-full rounded-lg border border-gray-200 bg-white shadow-lg"
+                          >
+                            <div className="p-3">
+                              <input
+                                type="text"
+                                placeholder="Search products..."
+                                className="input input-bordered input-sm w-full mb-2"
+                                value={historySearch}
+                                onChange={(e) => setHistorySearch(e.target.value)}
+                              />
+                              <div className="max-h-48 overflow-y-auto">
+                                {(() => {
+                                  const filteredProducts = products.filter((product) =>
+                                    historySearch === "" ||
+                                    (product.part_number?.toLowerCase().includes(historySearch.toLowerCase()) ?? false) ||
+                                    product.category.toLowerCase().includes(historySearch.toLowerCase())
+                                  );
+                                  
+                                  return filteredProducts.length > 0 ? (
+                                    filteredProducts.map((product) => (
+                                      <label
+                                        key={product.id}
+                                        role="menuitemcheckbox"
+                                        aria-checked={historyProductIds.includes(product.id)}
+                                        className="flex items-center gap-2 rounded-md px-2 py-2 hover:bg-gray-50 cursor-pointer"
+                                      >
+                                        <input
+                                          type="checkbox"
+                                          className="checkbox checkbox-sm checkbox-primary"
+                                          checked={historyProductIds.includes(product.id)}
+                                          onChange={(e) => {
+                                            if (e.target.checked) {
+                                              setHistoryProductIds([...historyProductIds, product.id]);
+                                            } else {
+                                              setHistoryProductIds(
+                                                historyProductIds.filter((id) => id !== product.id)
+                                              );
+                                            }
+                                          }}
+                                        />
+                                        <div className="flex-1 min-w-0">
+                                          <div className="text-xs font-medium text-gray-900 truncate">
+                                            {product.part_number}
+                                          </div>
+                                          <div className="text-xs text-gray-500">
+                                            {product.category}
+                                          </div>
                                         </div>
-                                        <div className="text-xs text-gray-500">
-                                          {product.category}
-                                        </div>
-                                      </div>
-                                    </label>
-                                  ))
-                                ) : (
-                                  <div className="p-4 text-xs text-gray-400 text-center">
-                                    No products found
-                                  </div>
-                                );
-                              })()}
+                                      </label>
+                                    ))
+                                  ) : (
+                                    <div className="p-4 text-xs text-gray-400 text-center">
+                                      No products found
+                                    </div>
+                                  );
+                                })()}
+                              </div>
                             </div>
                           </div>
-                        </div>
+                        )}
                       </div>
                       
                       {historyProductIds.length > 0 && (
