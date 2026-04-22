@@ -517,7 +517,9 @@ export default function Dashboard() {
                       
                       <div
                         ref={projectionMenuRef}
-                        className="dropdown dropdown-bottom w-full"
+                        className={`dropdown dropdown-bottom w-full ${
+                          projectionMenuOpen ? "dropdown-open" : ""
+                        }`}
                         onKeyDown={(event) => {
                           if (event.key === "Escape") {
                             setProjectionMenuOpen(false);
@@ -689,7 +691,7 @@ export default function Dashboard() {
                       
                       <div
                         ref={historyMenuRef}
-                        className="dropdown dropdown-bottom w-full"
+                        className={`dropdown dropdown-bottom w-full ${historyMenuOpen ? "dropdown-open" : ""}`}
                         onKeyDown={(event) => {
                           if (event.key === "Escape") {
                             setHistoryMenuOpen(false);
