@@ -490,6 +490,7 @@ export default function Dashboard() {
                           tabIndex={0}
                           aria-haspopup="menu"
                           aria-expanded={projectionMenuOpen}
+                          aria-label="Select projection products"
                           onClick={() => setProjectionMenuOpen((prev) => !prev)}
                           className="btn btn-sm w-full justify-between"
                         >
@@ -517,6 +518,7 @@ export default function Dashboard() {
                               <input
                                 type="text"
                                 placeholder="Search products..."
+                                aria-label="Search projection products"
                                 className="input input-bordered input-sm w-full mb-2"
                                 value={projectionSearch}
                                 onChange={(e) => setProjectionSearch(e.target.value)}
@@ -717,6 +719,7 @@ export default function Dashboard() {
                           tabIndex={0}
                           aria-haspopup="menu"
                           aria-expanded={historyMenuOpen}
+                          aria-label="Select history products"
                           onClick={() => setHistoryMenuOpen((prev) => !prev)}
                           className="btn btn-sm w-full justify-between"
                         >
@@ -744,6 +747,7 @@ export default function Dashboard() {
                               <input
                                 type="text"
                                 placeholder="Search products..."
+                                aria-label="Search history products"
                                 className="input input-bordered input-sm w-full mb-2"
                                 value={historySearch}
                                 onChange={(e) => setHistorySearch(e.target.value)}
