@@ -35,6 +35,7 @@ import type {
 import { fetchProducts, type Product } from "../api/products";
 import KpiCard from "../components/KpiCard";
 
+
 /* ── component ──────────────────────────────────────────────────── */
 
 export default function Dashboard() {
@@ -450,28 +451,66 @@ export default function Dashboard() {
                     <h2 className="text-xs font-bold uppercase text-gray-700 tracking-wide">
                       Projected Stock Graph - Future Outlook
                     </h2>
-                    <button 
-                      className="text-gray-400 hover:text-gray-600" 
-                      aria-label="Graph options"
-                      onClick={() =>
-                        setProjectionShowFilter((prev) => {
-                          const next = !prev;
-                          if (!next) {
-                            setProjectionMenuOpen(false);
-                          }
-                          return next;
-                        })
-                      }
-                    >
-                      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                        <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
-                      </svg>
-                    </button>
+                  </div>
+                
+                  
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-sm font-bold text-gray-800">
+                      PROJECTED STOCK - NEXT 60 DAYS
+                    </h3>
                   </div>
                   
-                  {/* Product Filter Panel */}
-                  {projectionShowFilter && (
-                    <div className="mb-4 p-4 border border-gray-200 rounded-lg bg-gray-50">
+                  {projectionLoading ? (
+                    <div className="flex justify-center py-12">
+                      <span className="loading loading-spinner loading-md text-primary" />
+                    </div>
+                  ) : projectionProductIds.length === 0 ? (
+                    <p className="text-gray-400 text-center py-12">
+                      Select products to view projections
+                    </p>
+                  ) : (
+                    <ResponsiveContainer width="100%" height={400}>
+                      <AreaChart data={projectionChartData}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                        <XAxis
+                          dataKey="weekLabel"
+                          label={{ value: 'Weeks Ahead (1-8)', position: 'insideBottom', offset: -5, style: { fontSize: '12px', fill: '#6b7280' } }}
+                          style={{ fontSize: "11px" }}
+                          stroke="#9ca3af"
+                          tickLine={false}
+                        />
+                        <YAxis 
+                          label={{ value: 'Quantity', angle: -90, position: 'insideLeft', style: { fontSize: '12px', fill: '#6b7280' } }}
+                          style={{ fontSize: "11px" }} 
+                          stroke="#9ca3af"
+                          tickLine={false}
+                        />
+                        <Tooltip />
+                        <Legend 
+                          wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }}
+                          iconType="circle"
+                        />
+                        {projectionProductIds.map((productId, idx) => {
+                          const product = products.find((p) => p.id === productId);
+                          const productName = product?.part_number || `Product ${productId}`;
+                          return (
+                            <Area
+                              key={productId}
+                              type="monotone"
+                              dataKey={`product_${productId}`}
+                              name={productName}
+                              stroke={CHART_COLORS[idx % CHART_COLORS.length]}
+                              fill={CHART_COLORS[idx % CHART_COLORS.length]}
+                              fillOpacity={0.3}
+                              stackId="1"
+                            />
+                          );
+                        })}
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  )}
+
+                  <div className="mb-4 p-4 border border-gray-200 rounded-lg bg-gray-50">
                       <h3 className="text-sm font-medium text-gray-700 mb-3">
                         Products Included
                       </h3>
@@ -614,63 +653,6 @@ export default function Dashboard() {
                         </button>
                       )}
                     </div>
-                  )}
-                  
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-sm font-bold text-gray-800">
-                      PROJECTED STOCK - NEXT 60 DAYS
-                    </h3>
-                  </div>
-                  
-                  {projectionLoading ? (
-                    <div className="flex justify-center py-12">
-                      <span className="loading loading-spinner loading-md text-primary" />
-                    </div>
-                  ) : projectionProductIds.length === 0 ? (
-                    <p className="text-gray-400 text-center py-12">
-                      Select products to view projections
-                    </p>
-                  ) : (
-                    <ResponsiveContainer width="100%" height={400}>
-                      <AreaChart data={projectionChartData}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                        <XAxis
-                          dataKey="weekLabel"
-                          label={{ value: 'Weeks Ahead (1-8)', position: 'insideBottom', offset: -5, style: { fontSize: '12px', fill: '#6b7280' } }}
-                          style={{ fontSize: "11px" }}
-                          stroke="#9ca3af"
-                          tickLine={false}
-                        />
-                        <YAxis 
-                          label={{ value: 'Quantity', angle: -90, position: 'insideLeft', style: { fontSize: '12px', fill: '#6b7280' } }}
-                          style={{ fontSize: "11px" }} 
-                          stroke="#9ca3af"
-                          tickLine={false}
-                        />
-                        <Tooltip />
-                        <Legend 
-                          wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }}
-                          iconType="circle"
-                        />
-                        {projectionProductIds.map((productId, idx) => {
-                          const product = products.find((p) => p.id === productId);
-                          const productName = product?.part_number || `Product ${productId}`;
-                          return (
-                            <Area
-                              key={productId}
-                              type="monotone"
-                              dataKey={`product_${productId}`}
-                              name={productName}
-                              stroke={CHART_COLORS[idx % CHART_COLORS.length]}
-                              fill={CHART_COLORS[idx % CHART_COLORS.length]}
-                              fillOpacity={0.3}
-                              stackId="1"
-                            />
-                          );
-                        })}
-                      </AreaChart>
-                    </ResponsiveContainer>
-                  )}
                 </div>
 
                 {/* Historical Daily Stock Graph - Top Right */}
