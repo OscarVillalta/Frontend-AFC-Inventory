@@ -57,6 +57,7 @@ export default function Dashboard() {
   const [projectionLoading, setProjectionLoading] = useState(false);
   const [projectionSearch, setProjectionSearch] = useState("");
   const [projectionShowFilter, setProjectionShowFilter] = useState(false);
+  const [projectionMenuOpen, setProjectionMenuOpen] = useState(false);
 
   // Historical Daily Stock state
   const [historyProductIds, setHistoryProductIds] = useState<number[]>([]);
@@ -64,6 +65,7 @@ export default function Dashboard() {
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historySearch, setHistorySearch] = useState("");
   const [historyShowFilter, setHistoryShowFilter] = useState(false);
+  const [historyMenuOpen, setHistoryMenuOpen] = useState(false);
   const [historyDays, setHistoryDays] = useState<30 | 60 | 90>(30);
 
   // Top 20 Distribution state
@@ -448,10 +450,20 @@ export default function Dashboard() {
                         Products Included
                       </h3>
                       
-                      <div className="dropdown dropdown-bottom w-full">
+                      <div
+                        className="dropdown dropdown-bottom w-full"
+                        onFocus={() => setProjectionMenuOpen(true)}
+                        onBlur={(event) => {
+                          if (!event.currentTarget.contains(event.relatedTarget as Node)) {
+                            setProjectionMenuOpen(false);
+                          }
+                        }}
+                      >
                         <button
                           type="button"
                           tabIndex={0}
+                          aria-haspopup="menu"
+                          aria-expanded={projectionMenuOpen}
                           className="btn btn-sm w-full justify-between"
                         >
                           <span>
@@ -471,6 +483,7 @@ export default function Dashboard() {
                         </button>
                         <div
                           tabIndex={0}
+                          role="menu"
                           className="dropdown-content z-[1] mt-2 w-full rounded-lg border border-gray-200 bg-white shadow-lg"
                         >
                           <div className="p-3">
@@ -652,10 +665,20 @@ export default function Dashboard() {
                         Products Included
                       </h3>
                       
-                      <div className="dropdown dropdown-bottom w-full">
+                      <div
+                        className="dropdown dropdown-bottom w-full"
+                        onFocus={() => setHistoryMenuOpen(true)}
+                        onBlur={(event) => {
+                          if (!event.currentTarget.contains(event.relatedTarget as Node)) {
+                            setHistoryMenuOpen(false);
+                          }
+                        }}
+                      >
                         <button
                           type="button"
                           tabIndex={0}
+                          aria-haspopup="menu"
+                          aria-expanded={historyMenuOpen}
                           className="btn btn-sm w-full justify-between"
                         >
                           <span>
@@ -675,6 +698,7 @@ export default function Dashboard() {
                         </button>
                         <div
                           tabIndex={0}
+                          role="menu"
                           className="dropdown-content z-[1] mt-2 w-full rounded-lg border border-gray-200 bg-white shadow-lg"
                         >
                           <div className="p-3">
