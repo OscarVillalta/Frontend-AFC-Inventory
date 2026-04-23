@@ -46,3 +46,9 @@ export function updateRole(id: number, data: UpdateRolePayload): Promise<RoleDet
     body: JSON.stringify(data),
   });
 }
+
+export function deleteRole(id: number): Promise<{ message: string }> {
+  return apiRequest(`/roles/${id}`, {
+    method: "DELETE",
+  });
+}
