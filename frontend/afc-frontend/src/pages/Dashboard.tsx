@@ -255,15 +255,15 @@ export default function Dashboard() {
 
   /* ── Data Processing ─────────────────────────────────────────── */
 
-  // Process projection data for chart with weeks ahead
+  // Process projection data for chart
   const projectionChartData = useMemo(() => {
     const dateMap = new Map<string, Record<string, number | string>>();
-    const today = new Date().toISOString().split('T')[0];
 
     projectionData.forEach((productData) => {
       const productId = productData.product_id;
       
       // Add current on_hand as the first point (use UTC today's date to match server)
+      const today = new Date().toISOString().split('T')[0];
       if (!dateMap.has(today)) {
         dateMap.set(today, { date: today });
       }
@@ -289,21 +289,9 @@ export default function Dashboard() {
       });
     });
 
-    const sortedData = Array.from(dateMap.values()).sort((a, b) => 
+    return Array.from(dateMap.values()).sort((a, b) => 
       String(a.date).localeCompare(String(b.date))
     );
-
-    // Convert dates to "weeks ahead" format
-    const todayDate = new Date(today);
-    return sortedData.map((item) => {
-      const itemDate = new Date(item.date as string);
-      const diffInMs = itemDate.getTime() - todayDate.getTime();
-      const diffInWeeks = Math.round(diffInMs / (7 * 24 * 60 * 60 * 1000));
-      return {
-        ...item,
-        weekLabel: String(diffInWeeks + 1),
-      };
-    });
   }, [projectionData]);
 
   // Process history data for chart
@@ -440,37 +428,20 @@ export default function Dashboard() {
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 {/* Multi-Product Projection Graph - Takes full height on left */}
                 <div className="bg-white rounded-lg shadow p-6 lg:row-span-2">
-                  <div className="flex items-start justify-between mb-4">
-                    <h2 className="text-xs font-bold uppercase text-gray-700 tracking-wide">
-                      Projected Stock Graph - Future Outlook
-                    </h2>
-                    <button className="text-gray-400 hover:text-gray-600" aria-label="Graph options">
-                      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                        <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
-                      </svg>
-                    </button>
-                  </div>
-                  
+                  <h2 className="text-sm font-semibold uppercase text-gray-700 mb-4">
+                    Projected Stock Graph - Future Outlook
+                  </h2>
                   <MultiSelectAutocomplete
                     label="Select Items"
                     placeholder="Search products..."
                     options={productOptions}
                     selectedIds={projectionProductIds}
                     onChange={setProjectionProductIds}
-                    className="mb-6"
+                    className="mb-4"
                   />
-                  
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-sm font-bold text-gray-800">
-                      PROJECTED STOCK - NEXT 60 DAYS
-                    </h3>
-                    <button className="text-gray-400 hover:text-gray-600" aria-label="View options">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                      </svg>
-                    </button>
+                  <div className="text-sm font-medium text-gray-600 mb-2">
+                    PROJECTED STOCK - NEXT 60 DAYS
                   </div>
-                  
                   {projectionLoading ? (
                     <div className="flex justify-center py-12">
                       <span className="loading loading-spinner loading-md text-primary" />
@@ -484,23 +455,13 @@ export default function Dashboard() {
                       <AreaChart data={projectionChartData}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                         <XAxis
-                          dataKey="weekLabel"
-                          label={{ value: 'Weeks Ahead (1-8)', position: 'insideBottom', offset: -5, style: { fontSize: '12px', fill: '#6b7280' } }}
-                          style={{ fontSize: "11px" }}
-                          stroke="#9ca3af"
-                          tickLine={false}
+                          dataKey="date"
+                          style={{ fontSize: "12px" }}
+                          stroke="#6b7280"
                         />
-                        <YAxis 
-                          label={{ value: 'Quantity', angle: -90, position: 'insideLeft', style: { fontSize: '12px', fill: '#6b7280' } }}
-                          style={{ fontSize: "11px" }} 
-                          stroke="#9ca3af"
-                          tickLine={false}
-                        />
+                        <YAxis style={{ fontSize: "12px" }} stroke="#6b7280" />
                         <Tooltip />
-                        <Legend 
-                          wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }}
-                          iconType="circle"
-                        />
+                        <Legend />
                         {projectionProductIds.map((productId, idx) => {
                           const product = products.find((p) => p.id === productId);
                           const productName = product?.part_number || `Product ${productId}`;
@@ -513,7 +474,6 @@ export default function Dashboard() {
                               stroke={CHART_COLORS[idx % CHART_COLORS.length]}
                               fill={CHART_COLORS[idx % CHART_COLORS.length]}
                               fillOpacity={0.3}
-                              stackId="1"
                             />
                           );
                         })}
@@ -524,37 +484,20 @@ export default function Dashboard() {
 
                 {/* Historical Daily Stock Graph - Top Right */}
                 <div className="bg-white rounded-lg shadow p-6">
-                  <div className="flex items-start justify-between mb-4">
-                    <h2 className="text-xs font-bold uppercase text-gray-700 tracking-wide">
-                      Historical Changes Graph
-                    </h2>
-                    <button className="text-gray-400 hover:text-gray-600" aria-label="Graph options">
-                      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                        <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
-                      </svg>
-                    </button>
-                  </div>
-                  
+                  <h2 className="text-sm font-semibold uppercase text-gray-700 mb-4">
+                    Historical Changes Graph
+                  </h2>
                   <MultiSelectAutocomplete
                     label="Select Items"
                     placeholder="Search products..."
                     options={productOptions}
                     selectedIds={historyProductIds}
                     onChange={setHistoryProductIds}
-                    className="mb-6"
+                    className="mb-4"
                   />
-                  
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-sm font-bold text-gray-800">
-                      HISTORICAL CHANGES - PAST 30 DAYS
-                    </h3>
-                    <button className="text-gray-400 hover:text-gray-600" aria-label="View options">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                      </svg>
-                    </button>
+                  <div className="text-sm font-medium text-gray-600 mb-2">
+                    HISTORICAL CHANGES - PAST 30 DAYS
                   </div>
-                  
                   {historyLoading ? (
                     <div className="flex justify-center py-8">
                       <span className="loading loading-spinner loading-md text-primary" />
@@ -569,20 +512,12 @@ export default function Dashboard() {
                         <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                         <XAxis
                           dataKey="date"
-                          style={{ fontSize: "11px" }}
-                          stroke="#9ca3af"
-                          tickLine={false}
+                          style={{ fontSize: "12px" }}
+                          stroke="#6b7280"
                         />
-                        <YAxis 
-                          style={{ fontSize: "11px" }} 
-                          stroke="#9ca3af"
-                          tickLine={false}
-                        />
+                        <YAxis style={{ fontSize: "12px" }} stroke="#6b7280" />
                         <Tooltip />
-                        <Legend 
-                          wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }}
-                          iconType="circle"
-                        />
+                        <Legend />
                         {historyProductIds.map((productId, idx) => {
                           const product = products.find((p) => p.id === productId);
                           const productName = product?.part_number || `Product ${productId}`;
