@@ -560,7 +560,7 @@ export default function ManageUsersPage() {
                           </span>
                         </td>
                         <td className="text-right">
-                          {hasPermission("user:edit") && (
+                          {hasPermission("users:edit") && (
                             <button
                             className="btn btn-ghost btn-xs"
                             onClick={() => openEditModal(u)}
@@ -570,7 +570,7 @@ export default function ManageUsersPage() {
                             ✏️
                           </button>
                           )}
-                          {hasPermission("user:delete") && (
+                          {hasPermission("users:delete") && (
                             <button
                             className="btn btn-ghost btn-xs text-error"
                             onClick={() => openDeleteModal(u)}
@@ -589,7 +589,7 @@ export default function ManageUsersPage() {
             </div>
 
             {/* Add User button */}
-            {hasPermission("user:create") && (
+            {hasPermission("users:create") && (
             <div className="flex justify-end mt-4">
               <button className="btn btn-primary" onClick={openAddModal}>
                 + Add User

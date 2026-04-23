@@ -1,5 +1,7 @@
 import { isOutgoingType } from "../../constants/orderTypes";
 import type { OrderType } from "../../constants/orderTypes";
+import { AuthContext } from "../../context/authContextDef";
+import { useAuth } from "../../hooks/useAuth";
 
 interface Props {
   value: string;
@@ -34,6 +36,7 @@ export default function OrderDescription({
   disableRollback = false,
   disableDescription = false,
 }: Props) {
+  const {hasPermission} = useAuth()
   return (
     <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 text-sm text-slate-700">
       <div className="text-sm font-semibold text-gray-800">
@@ -48,7 +51,7 @@ export default function OrderDescription({
         disabled={disableDescription}
       />
 
-      {selectedItemsCount >= 0 && (
+      {hasPermission("orders:edit") && (
         <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
           <div className="text-xs font-semibold text-blue-800 mb-2">
             Bulk Actions ({selectedItemsCount} selected)

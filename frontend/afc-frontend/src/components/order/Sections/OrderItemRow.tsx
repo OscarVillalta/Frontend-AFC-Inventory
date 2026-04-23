@@ -674,7 +674,7 @@ export default function OrderItemRow({ item, orderType, onRefresh, txnRefreshKey
             )}
 
             {/* ===== CREATE PENDING (regular items only) ===== */}
-            {!isMediaCut && remainingSafe > 0 && (
+            {!isMediaCut && remainingSafe > 0 && hasPermission("orders:edit") && (
               <div className="flex flex-wrap items-center gap-3">
                 <span className="text-sm text-gray-500">
                   {isOutgoingType(orderType)

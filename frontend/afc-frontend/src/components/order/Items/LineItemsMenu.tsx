@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useAuth } from "../../../hooks/useAuth";
 
 interface LineItemsMenuProps {
   partNumberFilter: string;
@@ -40,6 +41,8 @@ export default function LineItemsMenu({
   const [filtersOpen, setFiltersOpen] = useState(false);
 
   const hasActiveFilters = !!(partNumberFilter || sectionFilter || sectionSeparatorFilter || descriptionFilter || statusFilter);
+
+  const {hasPermission} = useAuth()
 
   return (
     <div className="bg-white border rounded-lg p-4 mb-4 space-y-3">
