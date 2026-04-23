@@ -70,20 +70,6 @@ export default function Dashboard() {
   const projectionMenuRef = useRef<HTMLDivElement>(null);
   const historyMenuRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (projectionMenuRef.current && !projectionMenuRef.current.contains(event.target as Node)) {
-        setProjectionMenuOpen(false);
-      }
-      if (historyMenuRef.current && !historyMenuRef.current.contains(event.target as Node)) {
-        setHistoryMenuOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -431,18 +417,10 @@ export default function Dashboard() {
                   <h2 className="text-sm font-semibold uppercase text-gray-700 mb-4">
                     Projected Stock Graph - Future Outlook
                   </h2>
-                  <MultiSelectAutocomplete
-                    label="Select Items"
-                    placeholder="Search products..."
-                    options={productOptions}
-                    selectedIds={projectionProductIds}
-                    onChange={setProjectionProductIds}
-                    className="mb-4"
-                  />
                   <div className="text-sm font-medium text-gray-600 mb-2">
                     PROJECTED STOCK - NEXT 60 DAYS
                   </div>
-                  {projectionLoading ? (
+                  {false ? (
                     <div className="flex justify-center py-12">
                       <span className="loading loading-spinner loading-md text-primary" />
                     </div>
@@ -487,14 +465,6 @@ export default function Dashboard() {
                   <h2 className="text-sm font-semibold uppercase text-gray-700 mb-4">
                     Historical Changes Graph
                   </h2>
-                  <MultiSelectAutocomplete
-                    label="Select Items"
-                    placeholder="Search products..."
-                    options={productOptions}
-                    selectedIds={historyProductIds}
-                    onChange={setHistoryProductIds}
-                    className="mb-4"
-                  />
                   <div className="text-sm font-medium text-gray-600 mb-2">
                     HISTORICAL CHANGES - PAST 30 DAYS
                   </div>
