@@ -56,18 +56,11 @@ export default function Dashboard() {
   const [projectionProductIds, setProjectionProductIds] = useState<number[]>([]);
   const [projectionData, setProjectionData] = useState<BulkProjectionsResponse>([]);
   const [projectionLoading, setProjectionLoading] = useState(false);
-  const [projectionSearch, setProjectionSearch] = useState("");
-  const [projectionShowFilter, setProjectionShowFilter] = useState(false);
-  const [projectionMenuOpen, setProjectionMenuOpen] = useState(false);
 
   // Historical Daily Stock state
   const [historyProductIds, setHistoryProductIds] = useState<number[]>([]);
   const [historyData, setHistoryData] = useState<DailyHistoryResponse>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
-  const [historySearch, setHistorySearch] = useState("");
-  const [historyShowFilter, setHistoryShowFilter] = useState(false);
-  const [historyMenuOpen, setHistoryMenuOpen] = useState(false);
-  const [historyDays, setHistoryDays] = useState<30 | 60 | 90>(30);
 
   // Top 20 Distribution state
   const [topField, setTopField] = useState("on_hand");
@@ -207,7 +200,7 @@ export default function Dashboard() {
       
       setHistoryLoading(true);
       const startDate = new Date();
-      startDate.setDate(startDate.getDate() - historyDays);
+      startDate.setDate(startDate.getDate() - 30);
       const startDateStr = startDate.toISOString().split("T")[0];
       
       try {
@@ -230,7 +223,7 @@ export default function Dashboard() {
     return () => {
       cancelled = true;
     };
-  }, [historyProductIds, historyDays, activeWarehouseId]);
+  }, [historyProductIds, activeWarehouseId]);
 
   // Load Top Items
   useEffect(() => {
@@ -451,13 +444,31 @@ export default function Dashboard() {
                     <h2 className="text-xs font-bold uppercase text-gray-700 tracking-wide">
                       Projected Stock Graph - Future Outlook
                     </h2>
+                    <button className="text-gray-400 hover:text-gray-600" aria-label="Graph options">
+                      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+                      </svg>
+                    </button>
                   </div>
-                
+                  
+                  <MultiSelectAutocomplete
+                    label="Select Items"
+                    placeholder="Search products..."
+                    options={productOptions}
+                    selectedIds={projectionProductIds}
+                    onChange={setProjectionProductIds}
+                    className="mb-6"
+                  />
                   
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-sm font-bold text-gray-800">
                       PROJECTED STOCK - NEXT 60 DAYS
                     </h3>
+                    <button className="text-gray-400 hover:text-gray-600" aria-label="View options">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                      </svg>
+                    </button>
                   </div>
                   
                   {projectionLoading ? (
@@ -509,150 +520,6 @@ export default function Dashboard() {
                       </AreaChart>
                     </ResponsiveContainer>
                   )}
-
-                  <div className="mb-4 p-4 border border-gray-200 rounded-lg bg-gray-50">
-                      <h3 className="text-sm font-medium text-gray-700 mb-3">
-                        Products Included
-                      </h3>
-                      
-                      <div
-                        ref={projectionMenuRef}
-                        className="dropdown dropdown-bottom w-full"
-                        onKeyDown={(event) => {
-                          if (event.key === "Escape") {
-                            setProjectionMenuOpen(false);
-                          }
-                        }}
-                      >
-                        <button
-                          type="button"
-                          tabIndex={0}
-                          aria-haspopup="menu"
-                          aria-expanded={projectionMenuOpen}
-                          aria-label="Select projection products"
-                          onClick={() => setProjectionMenuOpen((prev) => !prev)}
-                          className="btn btn-sm w-full justify-between"
-                        >
-                          <span>
-                            {projectionProductIds.length > 0
-                              ? `${projectionProductIds.length} product${projectionProductIds.length !== 1 ? "s" : ""} selected`
-                              : "Select products"}
-                          </span>
-                          <svg
-                            className="w-4 h-4 text-gray-400"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                            aria-hidden="true"
-                          >
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                          </svg>
-                        </button>
-                        {projectionMenuOpen && (
-                          <div
-                            role="menu"
-                            className="dropdown-content z-[1] mt-2 w-full rounded-lg border border-gray-200 bg-white shadow-lg"
-                          >
-                            <div className="p-3">
-                              <input
-                                type="text"
-                                placeholder="Search products..."
-                                aria-label="Search projection products"
-                                className="input input-bordered input-sm w-full mb-2"
-                                value={projectionSearch}
-                                onChange={(e) => setProjectionSearch(e.target.value)}
-                              />
-                              <div className="max-h-48 overflow-y-auto">
-                                {(() => {
-                                  const filteredProducts = products.filter((product) =>
-                                    projectionSearch === "" ||
-                                    (product.part_number?.toLowerCase().includes(projectionSearch.toLowerCase()) ?? false) ||
-                                    product.category.toLowerCase().includes(projectionSearch.toLowerCase())
-                                  );
-                                  
-                                  return filteredProducts.length > 0 ? (
-                                    filteredProducts.map((product) => (
-                                      <label
-                                        key={product.id}
-                                        role="menuitemcheckbox"
-                                        aria-checked={projectionProductIds.includes(product.id)}
-                                        className="flex items-center gap-2 rounded-md px-2 py-2 hover:bg-gray-50 cursor-pointer"
-                                      >
-                                        <input
-                                          type="checkbox"
-                                          className="checkbox checkbox-sm checkbox-primary"
-                                          checked={projectionProductIds.includes(product.id)}
-                                          onChange={(e) => {
-                                            if (e.target.checked) {
-                                              setProjectionProductIds([...projectionProductIds, product.id]);
-                                            } else {
-                                              setProjectionProductIds(
-                                                projectionProductIds.filter((id) => id !== product.id)
-                                              );
-                                            }
-                                          }}
-                                        />
-                                        <div className="flex-1 min-w-0">
-                                          <div className="text-xs font-medium text-gray-900 truncate">
-                                            {product.part_number}
-                                          </div>
-                                          <div className="text-xs text-gray-500">
-                                            {product.category}
-                                          </div>
-                                        </div>
-                                      </label>
-                                    ))
-                                  ) : (
-                                    <div className="p-4 text-xs text-gray-400 text-center">
-                                      No products found
-                                    </div>
-                                  );
-                                })()}
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                      
-                      {projectionProductIds.length > 0 && (
-                        <div className="mt-3 flex flex-wrap gap-2">
-                          {projectionProductIds.map((productId) => {
-                            const product = products.find((p) => p.id === productId);
-                            const productName = product?.part_number || `Product ${productId}`;
-                            return (
-                              <div
-                                key={productId}
-                                className="flex items-center gap-1 rounded-lg border border-gray-200 bg-white px-2 py-1 text-xs text-gray-700 shadow-sm"
-                              >
-                                <span className="max-w-[140px] truncate">{productName}</span>
-                                <button
-                                  type="button"
-                                  className="text-gray-400 hover:text-gray-600"
-                                  onClick={() =>
-                                    setProjectionProductIds(
-                                      projectionProductIds.filter((id) => id !== productId)
-                                    )
-                                  }
-                                  aria-label={`Remove ${productName}`}
-                                >
-                                  ✕
-                                </button>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
-                      
-                      {projectionProductIds.length > 0 && (
-                        <button
-                          type="button"
-                          className="btn btn-ghost btn-xs w-full mt-3"
-                          onClick={() => setProjectionProductIds([])}
-                        >
-                          Clear Selection
-                        </button>
-                      )}
-                    </div>
                 </div>
 
                 {/* Historical Daily Stock Graph - Top Right */}
@@ -661,192 +528,31 @@ export default function Dashboard() {
                     <h2 className="text-xs font-bold uppercase text-gray-700 tracking-wide">
                       Historical Changes Graph
                     </h2>
-                    <button 
-                      className="text-gray-400 hover:text-gray-600" 
-                      aria-label="Graph options"
-                      onClick={() =>
-                        setHistoryShowFilter((prev) => {
-                          const next = !prev;
-                          if (!next) {
-                            setHistoryMenuOpen(false);
-                          }
-                          return next;
-                        })
-                      }
-                    >
+                    <button className="text-gray-400 hover:text-gray-600" aria-label="Graph options">
                       <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                         <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
                       </svg>
                     </button>
                   </div>
                   
-                  {/* Product Filter Panel */}
-                  {historyShowFilter && (
-                    <div className="mb-4 p-4 border border-gray-200 rounded-lg bg-gray-50">
-                      <h3 className="text-sm font-medium text-gray-700 mb-3">
-                        Products Included
-                      </h3>
-                      
-                      <div
-                        ref={historyMenuRef}
-                        className="dropdown dropdown-bottom w-full"
-                        onKeyDown={(event) => {
-                          if (event.key === "Escape") {
-                            setHistoryMenuOpen(false);
-                          }
-                        }}
-                      >
-                        <button
-                          type="button"
-                          tabIndex={0}
-                          aria-haspopup="menu"
-                          aria-expanded={historyMenuOpen}
-                          aria-label="Select history products"
-                          onClick={() => setHistoryMenuOpen((prev) => !prev)}
-                          className="btn btn-sm w-full justify-between"
-                        >
-                          <span>
-                            {historyProductIds.length > 0
-                              ? `${historyProductIds.length} product${historyProductIds.length !== 1 ? "s" : ""} selected`
-                              : "Select products"}
-                          </span>
-                          <svg
-                            className="w-4 h-4 text-gray-400"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                            aria-hidden="true"
-                          >
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                          </svg>
-                        </button>
-                        {historyMenuOpen && (
-                          <div
-                            role="menu"
-                            className="dropdown-content z-[1] mt-2 w-full rounded-lg border border-gray-200 bg-white shadow-lg"
-                          >
-                            <div className="p-3">
-                              <input
-                                type="text"
-                                placeholder="Search products..."
-                                aria-label="Search history products"
-                                className="input input-bordered input-sm w-full mb-2"
-                                value={historySearch}
-                                onChange={(e) => setHistorySearch(e.target.value)}
-                              />
-                              <div className="max-h-48 overflow-y-auto">
-                                {(() => {
-                                  const filteredProducts = products.filter((product) =>
-                                    historySearch === "" ||
-                                    (product.part_number?.toLowerCase().includes(historySearch.toLowerCase()) ?? false) ||
-                                    product.category.toLowerCase().includes(historySearch.toLowerCase())
-                                  );
-                                  
-                                  return filteredProducts.length > 0 ? (
-                                    filteredProducts.map((product) => (
-                                      <label
-                                        key={product.id}
-                                        role="menuitemcheckbox"
-                                        aria-checked={historyProductIds.includes(product.id)}
-                                        className="flex items-center gap-2 rounded-md px-2 py-2 hover:bg-gray-50 cursor-pointer"
-                                      >
-                                        <input
-                                          type="checkbox"
-                                          className="checkbox checkbox-sm checkbox-primary"
-                                          checked={historyProductIds.includes(product.id)}
-                                          onChange={(e) => {
-                                            if (e.target.checked) {
-                                              setHistoryProductIds([...historyProductIds, product.id]);
-                                            } else {
-                                              setHistoryProductIds(
-                                                historyProductIds.filter((id) => id !== product.id)
-                                              );
-                                            }
-                                          }}
-                                        />
-                                        <div className="flex-1 min-w-0">
-                                          <div className="text-xs font-medium text-gray-900 truncate">
-                                            {product.part_number}
-                                          </div>
-                                          <div className="text-xs text-gray-500">
-                                            {product.category}
-                                          </div>
-                                        </div>
-                                      </label>
-                                    ))
-                                  ) : (
-                                    <div className="p-4 text-xs text-gray-400 text-center">
-                                      No products found
-                                    </div>
-                                  );
-                                })()}
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                      
-                      {historyProductIds.length > 0 && (
-                        <div className="mt-3 flex flex-wrap gap-2">
-                          {historyProductIds.map((productId) => {
-                            const product = products.find((p) => p.id === productId);
-                            const productName = product?.part_number || `Product ${productId}`;
-                            return (
-                              <div
-                                key={productId}
-                                className="flex items-center gap-1 rounded-lg border border-gray-200 bg-white px-2 py-1 text-xs text-gray-700 shadow-sm"
-                              >
-                                <span className="max-w-[140px] truncate">{productName}</span>
-                                <button
-                                  type="button"
-                                  className="text-gray-400 hover:text-gray-600"
-                                  onClick={() =>
-                                    setHistoryProductIds(
-                                      historyProductIds.filter((id) => id !== productId)
-                                    )
-                                  }
-                                  aria-label={`Remove ${productName}`}
-                                >
-                                  ✕
-                                </button>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
-                      
-                      {historyProductIds.length > 0 && (
-                        <button
-                          type="button"
-                          className="btn btn-ghost btn-xs w-full mt-3"
-                          onClick={() => setHistoryProductIds([])}
-                        >
-                          Clear Selection
-                        </button>
-                      )}
-                    </div>
-                  )}
+                  <MultiSelectAutocomplete
+                    label="Select Items"
+                    placeholder="Search products..."
+                    options={productOptions}
+                    selectedIds={historyProductIds}
+                    onChange={setHistoryProductIds}
+                    className="mb-6"
+                  />
                   
-                  <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
+                  <div className="flex items-center justify-between mb-4">
                     <h3 className="text-sm font-bold text-gray-800">
-                      HISTORICAL CHANGES - PAST {historyDays} DAYS
+                      HISTORICAL CHANGES - PAST 30 DAYS
                     </h3>
-                    {/* Timeframe selector */}
-                    <div className="flex items-center gap-2 flex-wrap">
-                      {([30, 60, 90] as const).map((days) => (
-                        <button
-                          key={days}
-                          onClick={() => setHistoryDays(days)}
-                          className={`text-xs px-3 py-1 rounded-full border transition-colors ${
-                            historyDays === days
-                              ? "bg-[#363b4c] text-white border-[#363b4c]"
-                              : "bg-white text-gray-600 border-gray-300 hover:border-[#363b4c]"
-                          }`}
-                        >
-                          Last {days}d
-                        </button>
-                      ))}
-                    </div>
+                    <button className="text-gray-400 hover:text-gray-600" aria-label="View options">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                      </svg>
+                    </button>
                   </div>
                   
                   {historyLoading ? (
