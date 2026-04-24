@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import MainLayout from "../layouts/MainLayout";
 import { fetchUsers, fetchRoles, createUser, updateUser, deleteUser } from "../api/users";
 import type { User, Role, CreateUserPayload, UpdateUserPayload } from "../api/users";
-import { fetchPermissions, createRole, updateRole } from "../api/admin";
+import { fetchPermissions, createRole, updateRole, deleteRole } from "../api/admin";
 import type { Permission, RoleDetail, CreateRolePayload, UpdateRolePayload } from "../api/admin";
 import { useAuth } from "../hooks/useAuth";
 
@@ -357,6 +357,60 @@ function RoleModal({ onClose, onSave, role, saving, permissions }: RoleModalProp
 }
 
 /* ------------------------------------------------------------------ */
+/*  Delete Role Confirmation Modal                                     */
+/* ------------------------------------------------------------------ */
+interface DeleteRoleModalProps {
+  onClose: () => void;
+  onConfirm: () => Promise<void>;
+  role: RoleDetail;
+  deleting: boolean;
+}
+
+function DeleteRoleModal({ onClose, onConfirm, role, deleting }: DeleteRoleModalProps) {
+  const [error, setError] = useState("");
+
+  const handleDelete = async () => {
+    setError("");
+    try {
+      await onConfirm();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to delete role");
+    }
+  };
+
+  return (
+    <dialog className="modal modal-open">
+      <div className="modal-box max-w-sm">
+        <h3 className="font-bold text-lg mb-2">Delete Role</h3>
+        <p>
+          Are you sure you want to delete the role <strong>{role.name}</strong>?
+        </p>
+        {error && <div className="text-error text-sm mt-2">{error}</div>}
+        <div className="modal-action">
+          <button className="btn" onClick={onClose} disabled={deleting}>
+            Cancel
+          </button>
+          <button
+            className="btn btn-error"
+            onClick={handleDelete}
+            disabled={deleting}
+          >
+            {deleting ? (
+              <span className="loading loading-spinner loading-sm" />
+            ) : (
+              "Delete"
+            )}
+          </button>
+        </div>
+      </div>
+      <form method="dialog" className="modal-backdrop">
+        <button onClick={onClose}>close</button>
+      </form>
+    </dialog>
+  );
+}
+
+/* ------------------------------------------------------------------ */
 /*  Main Page                                                          */
 /* ------------------------------------------------------------------ */
 export default function ManageUsersPage() {
@@ -387,6 +441,12 @@ export default function ManageUsersPage() {
   const [roleModalKey, setRoleModalKey] = useState(0);
   const [editingRole, setEditingRole] = useState<RoleDetail | null>(null);
   const [savingRole, setSavingRole] = useState(false);
+
+  // Delete role state
+  const [deleteRoleModalOpen, setDeleteRoleModalOpen] = useState(false);
+  const [deleteRoleKey, setDeleteRoleKey] = useState(0);
+  const [deletingRole, setDeletingRole] = useState<RoleDetail | null>(null);
+  const [deletingRoleInProgress, setDeletingRoleInProgress] = useState(false);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -495,6 +555,24 @@ export default function ManageUsersPage() {
       await loadData();
     } finally {
       setSavingRole(false);
+    }
+  };
+
+  const openDeleteRoleModal = (role: RoleDetail) => {
+    setDeletingRole(role);
+    setDeleteRoleKey((k) => k + 1);
+    setDeleteRoleModalOpen(true);
+  };
+
+  const handleDeleteRole = async () => {
+    if (!deletingRole) return;
+    setDeletingRoleInProgress(true);
+    try {
+      await deleteRole(deletingRole.id);
+      setDeleteRoleModalOpen(false);
+      await loadData();
+    } finally {
+      setDeletingRoleInProgress(false);
     }
   };
 
@@ -649,6 +727,14 @@ export default function ManageUsersPage() {
                           >
                             ✏️
                           </button>
+                          <button
+                            className="btn btn-ghost btn-xs text-error"
+                            onClick={() => openDeleteRoleModal(r)}
+                            title="Delete role"
+                            aria-label={`Delete role ${r.name}`}
+                          >
+                            🗑️
+                          </button>
                         </td>
                         )}
                       </tr>
@@ -701,6 +787,17 @@ export default function ManageUsersPage() {
           role={editingRole}
           saving={savingRole}
           permissions={permissions}
+        />
+      )}
+
+      {/* Delete Role Modal */}
+      {deleteRoleModalOpen && deletingRole && (
+        <DeleteRoleModal
+          key={deleteRoleKey}
+          onClose={() => setDeleteRoleModalOpen(false)}
+          onConfirm={handleDeleteRole}
+          role={deletingRole}
+          deleting={deletingRoleInProgress}
         />
       )}
     </MainLayout>
