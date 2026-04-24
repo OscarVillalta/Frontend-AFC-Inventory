@@ -804,9 +804,9 @@ export default function OrderItemRow({ item, orderType, onRefresh, txnRefreshKey
                               <>
                                 <button
                                   className="btn btn-xs btn-success"
-                                  disabled={!!error || !hasPermission("inventory:fulfill")}
+                                  disabled={!!error || !hasPermission("orders:edit")}
                                   title={
-                                    !hasPermission("inventory:fulfill")
+                                    !hasPermission("orders:edit")
                                       ? "Only Warehouse staff can fulfill orders."
                                       : undefined
                                   }
