@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef, useMemo } from "react";
+import { useReactToPrint } from "react-to-print";
 import {
   DndContext,
   closestCenter,
@@ -54,6 +55,7 @@ export default function OrderItemsTable({
   const selectAllRef = useRef<HTMLInputElement>(null);
   const lastSelectedIndexRef = useRef<number | null>(null);
   const [activeTab, setActiveTab] = useState<"lineItems" | "totals">("lineItems");
+  const totalsRef = useRef<HTMLDivElement>(null);
 
   // Search and filter states
   const [partNumberFilter, setPartNumberFilter] = useState("");
@@ -67,6 +69,11 @@ export default function OrderItemsTable({
   const [itemsPerPage, setItemsPerPage] = useState(25);
 
   const isCompleted = orderStatus === "Completed";
+
+  // Print handler for totals section
+  const handlePrintTotals = useReactToPrint({
+    contentRef: totalsRef,
+  });
 
   // Sensors for drag and drop
   const sensors = useSensors(
@@ -439,6 +446,16 @@ export default function OrderItemsTable({
           >
             Totals
           </button>
+          {activeTab === "totals" && (
+            <div className="ml-auto pr-3">
+              <button
+                className="btn btn-sm btn-primary"
+                onClick={handlePrintTotals}
+              >
+                🖨️ Print to PDF
+              </button>
+            </div>
+          )}
           {!isCompleted && activeTab === "lineItems" && (
             <div className="ml-auto pr-3">
               <button
@@ -514,7 +531,9 @@ export default function OrderItemsTable({
           </table>
         </DndContext>
         ) : (
-          <OrderTotalsTab items={localItems} orderType={orderType} />
+          <div ref={totalsRef}>
+            <OrderTotalsTab items={localItems} orderType={orderType} />
+          </div>
         )}
       </div>
 
