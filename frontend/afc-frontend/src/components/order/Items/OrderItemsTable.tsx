@@ -451,6 +451,7 @@ export default function OrderItemsTable({
               <button
                 className="btn btn-sm btn-primary"
                 onClick={handlePrintTotals}
+                aria-label="Print totals section to PDF"
               >
                 🖨️ Print to PDF
               </button>
