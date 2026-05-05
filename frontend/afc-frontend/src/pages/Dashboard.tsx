@@ -128,6 +128,11 @@ export default function Dashboard() {
     return colors[index % colors.length];
   };
 
+  // Get display name for a product
+  const getProductDisplayName = (product: Product): string => {
+    return product.part_number || `Product ${product.id}`;
+  };
+
   // Handle product selection from dropdown
   const handleProductSelect = (productId: number) => {
     const product = products.find(p => p.id === productId);
@@ -138,7 +143,7 @@ export default function Dashboard() {
     
     const newProduct: SelectedProduct = {
       id: product.id,
-      name: product.part_number || `Product ${product.id}`
+      name: getProductDisplayName(product)
     };
     
     setSelectedProducts([...selectedProducts, newProduct]);
@@ -401,7 +406,7 @@ export default function Dashboard() {
                           .filter(p => !selectedProducts.some(sp => sp.id === p.id))
                           .map(product => (
                             <option key={product.id} value={product.id}>
-                              {product.part_number || `Product ${product.id}`}
+                              {getProductDisplayName(product)}
                             </option>
                           ))}
                       </select>
