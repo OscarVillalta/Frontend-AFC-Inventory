@@ -119,14 +119,14 @@ export default function Dashboard() {
     return hasOrder ? "#3b82f6" : "#363b4c";
   };
 
-  // Generate random color for product badges
-  const generateRandomColor = (): string => {
+  // Generate color for product badges (deterministic based on index)
+  const getProductColor = (index: number): string => {
     const colors = [
       "#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6",
       "#ec4899", "#06b6d4", "#f97316", "#84cc16", "#6366f1",
       "#14b8a6", "#f43f5e", "#a855f7", "#22c55e", "#fb923c"
     ];
-    return colors[Math.floor(Math.random() * colors.length)];
+    return colors[index % colors.length];
   };
 
   // Handle product selection from dropdown
@@ -140,7 +140,7 @@ export default function Dashboard() {
     const newProduct: SelectedProduct = {
       id: product.id,
       name: product.part_number || `Product ${product.id}`,
-      color: generateRandomColor()
+      color: getProductColor(selectedProducts.length)
     };
     
     setSelectedProducts([...selectedProducts, newProduct]);
@@ -418,13 +418,7 @@ export default function Dashboard() {
                             className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium text-white"
                             style={{ backgroundColor: product.color }}
                           >
-                            <span className="flex items-center gap-2">
-                              <span 
-                                className="w-3 h-3 rounded-full border-2 border-white"
-                                style={{ backgroundColor: product.color }}
-                              />
-                              {product.name}
-                            </span>
+                            <span>{product.name}</span>
                             <button
                               onClick={() => handleRemoveProduct(product.id)}
                               className="ml-1 hover:bg-white/20 rounded-full p-0.5 transition-colors"
