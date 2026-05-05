@@ -1,18 +1,16 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+import {useCallback, useState, useEffect, useMemo, useRef } from "react";
 import {
   ResponsiveContainer,
   AreaChart,
   Area,
-  LineChart,
-  Line,
   PieChart,
   Pie,
   Cell,
   XAxis,
   YAxis,
   CartesianGrid,
-  Legend,
   Tooltip,
+  ReferenceLine,
 } from "recharts";
 import MainLayout from "../layouts/MainLayout";
 import { useAuth } from "../hooks/useAuth";
@@ -20,25 +18,42 @@ import { useWarehouse } from "../hooks/useWarehouse";
 import {
   fetchDashboardStats,
   fetchNetKpis,
-  fetchBulkProjections,
-  fetchDailyHistory,
   fetchTopRankedItems,
 } from "../api/dashboard";
 import type {
   DashboardStatsResponse,
   NetKpisResponse,
-  BulkProjectionsResponse,
-  DailyHistoryResponse,
   TopRankedItemsResponse,
   TopRankedItem,
 } from "../api/dashboard";
 import { fetchProducts, type Product } from "../api/products";
 import KpiCard from "../components/KpiCard";
+import { processGraphData, type ProjectedStockPoint } from "../components/charts/processGraphData";
+import {
+  fetchPendingProjection,
+  type PendingProjectionItem,
+} from "../api/productDetail";
+import CustomTooltip from "../components/charts/CustomTooltip";
+import { useProjectionDateRange } from "../hooks/useProjectionDateRange";
 
+/* ============================================================
+   TYPES
+============================================================ */
+
+interface HistoricalDataPoint {
+  date: string;
+  raw_date: string;
+  stock_level: number;
+  quantity_delta: number;
+  order_id: number | null;
+  transaction_id: number;
+  reason: string;
+}
 
 /* ── component ──────────────────────────────────────────────────── */
 
 export default function Dashboard() {
+  const productId  = 27448
   const { hasPermission } = useAuth();
   const { activeWarehouseId } = useWarehouse();
 
@@ -52,23 +67,64 @@ export default function Dashboard() {
   // Products for autocomplete
   const [products, setProducts] = useState<Product[]>([]);
 
-  // Multi-Product Projection state
-  const [projectionProductIds, setProjectionProductIds] = useState<number[]>([]);
-  const [projectionData, setProjectionData] = useState<BulkProjectionsResponse>([]);
-  const [projectionLoading, setProjectionLoading] = useState(false);
-
-  // Historical Daily Stock state
-  const [historyProductIds, setHistoryProductIds] = useState<number[]>([]);
-  const [historyData, setHistoryData] = useState<DailyHistoryResponse>([]);
-  const [historyLoading, setHistoryLoading] = useState(false);
-
   // Top 20 Distribution state
   const [topField, setTopField] = useState("on_hand");
   const [topItemsData, setTopItemsData] = useState<TopRankedItemsResponse | null>(null);
   const [topItemsLoading, setTopItemsLoading] = useState(false);
 
-  const projectionMenuRef = useRef<HTMLDivElement>(null);
-  const historyMenuRef = useRef<HTMLDivElement>(null);
+  // Projection
+  const [pendingProjection, setPendingProjection] = useState<PendingProjectionItem[]>([]);
+
+  const [hoveredHistPoint, setHoveredHistPoint] = useState<{
+    data: HistoricalDataPoint;
+    cx: number;
+    cy: number;
+  } | null>(null);
+  
+  const [hoveredProjPoint, setHoveredProjPoint] = useState<{
+    data: ProjectedStockPoint;
+    cx: number;
+    cy: number;
+  } | null>(null);
+
+  // Projection interval state
+  const{
+    todayStr, defaultEndStr, maxEndStr,
+    projStart, setProjStart,
+    projEnd, setProjEnd,
+    projFillerInterval, setProjFillerInterval,
+    resetRange: resetProjRange,
+  } = useProjectionDateRange();
+
+  const projContainerRef = useRef<HTMLDivElement>(null);
+  const histContainerRef = useRef<HTMLDivElement>(null);
+
+  type ClickableDotProps<TPayload> = {
+    cx?: number;
+    cy?: number;
+    payload?: TPayload;
+  };
+
+  const getDotFill = (isHovered: boolean, hasOrder: boolean): string => {
+    if (isHovered) return hasOrder ? "#2563eb" : "#2d3143";
+    return hasOrder ? "#3b82f6" : "#363b4c";
+  };
+
+  //Load Projection
+  const loadProjection = useCallback(async () => {
+    if(!productId) return;
+    try {
+      const numericProductId = Number(productId);
+      const projectionData  = await fetchPendingProjection(numericProductId);
+      setPendingProjection(projectionData);
+    } catch (error) {
+      console.error("Failed to load product detail:", error);
+    }
+  }, [activeWarehouseId]);
+
+  useEffect(() => {
+    loadProjection();
+  }, [loadProjection, activeWarehouseId]);
 
 
   useEffect(() => {
@@ -137,80 +193,6 @@ export default function Dashboard() {
     };
   }, [activeWarehouseId]);
 
-  // Load Bulk Projections
-  useEffect(() => {
-    let cancelled = false;
-    
-    async function loadProjections() {
-      if (projectionProductIds.length === 0) {
-        if (!cancelled) {
-          setProjectionData([]);
-        }
-        return;
-      }
-      
-      setProjectionLoading(true);
-      try {
-        const res = await fetchBulkProjections(projectionProductIds);
-        if (!cancelled) {
-          setProjectionData(res);
-          setProjectionLoading(false);
-        }
-      } catch (err: unknown) {
-        console.error("Failed to load bulk projections", err);
-        if (!cancelled) {
-          setProjectionData([]);
-          setProjectionLoading(false);
-        }
-      }
-    }
-    
-    loadProjections();
-    
-    return () => {
-      cancelled = true;
-    };
-  }, [projectionProductIds, activeWarehouseId]);
-
-  // Load Daily History
-  useEffect(() => {
-    let cancelled = false;
-    
-    async function loadHistory() {
-      if (historyProductIds.length === 0) {
-        if (!cancelled) {
-          setHistoryData([]);
-        }
-        return;
-      }
-      
-      setHistoryLoading(true);
-      const startDate = new Date();
-      startDate.setDate(startDate.getDate() - 30);
-      const startDateStr = startDate.toISOString().split("T")[0];
-      
-      try {
-        const res = await fetchDailyHistory(historyProductIds, startDateStr);
-        if (!cancelled) {
-          setHistoryData(res);
-          setHistoryLoading(false);
-        }
-      } catch (err: unknown) {
-        console.error("Failed to load daily history", err);
-        if (!cancelled) {
-          setHistoryData([]);
-          setHistoryLoading(false);
-        }
-      }
-    }
-    
-    loadHistory();
-    
-    return () => {
-      cancelled = true;
-    };
-  }, [historyProductIds, activeWarehouseId]);
-
   // Load Top Items
   useEffect(() => {
     let cancelled = false;
@@ -241,68 +223,11 @@ export default function Dashboard() {
 
   /* ── Data Processing ─────────────────────────────────────────── */
 
-  // Process projection data for chart
-  const projectionChartData = useMemo(() => {
-    const dateMap = new Map<string, Record<string, number | string>>();
-
-    projectionData.forEach((productData) => {
-      const productId = productData.product_id;
-      
-      // Add current on_hand as the first point (use UTC today's date to match server)
-      const today = new Date().toISOString().split('T')[0];
-      if (!dateMap.has(today)) {
-        dateMap.set(today, { date: today });
-      }
-      const todayPoint = dateMap.get(today)!;
-      todayPoint[`product_${productId}`] = productData.current_on_hand;
-      
-      // Add projection points
-      productData.projections.forEach((projection) => {
-        // Use eta if available, otherwise use created_at
-        const dateStr = projection.eta || projection.created_at;
-        if (!dateStr) {
-          console.warn(`Projection missing both eta and created_at for product ${productId}, transaction ${projection.transaction_id}`);
-          return;
-        }
-        
-        const date = dateStr.split('T')[0]; // Extract date portion (YYYY-MM-DD)
-        
-        if (!dateMap.has(date)) {
-          dateMap.set(date, { date });
-        }
-        const point = dateMap.get(date)!;
-        point[`product_${productId}`] = projection.projected_stock;
-      });
-    });
-
-    return Array.from(dateMap.values()).sort((a, b) => 
-      String(a.date).localeCompare(String(b.date))
-    );
-  }, [projectionData]);
-
-  // Process history data for chart
-  const historyChartData = useMemo(() => {
-    const dateMap = new Map<string, Record<string, number | string>>();
-
-    historyData.forEach((productData) => {
-      const productId = productData.product_id;
-      
-      // Add daily series points
-      productData.daily_series.forEach((dailyItem) => {
-        const date = dailyItem.date;
-        
-        if (!dateMap.has(date)) {
-          dateMap.set(date, { date });
-        }
-        const point = dateMap.get(date)!;
-        point[`product_${productId}`] = dailyItem.closing_balance;
-      });
-    });
-
-    return Array.from(dateMap.values()).sort((a, b) => 
-      String(a.date).localeCompare(String(b.date))
-    );
-  }, [historyData]);
+  const stockProjection = processGraphData(pendingProjection, 0, {
+    fillerIntervalDays: projFillerInterval,
+    startDate: projStart,
+    endDate: projEnd,
+  });
 
   // Process top items for pie chart
   const pieChartData = useMemo(() => {
@@ -420,44 +345,162 @@ export default function Dashboard() {
                   <div className="text-sm font-medium text-gray-600 mb-2">
                     PROJECTED STOCK - NEXT 60 DAYS
                   </div>
-                  {false ? (
-                    <div className="flex justify-center py-12">
-                      <span className="loading loading-spinner loading-md text-primary" />
-                    </div>
-                  ) : projectionProductIds.length === 0 ? (
-                    <p className="text-gray-400 text-center py-12">
-                      Select products to view projections
-                    </p>
-                  ) : (
-                    <ResponsiveContainer width="100%" height={400}>
-                      <AreaChart data={projectionChartData}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                        <XAxis
-                          dataKey="date"
-                          style={{ fontSize: "12px" }}
-                          stroke="#6b7280"
-                        />
-                        <YAxis style={{ fontSize: "12px" }} stroke="#6b7280" />
-                        <Tooltip />
-                        <Legend />
-                        {projectionProductIds.map((productId, idx) => {
-                          const product = products.find((p) => p.id === productId);
-                          const productName = product?.part_number || `Product ${productId}`;
-                          return (
-                            <Area
-                              key={productId}
-                              type="monotone"
-                              dataKey={`product_${productId}`}
-                              name={productName}
-                              stroke={CHART_COLORS[idx % CHART_COLORS.length]}
-                              fill={CHART_COLORS[idx % CHART_COLORS.length]}
-                              fillOpacity={0.3}
-                            />
-                          );
-                        })}
-                      </AreaChart>
-                    </ResponsiveContainer>
-                  )}
+                  <div>
+                    {true && (() => {
+                      const projLevels = stockProjection.map(p => p.projectedStock);
+                      const projMax = projLevels.length ? Math.max(...projLevels) : 0;
+                      const projMin = projLevels.length ? Math.min(...projLevels) : 0;
+                      const projGradientOffset =
+                        projMax <= 0 ? 0 : projMin >= 0 ? 1 : projMax / (projMax - projMin);
+                      return (
+                        <>
+                          <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
+                            <h2 className="text-xl font-semibold text-[#363b4c]">
+                              Projected Stock Level
+                            </h2>
+                            <div className="flex items-center gap-3 flex-wrap">
+                              {/* Filler interval toggle */}
+                              <div className="flex items-center gap-1">
+                                <span className="text-xs text-gray-500">Interval:</span>
+                                {([1, 2] as const).map((days) => (
+                                  <button
+                                    key={days}
+                                    onClick={() => setProjFillerInterval(days)}
+                                    className={`text-xs px-2 py-1 rounded-full border transition-colors ${
+                                      projFillerInterval === days
+                                        ? "bg-[#363b4c] text-white border-[#363b4c]"
+                                        : "bg-white text-gray-600 border-gray-300 hover:border-[#363b4c]"
+                                    }`}
+                                  >
+                                    {days}d
+                                  </button>
+                                ))}
+                              </div>
+                              {/* Date range */}
+                              <div className="flex items-center gap-2">
+                                <input
+                                  type="date"
+                                  className="text-xs border border-gray-300 rounded px-2 py-1"
+                                  value={projStart}
+                                  min={todayStr}
+                                  max={projEnd}
+                                  onChange={(e) => {
+                                    const val = e.target.value;
+                                    if (val >= todayStr) setProjStart(val);
+                                  }}
+                                />
+                                <span className="text-xs text-gray-500">to</span>
+                                <input
+                                  type="date"
+                                  className="text-xs border border-gray-300 rounded px-2 py-1"
+                                  value={projEnd}
+                                  min={projStart}
+                                  max={maxEndStr}
+                                  onChange={(e) => {
+                                    const val = e.target.value;
+                                    if (val <= maxEndStr && val >= projStart) setProjEnd(val);
+                                  }}
+                                />
+                              </div>
+                              <button
+                                className="text-xs px-2 py-1 rounded-full border border-gray-300 bg-white text-gray-600 hover:border-[#363b4c] transition-colors"
+                                onClick={() => resetProjRange()}
+                              >
+                                Reset
+                              </button>
+                            </div>
+                          </div>
+                          <div
+                            ref={projContainerRef}
+                            className="relative"
+                            onMouseLeave={() => setHoveredProjPoint(null)}
+                          >
+                          <ResponsiveContainer width="100%" height={300}>
+                            <AreaChart data={stockProjection}>
+                              <defs>
+                                <linearGradient id="colorStock" x1="0" y1="0" x2="0" y2="1">
+                                  {projGradientOffset >= 1 ? (
+                                    <>
+                                      <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.3} />
+                                      <stop offset="100%" stopColor="#3b82f6" stopOpacity={0.05} />
+                                    </>
+                                  ) : projGradientOffset <= 0 ? (
+                                    <>
+                                      <stop offset="0%" stopColor="#ef4444" stopOpacity={0.2} />
+                                      <stop offset="100%" stopColor="#ef4444" stopOpacity={0.05} />
+                                    </>
+                                  ) : (
+                                    <>
+                                      <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.3} />
+                                      <stop offset={`${projGradientOffset * 100}%`} stopColor="#3b82f6" stopOpacity={0.1} />
+                                      <stop offset={`${projGradientOffset * 100}%`} stopColor="#ef4444" stopOpacity={0.2} />
+                                      <stop offset="100%" stopColor="#ef4444" stopOpacity={0.05} />
+                                    </>
+                                  )}
+                                </linearGradient>
+                              </defs>
+                              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                              <XAxis dataKey="date" style={{ fontSize: "12px" }} stroke="#6b7280" />
+                              <YAxis style={{ fontSize: "12px" }} stroke="#6b7280" />
+                              <ReferenceLine y={0} stroke="#363b4c" strokeWidth={2} />
+                              <Area
+                                type="monotone"
+                                dataKey="projectedStock"
+                                stroke="#363b4c"
+                                strokeWidth={2}
+                                fill="url(#colorStock)"
+                                dot={(props: ClickableDotProps<ProjectedStockPoint>) => {
+                                  const { cx, cy, payload } = props;
+                                  if (cx == null || cy == null || !payload) return null;
+                                  const hasOrder = payload.dailyOrders.some(o => o.order_id != null);
+                                  const isHovered = hoveredProjPoint?.data.date === payload.date;
+                                  return (
+                                    <circle
+                                      key={`proj-dot-${payload.date}`}
+                                      cx={cx}
+                                      cy={cy}
+                                      r={isHovered ? (hasOrder ? 8 : 6) : (hasOrder ? 6 : (payload.isFiller ? 4 : 4))}
+                                      fill={getDotFill(isHovered, hasOrder)}
+                                      stroke={payload.isFiller && !isHovered ? "transparent" : "white"}
+                                      strokeWidth={2}
+                                      style={{ cursor: hasOrder ? "pointer" : "default" }}
+                                      onMouseEnter={() => setHoveredProjPoint({ data: payload, cx, cy })}
+                                      onClick={() => {
+                                        const firstOrderId = payload.dailyOrders.find(o => o.order_id)?.order_id;
+                                        if (firstOrderId) window.open(`/orders/${firstOrderId}`, "_blank");
+                                      }}
+                                    />
+                                  );
+                                }}
+                                activeDot={false}
+                              />
+                            </AreaChart>
+                          </ResponsiveContainer>
+                          {hoveredProjPoint && (() => {
+                            const containerWidth = projContainerRef.current?.offsetWidth ?? 0;
+                            const isRightThird = containerWidth > 0 && hoveredProjPoint.cx > (containerWidth * 2) / 3;
+                            return (
+                              <div
+                                className="pointer-events-auto absolute z-50"
+                                style={{
+                                  ...(isRightThird
+                                    ? { right: containerWidth - hoveredProjPoint.cx + 12 }
+                                    : { left: hoveredProjPoint.cx + 12 }),
+                                  top: Math.max(4, hoveredProjPoint.cy - 60),
+                                  zIndex: 100
+                                }}
+                              >
+                                <CustomTooltip 
+                                point={hoveredProjPoint.data} 
+                                />
+                              </div>
+                            );
+                          })()}
+                          </div>
+                        </>
+                      );
+                    })()}
+                  </div>
                 </div>
 
                 {/* Historical Daily Stock Graph - Top Right */}
@@ -468,44 +511,6 @@ export default function Dashboard() {
                   <div className="text-sm font-medium text-gray-600 mb-2">
                     HISTORICAL CHANGES - PAST 30 DAYS
                   </div>
-                  {historyLoading ? (
-                    <div className="flex justify-center py-8">
-                      <span className="loading loading-spinner loading-md text-primary" />
-                    </div>
-                  ) : historyProductIds.length === 0 ? (
-                    <p className="text-gray-400 text-center py-8">
-                      Select products to view history
-                    </p>
-                  ) : (
-                    <ResponsiveContainer width="100%" height={250}>
-                      <LineChart data={historyChartData}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                        <XAxis
-                          dataKey="date"
-                          style={{ fontSize: "12px" }}
-                          stroke="#6b7280"
-                        />
-                        <YAxis style={{ fontSize: "12px" }} stroke="#6b7280" />
-                        <Tooltip />
-                        <Legend />
-                        {historyProductIds.map((productId, idx) => {
-                          const product = products.find((p) => p.id === productId);
-                          const productName = product?.part_number || `Product ${productId}`;
-                          return (
-                            <Line
-                              key={productId}
-                              type="monotone"
-                              dataKey={`product_${productId}`}
-                              name={productName}
-                              stroke={CHART_COLORS[idx % CHART_COLORS.length]}
-                              strokeWidth={2}
-                              dot={false}
-                            />
-                          );
-                        })}
-                      </LineChart>
-                    </ResponsiveContainer>
-                  )}
                 </div>
 
                 {/* Top 20 Distribution Pie Chart - Bottom Right */}
