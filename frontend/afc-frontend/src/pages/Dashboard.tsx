@@ -53,7 +53,6 @@ interface HistoricalDataPoint {
 interface SelectedProduct {
   id: number;
   name: string;
-  color: string;
 }
 
 /* ── component ──────────────────────────────────────────────────── */
@@ -139,8 +138,7 @@ export default function Dashboard() {
     
     const newProduct: SelectedProduct = {
       id: product.id,
-      name: product.part_number || `Product ${product.id}`,
-      color: getProductColor(selectedProducts.length)
+      name: product.part_number || `Product ${product.id}`
     };
     
     setSelectedProducts([...selectedProducts, newProduct]);
@@ -412,11 +410,11 @@ export default function Dashboard() {
                     {/* Selected Products List */}
                     {selectedProducts.length > 0 && (
                       <div className="flex flex-wrap gap-2">
-                        {selectedProducts.map(product => (
+                        {selectedProducts.map((product, index) => (
                           <div
                             key={product.id}
                             className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium text-white"
-                            style={{ backgroundColor: product.color }}
+                            style={{ backgroundColor: getProductColor(index) }}
                           >
                             <span>{product.name}</span>
                             <button
