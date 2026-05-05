@@ -50,6 +50,12 @@ interface HistoricalDataPoint {
   reason: string;
 }
 
+interface SelectedProduct {
+  id: number;
+  name: string;
+  color: string;
+}
+
 /* ── component ──────────────────────────────────────────────────── */
 
 export default function Dashboard() {
@@ -74,6 +80,9 @@ export default function Dashboard() {
 
   // Projection
   const [pendingProjection, setPendingProjection] = useState<PendingProjectionItem[]>([]);
+
+  // Selected products for projection chart
+  const [selectedProducts, setSelectedProducts] = useState<SelectedProduct[]>([]);
 
   const [hoveredHistPoint, setHoveredHistPoint] = useState<{
     data: HistoricalDataPoint;
@@ -108,6 +117,38 @@ export default function Dashboard() {
   const getDotFill = (isHovered: boolean, hasOrder: boolean): string => {
     if (isHovered) return hasOrder ? "#2563eb" : "#2d3143";
     return hasOrder ? "#3b82f6" : "#363b4c";
+  };
+
+  // Generate random color for product badges
+  const generateRandomColor = (): string => {
+    const colors = [
+      "#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6",
+      "#ec4899", "#06b6d4", "#f97316", "#84cc16", "#6366f1",
+      "#14b8a6", "#f43f5e", "#a855f7", "#22c55e", "#fb923c"
+    ];
+    return colors[Math.floor(Math.random() * colors.length)];
+  };
+
+  // Handle product selection from dropdown
+  const handleProductSelect = (productId: number) => {
+    const product = products.find(p => p.id === productId);
+    if (!product) return;
+    
+    // Check if already selected
+    if (selectedProducts.some(sp => sp.id === productId)) return;
+    
+    const newProduct: SelectedProduct = {
+      id: product.id,
+      name: product.part_number || `Product ${product.id}`,
+      color: generateRandomColor()
+    };
+    
+    setSelectedProducts([...selectedProducts, newProduct]);
+  };
+
+  // Remove selected product
+  const handleRemoveProduct = (productId: number) => {
+    setSelectedProducts(selectedProducts.filter(sp => sp.id !== productId));
   };
 
   //Load Projection
@@ -344,6 +385,69 @@ export default function Dashboard() {
                   </h2>
                   <div className="text-sm font-medium text-gray-600 mb-2">
                     PROJECTED STOCK - NEXT 60 DAYS
+                  </div>
+                  
+                  {/* Product Selection Dropdown */}
+                  <div className="mb-4 space-y-3">
+                    <div className="flex items-center gap-3">
+                      <select
+                        className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        value=""
+                        onChange={(e) => {
+                          const productId = Number(e.target.value);
+                          if (productId) handleProductSelect(productId);
+                        }}
+                      >
+                        <option value="">Select a product...</option>
+                        {products
+                          .filter(p => !selectedProducts.some(sp => sp.id === p.id))
+                          .map(product => (
+                            <option key={product.id} value={product.id}>
+                              {product.part_number || `Product ${product.id}`}
+                            </option>
+                          ))}
+                      </select>
+                    </div>
+                    
+                    {/* Selected Products List */}
+                    {selectedProducts.length > 0 && (
+                      <div className="flex flex-wrap gap-2">
+                        {selectedProducts.map(product => (
+                          <div
+                            key={product.id}
+                            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium text-white"
+                            style={{ backgroundColor: product.color }}
+                          >
+                            <span className="flex items-center gap-2">
+                              <span 
+                                className="w-3 h-3 rounded-full border-2 border-white"
+                                style={{ backgroundColor: product.color }}
+                              />
+                              {product.name}
+                            </span>
+                            <button
+                              onClick={() => handleRemoveProduct(product.id)}
+                              className="ml-1 hover:bg-white/20 rounded-full p-0.5 transition-colors"
+                              aria-label={`Remove ${product.name}`}
+                            >
+                              <svg 
+                                className="w-4 h-4" 
+                                fill="none" 
+                                stroke="currentColor" 
+                                viewBox="0 0 24 24"
+                              >
+                                <path 
+                                  strokeLinecap="round" 
+                                  strokeLinejoin="round" 
+                                  strokeWidth={2} 
+                                  d="M6 18L18 6M6 6l12 12" 
+                                />
+                              </svg>
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                   <div>
                     {true && (() => {
