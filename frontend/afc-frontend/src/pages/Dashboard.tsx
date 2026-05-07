@@ -322,6 +322,22 @@ export default function Dashboard() {
     endDate: projEnd,
   });
 
+  // Memoize which products have negative values to avoid redundant iterations
+  const productsWithNegativeValues = useMemo(() => {
+    if (!stackedStockProjection) return new Set<number>();
+    
+    const negativeProducts = new Set<number>();
+    selectedProducts.forEach(product => {
+      const hasNegative = stackedStockProjection.some(
+        point => (point[`product_${product.id}`] as number) < 0
+      );
+      if (hasNegative) {
+        negativeProducts.add(product.id);
+      }
+    });
+    return negativeProducts;
+  }, [stackedStockProjection, selectedProducts]);
+
   // Process top items for pie chart
   const pieChartData = useMemo(() => {
     if (!topItemsData) return [];
@@ -507,11 +523,34 @@ export default function Dashboard() {
                           >
                           <ResponsiveContainer width="100%" height={300}>
                             {selectedProducts.length > 0 && stackedStockProjection ? (
-                              // Stacked area chart for multiple products
+                              // Z-axis layered area chart for multiple products
                               <AreaChart data={stackedStockProjection}>
+                                <defs>
+                                  {selectedProducts.map((product, index) => (
+                                    <pattern
+                                      key={`pattern-${product.id}`}
+                                      id={`pattern-${product.id}`}
+                                      patternUnits="userSpaceOnUse"
+                                      width="8"
+                                      height="8"
+                                      patternTransform="rotate(45)"
+                                    >
+                                      <rect width="8" height="8" fill={getProductColor(index)} opacity="0.5" />
+                                      <line
+                                        x1="0"
+                                        y1="0"
+                                        x2="0"
+                                        y2="8"
+                                        stroke={getProductColor(index)}
+                                        strokeWidth="2"
+                                      />
+                                    </pattern>
+                                  ))}
+                                </defs>
                                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                                 <XAxis dataKey="date" style={{ fontSize: "12px" }} stroke="#6b7280" />
                                 <YAxis style={{ fontSize: "12px" }} stroke="#6b7280" />
+                                <ReferenceLine y={0} stroke="#363b4c" strokeWidth={2} />
                                 <Tooltip 
                                   content={(props) => {
                                     if (!props.active || !props.payload || props.payload.length === 0) {
@@ -554,10 +593,9 @@ export default function Dashboard() {
                                     key={product.id}
                                     type="monotone"
                                     dataKey={`product_${product.id}`}
-                                    stackId="1"
                                     stroke={getProductColor(index)}
-                                    fill={getProductColor(index)}
-                                    fillOpacity={0.6}
+                                    fill={productsWithNegativeValues.has(product.id) ? `url(#pattern-${product.id})` : getProductColor(index)}
+                                    fillOpacity={0.4}
                                     strokeWidth={2}
                                   />
                                 ))}
