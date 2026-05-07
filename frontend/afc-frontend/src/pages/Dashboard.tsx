@@ -385,67 +385,7 @@ export default function Dashboard() {
                 <div className="bg-white rounded-lg shadow p-6 lg:row-span-2">
                   <h2 className="text-sm font-semibold uppercase text-gray-700 mb-4">
                     Projected Stock Graph - Future Outlook
-                  </h2>
-                  <div className="text-sm font-medium text-gray-600 mb-2">
-                    PROJECTED STOCK - NEXT 60 DAYS
-                  </div>
-                  
-                  {/* Product Selection Dropdown */}
-                  <div className="mb-4 space-y-3">
-                    <div className="flex items-center gap-3">
-                      <select
-                        className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        value=""
-                        onChange={(e) => {
-                          const productId = Number(e.target.value);
-                          if (productId) handleProductSelect(productId);
-                        }}
-                      >
-                        <option value="">Select a product...</option>
-                        {products
-                          .filter(p => !selectedProducts.some(sp => sp.id === p.id))
-                          .map(product => (
-                            <option key={product.id} value={product.id}>
-                              {getProductDisplayName(product)}
-                            </option>
-                          ))}
-                      </select>
-                    </div>
-                    
-                    {/* Selected Products List */}
-                    {selectedProducts.length > 0 && (
-                      <div className="flex flex-wrap gap-2">
-                        {selectedProducts.map((product, index) => (
-                          <div
-                            key={product.id}
-                            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium text-white"
-                            style={{ backgroundColor: getProductColor(index) }}
-                          >
-                            <span>{product.name}</span>
-                            <button
-                              onClick={() => handleRemoveProduct(product.id)}
-                              className="ml-1 hover:bg-white/20 rounded-full p-0.5 transition-colors"
-                              aria-label={`Remove ${product.name}`}
-                            >
-                              <svg 
-                                className="w-4 h-4" 
-                                fill="none" 
-                                stroke="currentColor" 
-                                viewBox="0 0 24 24"
-                              >
-                                <path 
-                                  strokeLinecap="round" 
-                                  strokeLinejoin="round" 
-                                  strokeWidth={2} 
-                                  d="M6 18L18 6M6 6l12 12" 
-                                />
-                              </svg>
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
+                  </h2>               
                   <div>
                     {true && (() => {
                       const projLevels = stockProjection.map(p => p.projectedStock);
@@ -602,7 +542,63 @@ export default function Dashboard() {
                       );
                     })()}
                   </div>
-                </div>
+                    {/* Product Selection Dropdown */}
+                    <div className="mb-4 space-y-3">
+                      <div className="flex items-center gap-3">
+                        <select
+                          className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+                          value=""
+                          onChange={(e) => {
+                            const productId = Number(e.target.value);
+                            if (productId) handleProductSelect(productId);
+                          }}
+                        >
+                          <option value="">Select a product...</option>
+                          {products
+                            .filter(p => !selectedProducts.some(sp => sp.id === p.id))
+                            .map(product => (
+                              <option key={product.id} value={product.id}>
+                                {getProductDisplayName(product)}
+                              </option>
+                            ))}
+                        </select>
+                      </div>
+                    </div>
+
+                    {/* Selected Products List */}
+                    {selectedProducts.length > 0 && (
+                      <div className="flex flex-wrap gap-2">
+                        {selectedProducts.map((product, index) => (
+                          <div
+                            key={product.id}
+                            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium text-white"
+                            style={{ backgroundColor: getProductColor(index) }}
+                          >
+                            <span>{product.name}</span>
+                            <button
+                              onClick={() => handleRemoveProduct(product.id)}
+                              className="ml-1 hover:bg-white/20 rounded-full p-0.5 transition-colors cursor-pointer"
+                              aria-label={`Remove ${product.name}`}
+                            >
+                              <svg 
+                                className="w-4 h-4" 
+                                fill="none" 
+                                stroke="currentColor" 
+                                viewBox="0 0 24 24"
+                              >
+                                <path 
+                                  strokeLinecap="round" 
+                                  strokeLinejoin="round" 
+                                  strokeWidth={2} 
+                                  d="M6 18L18 6M6 6l12 12" 
+                                />
+                              </svg>
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
 
                 {/* Historical Daily Stock Graph - Top Right */}
                 <div className="bg-white rounded-lg shadow p-6">
