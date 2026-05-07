@@ -535,7 +535,7 @@ export default function Dashboard() {
                                       height="8"
                                       patternTransform="rotate(45)"
                                     >
-                                      <rect width="8" height="8" fill={getProductColor(index)} opacity="0.3" />
+                                      <rect width="8" height="8" fill={getProductColor(index)} opacity="0.5" />
                                       <line
                                         x1="0"
                                         y1="0"
