@@ -28,7 +28,7 @@ import type {
 } from "../api/dashboard";
 import { fetchProducts, type Product } from "../api/products";
 import KpiCard from "../components/KpiCard";
-import { processGraphData, processStackedGraphData, type ProjectedStockPoint, type StackedProjectedStockPoint } from "../components/charts/processGraphData";
+import { processGraphData, processStackedGraphData, type ProjectedStockPoint } from "../components/charts/processGraphData";
 import {
   fetchPendingProjection,
   type PendingProjectionItem,
