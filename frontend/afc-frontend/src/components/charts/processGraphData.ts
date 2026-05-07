@@ -23,7 +23,7 @@ export interface ProjectedStockPoint {
 
 export interface StackedProjectedStockPoint {
   date: string;
-  [key: string]: string | number | undefined; // Dynamic product keys: product_{id} = number
+  [key: string]: string | number | undefined; // Dynamic keys like product_{id} (number) or date (string)
   isFiller?: boolean;
 }
 

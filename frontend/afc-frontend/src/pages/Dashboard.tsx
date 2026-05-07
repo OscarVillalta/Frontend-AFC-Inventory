@@ -522,7 +522,11 @@ export default function Dashboard() {
                                         <p className="font-semibold text-gray-800">{props.label}</p>
                                         <div className="mt-2 space-y-1">
                                           {selectedProducts.map((product, index) => {
-                                            const value = props.payload?.[index]?.value;
+                                            // Find the payload item by dataKey to ensure correct mapping
+                                            const payloadItem = props.payload?.find(
+                                              p => p.dataKey === `product_${product.id}`
+                                            );
+                                            const value = payloadItem?.value;
                                             return (
                                               <div key={product.id} className="flex items-center justify-between gap-4">
                                                 <div className="flex items-center gap-2">
