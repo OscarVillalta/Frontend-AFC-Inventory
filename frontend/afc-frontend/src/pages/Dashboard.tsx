@@ -322,6 +322,22 @@ export default function Dashboard() {
     endDate: projEnd,
   });
 
+  // Memoize which products have negative values to avoid redundant iterations
+  const productsWithNegativeValues = useMemo(() => {
+    if (!stackedStockProjection) return new Set<number>();
+    
+    const negativeProducts = new Set<number>();
+    selectedProducts.forEach(product => {
+      const hasNegative = stackedStockProjection.some(
+        point => (point[`product_${product.id}`] as number) < 0
+      );
+      if (hasNegative) {
+        negativeProducts.add(product.id);
+      }
+    });
+    return negativeProducts;
+  }, [stackedStockProjection, selectedProducts]);
+
   // Process top items for pie chart
   const pieChartData = useMemo(() => {
     if (!topItemsData) return [];
@@ -572,24 +588,17 @@ export default function Dashboard() {
                                     );
                                   }}
                                 />
-                                {selectedProducts.map((product, index) => {
-                                  // Check if any data point for this product is negative
-                                  const hasNegativeValues = stackedStockProjection?.some(
-                                    point => (point[`product_${product.id}`] as number) < 0
-                                  );
-                                  
-                                  return (
-                                    <Area
-                                      key={product.id}
-                                      type="monotone"
-                                      dataKey={`product_${product.id}`}
-                                      stroke={getProductColor(index)}
-                                      fill={hasNegativeValues ? `url(#pattern-${product.id})` : getProductColor(index)}
-                                      fillOpacity={0.4}
-                                      strokeWidth={2}
-                                    />
-                                  );
-                                })}
+                                {selectedProducts.map((product, index) => (
+                                  <Area
+                                    key={product.id}
+                                    type="monotone"
+                                    dataKey={`product_${product.id}`}
+                                    stroke={getProductColor(index)}
+                                    fill={productsWithNegativeValues.has(product.id) ? `url(#pattern-${product.id})` : getProductColor(index)}
+                                    fillOpacity={0.4}
+                                    strokeWidth={2}
+                                  />
+                                ))}
                               </AreaChart>
                             ) : (
                               // Original single product projection chart
