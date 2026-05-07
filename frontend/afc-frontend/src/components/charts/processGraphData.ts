@@ -23,7 +23,7 @@ export interface ProjectedStockPoint {
 
 export interface StackedProjectedStockPoint {
   date: string;
-  [key: string]: string | number | boolean | DailyOrder[] | undefined; // Allow dynamic product keys
+  [key: string]: string | number | undefined; // Dynamic product keys: product_{id} = number
   isFiller?: boolean;
 }
 
@@ -295,12 +295,11 @@ export function processStackedGraphData(
       };
 
       // Add each product's stock level for this date
-      for (const { productId, productName } of productProjections) {
+      for (const { productId } of productProjections) {
         const timeline = productTimelines.get(productId);
         if (timeline) {
           const stockLevel = timeline.get(dateStr) ?? 0;
           point[`product_${productId}`] = stockLevel;
-          point[`product_${productId}_name`] = productName;
         }
       }
 

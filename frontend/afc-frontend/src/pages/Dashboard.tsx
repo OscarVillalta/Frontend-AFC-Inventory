@@ -512,7 +512,39 @@ export default function Dashboard() {
                                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                                 <XAxis dataKey="date" style={{ fontSize: "12px" }} stroke="#6b7280" />
                                 <YAxis style={{ fontSize: "12px" }} stroke="#6b7280" />
-                                <Tooltip />
+                                <Tooltip 
+                                  content={(props) => {
+                                    if (!props.active || !props.payload || props.payload.length === 0) {
+                                      return null;
+                                    }
+                                    return (
+                                      <div className="bg-white border border-gray-200 shadow-lg rounded-lg p-3 text-sm">
+                                        <p className="font-semibold text-gray-800">{props.label}</p>
+                                        <div className="mt-2 space-y-1">
+                                          {selectedProducts.map((product, index) => {
+                                            const value = props.payload?.[index]?.value;
+                                            return (
+                                              <div key={product.id} className="flex items-center justify-between gap-4">
+                                                <div className="flex items-center gap-2">
+                                                  <div 
+                                                    className="w-3 h-3 rounded-sm" 
+                                                    style={{ backgroundColor: getProductColor(index) }}
+                                                  />
+                                                  <span className="text-gray-700 truncate max-w-[140px]">
+                                                    {product.name}
+                                                  </span>
+                                                </div>
+                                                <span className="font-medium text-gray-900 tabular-nums">
+                                                  {value ?? 0}
+                                                </span>
+                                              </div>
+                                            );
+                                          })}
+                                        </div>
+                                      </div>
+                                    );
+                                  }}
+                                />
                                 {selectedProducts.map((product, index) => (
                                   <Area
                                     key={product.id}
