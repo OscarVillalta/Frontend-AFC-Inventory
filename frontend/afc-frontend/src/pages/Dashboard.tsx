@@ -28,11 +28,12 @@ import type {
 } from "../api/dashboard";
 import { fetchProducts, type Product } from "../api/products";
 import KpiCard from "../components/KpiCard";
-import { processGraphData, type ProjectedStockPoint } from "../components/charts/processGraphData";
+import { processGraphData, processStackedGraphData, type ProjectedStockPoint } from "../components/charts/processGraphData";
 import {
   fetchPendingProjection,
   type PendingProjectionItem,
 } from "../api/productDetail";
+import { fetchProductDetail } from "../api/productDetail";
 import CustomTooltip from "../components/charts/CustomTooltip";
 import { useProjectionDateRange } from "../hooks/useProjectionDateRange";
 
@@ -79,6 +80,12 @@ export default function Dashboard() {
 
   // Projection
   const [pendingProjection, setPendingProjection] = useState<PendingProjectionItem[]>([]);
+
+  // Multiple product projections for stacked chart
+  const [productProjections, setProductProjections] = useState<Map<number, {
+    orders: PendingProjectionItem[];
+    currentStock: number;
+  }>>(new Map());
 
   // Selected products for projection chart
   const [selectedProducts, setSelectedProducts] = useState<SelectedProduct[]>([]);
@@ -134,7 +141,7 @@ export default function Dashboard() {
   };
 
   // Handle product selection from dropdown
-  const handleProductSelect = (productId: number) => {
+  const handleProductSelect = async (productId: number) => {
     const product = products.find(p => p.id === productId);
     if (!product) return;
     
@@ -147,11 +154,35 @@ export default function Dashboard() {
     };
     
     setSelectedProducts([...selectedProducts, newProduct]);
+    
+    // Fetch projection data for this product
+    try {
+      const [projectionData, productDetail] = await Promise.all([
+        fetchPendingProjection(productId),
+        fetchProductDetail(productId)
+      ]);
+      
+      setProductProjections(prev => {
+        const updated = new Map(prev);
+        updated.set(productId, {
+          orders: projectionData,
+          currentStock: productDetail.quantity.on_hand
+        });
+        return updated;
+      });
+    } catch (error) {
+      console.error(`Failed to load projection for product ${productId}:`, error);
+    }
   };
 
   // Remove selected product
   const handleRemoveProduct = (productId: number) => {
     setSelectedProducts(selectedProducts.filter(sp => sp.id !== productId));
+    setProductProjections(prev => {
+      const updated = new Map(prev);
+      updated.delete(productId);
+      return updated;
+    });
   };
 
   //Load Projection
@@ -266,6 +297,24 @@ export default function Dashboard() {
   }, [topField, activeWarehouseId]);
 
   /* ── Data Processing ─────────────────────────────────────────── */
+
+  // Process stacked graph data for selected products or single product projection
+  const stackedStockProjection = useMemo(() => {
+    if (selectedProducts.length === 0) return null;
+    
+    const projections = selectedProducts.map(sp => ({
+      productId: sp.id,
+      productName: sp.name,
+      orders: productProjections.get(sp.id)?.orders ?? [],
+      currentStockOnHand: productProjections.get(sp.id)?.currentStock ?? 0,
+    }));
+    
+    return processStackedGraphData(projections, {
+      fillerIntervalDays: projFillerInterval,
+      startDate: projStart,
+      endDate: projEnd,
+    });
+  }, [selectedProducts, productProjections, projFillerInterval, projStart, projEnd]);
 
   const stockProjection = processGraphData(pendingProjection, 0, {
     fillerIntervalDays: projFillerInterval,
@@ -457,65 +506,124 @@ export default function Dashboard() {
                             onMouseLeave={() => setHoveredProjPoint(null)}
                           >
                           <ResponsiveContainer width="100%" height={300}>
-                            <AreaChart data={stockProjection}>
-                              <defs>
-                                <linearGradient id="colorStock" x1="0" y1="0" x2="0" y2="1">
-                                  {projGradientOffset >= 1 ? (
-                                    <>
-                                      <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.3} />
-                                      <stop offset="100%" stopColor="#3b82f6" stopOpacity={0.05} />
-                                    </>
-                                  ) : projGradientOffset <= 0 ? (
-                                    <>
-                                      <stop offset="0%" stopColor="#ef4444" stopOpacity={0.2} />
-                                      <stop offset="100%" stopColor="#ef4444" stopOpacity={0.05} />
-                                    </>
-                                  ) : (
-                                    <>
-                                      <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.3} />
-                                      <stop offset={`${projGradientOffset * 100}%`} stopColor="#3b82f6" stopOpacity={0.1} />
-                                      <stop offset={`${projGradientOffset * 100}%`} stopColor="#ef4444" stopOpacity={0.2} />
-                                      <stop offset="100%" stopColor="#ef4444" stopOpacity={0.05} />
-                                    </>
-                                  )}
-                                </linearGradient>
-                              </defs>
-                              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                              <XAxis dataKey="date" style={{ fontSize: "12px" }} stroke="#6b7280" />
-                              <YAxis style={{ fontSize: "12px" }} stroke="#6b7280" />
-                              <ReferenceLine y={0} stroke="#363b4c" strokeWidth={2} />
-                              <Area
-                                type="monotone"
-                                dataKey="projectedStock"
-                                stroke="#363b4c"
-                                strokeWidth={2}
-                                fill="url(#colorStock)"
-                                dot={(props: ClickableDotProps<ProjectedStockPoint>) => {
-                                  const { cx, cy, payload } = props;
-                                  if (cx == null || cy == null || !payload) return null;
-                                  const hasOrder = payload.dailyOrders.some(o => o.order_id != null);
-                                  const isHovered = hoveredProjPoint?.data.date === payload.date;
-                                  return (
-                                    <circle
-                                      key={`proj-dot-${payload.date}`}
-                                      cx={cx}
-                                      cy={cy}
-                                      r={isHovered ? (hasOrder ? 8 : 6) : (hasOrder ? 6 : (payload.isFiller ? 4 : 4))}
-                                      fill={getDotFill(isHovered, hasOrder)}
-                                      stroke={payload.isFiller && !isHovered ? "transparent" : "white"}
-                                      strokeWidth={2}
-                                      style={{ cursor: hasOrder ? "pointer" : "default" }}
-                                      onMouseEnter={() => setHoveredProjPoint({ data: payload, cx, cy })}
-                                      onClick={() => {
-                                        const firstOrderId = payload.dailyOrders.find(o => o.order_id)?.order_id;
-                                        if (firstOrderId) window.open(`/orders/${firstOrderId}`, "_blank");
-                                      }}
-                                    />
-                                  );
-                                }}
-                                activeDot={false}
-                              />
-                            </AreaChart>
+                            {selectedProducts.length > 0 && stackedStockProjection ? (
+                              // Stacked area chart for multiple products
+                              <AreaChart data={stackedStockProjection}>
+                                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                                <XAxis dataKey="date" style={{ fontSize: "12px" }} stroke="#6b7280" />
+                                <YAxis style={{ fontSize: "12px" }} stroke="#6b7280" />
+                                <Tooltip 
+                                  content={(props) => {
+                                    if (!props.active || !props.payload || props.payload.length === 0) {
+                                      return null;
+                                    }
+                                    return (
+                                      <div className="bg-white border border-gray-200 shadow-lg rounded-lg p-3 text-sm">
+                                        <p className="font-semibold text-gray-800">{props.label}</p>
+                                        <div className="mt-2 space-y-1">
+                                          {selectedProducts.map((product, index) => {
+                                            // Find the payload item by dataKey to ensure correct mapping
+                                            const payloadItem = props.payload?.find(
+                                              p => p.dataKey === `product_${product.id}`
+                                            );
+                                            const value = payloadItem?.value;
+                                            return (
+                                              <div key={product.id} className="flex items-center justify-between gap-4">
+                                                <div className="flex items-center gap-2">
+                                                  <div 
+                                                    className="w-3 h-3 rounded-sm" 
+                                                    style={{ backgroundColor: getProductColor(index) }}
+                                                  />
+                                                  <span className="text-gray-700 truncate max-w-[140px]">
+                                                    {product.name}
+                                                  </span>
+                                                </div>
+                                                <span className="font-medium text-gray-900 tabular-nums">
+                                                  {value ?? 0}
+                                                </span>
+                                              </div>
+                                            );
+                                          })}
+                                        </div>
+                                      </div>
+                                    );
+                                  }}
+                                />
+                                {selectedProducts.map((product, index) => (
+                                  <Area
+                                    key={product.id}
+                                    type="monotone"
+                                    dataKey={`product_${product.id}`}
+                                    stackId="1"
+                                    stroke={getProductColor(index)}
+                                    fill={getProductColor(index)}
+                                    fillOpacity={0.6}
+                                    strokeWidth={2}
+                                  />
+                                ))}
+                              </AreaChart>
+                            ) : (
+                              // Original single product projection chart
+                              <AreaChart data={stockProjection}>
+                                <defs>
+                                  <linearGradient id="colorStock" x1="0" y1="0" x2="0" y2="1">
+                                    {projGradientOffset >= 1 ? (
+                                      <>
+                                        <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.3} />
+                                        <stop offset="100%" stopColor="#3b82f6" stopOpacity={0.05} />
+                                      </>
+                                    ) : projGradientOffset <= 0 ? (
+                                      <>
+                                        <stop offset="0%" stopColor="#ef4444" stopOpacity={0.2} />
+                                        <stop offset="100%" stopColor="#ef4444" stopOpacity={0.05} />
+                                      </>
+                                    ) : (
+                                      <>
+                                        <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.3} />
+                                        <stop offset={`${projGradientOffset * 100}%`} stopColor="#3b82f6" stopOpacity={0.1} />
+                                        <stop offset={`${projGradientOffset * 100}%`} stopColor="#ef4444" stopOpacity={0.2} />
+                                        <stop offset="100%" stopColor="#ef4444" stopOpacity={0.05} />
+                                      </>
+                                    )}
+                                  </linearGradient>
+                                </defs>
+                                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                                <XAxis dataKey="date" style={{ fontSize: "12px" }} stroke="#6b7280" />
+                                <YAxis style={{ fontSize: "12px" }} stroke="#6b7280" />
+                                <ReferenceLine y={0} stroke="#363b4c" strokeWidth={2} />
+                                <Area
+                                  type="monotone"
+                                  dataKey="projectedStock"
+                                  stroke="#363b4c"
+                                  strokeWidth={2}
+                                  fill="url(#colorStock)"
+                                  dot={(props: ClickableDotProps<ProjectedStockPoint>) => {
+                                    const { cx, cy, payload } = props;
+                                    if (cx == null || cy == null || !payload) return null;
+                                    const hasOrder = payload.dailyOrders.some(o => o.order_id != null);
+                                    const isHovered = hoveredProjPoint?.data.date === payload.date;
+                                    return (
+                                      <circle
+                                        key={`proj-dot-${payload.date}`}
+                                        cx={cx}
+                                        cy={cy}
+                                        r={isHovered ? (hasOrder ? 8 : 6) : (hasOrder ? 6 : (payload.isFiller ? 4 : 4))}
+                                        fill={getDotFill(isHovered, hasOrder)}
+                                        stroke={payload.isFiller && !isHovered ? "transparent" : "white"}
+                                        strokeWidth={2}
+                                        style={{ cursor: hasOrder ? "pointer" : "default" }}
+                                        onMouseEnter={() => setHoveredProjPoint({ data: payload, cx, cy })}
+                                        onClick={() => {
+                                          const firstOrderId = payload.dailyOrders.find(o => o.order_id)?.order_id;
+                                          if (firstOrderId) window.open(`/orders/${firstOrderId}`, "_blank");
+                                        }}
+                                      />
+                                    );
+                                  }}
+                                  activeDot={false}
+                                />
+                              </AreaChart>
+                            )}
                           </ResponsiveContainer>
                           {hoveredProjPoint && (() => {
                             const containerWidth = projContainerRef.current?.offsetWidth ?? 0;
