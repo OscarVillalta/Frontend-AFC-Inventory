@@ -106,3 +106,17 @@ export function rollbackConversionBatch(batchId: number) {
     method: "PATCH",
   });
 }
+
+export function reverseConversion(conversionId: number, note?: string) {
+  return apiRequest(`/conversions/${conversionId}/reverse`, {
+    method: "POST",
+    body: JSON.stringify({ note }),
+  });
+}
+
+export function reverseConversionBatch(batchId: number, note?: string) {
+  return apiRequest(`/conversion_batches/${batchId}/reverse`, {
+    method: "POST",
+    body: JSON.stringify({ note }),
+  });
+}

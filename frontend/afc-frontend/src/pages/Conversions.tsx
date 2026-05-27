@@ -7,6 +7,8 @@ import {
   fetchConversionBatch,
   fetchConversionBatches,
   rollbackConversion,
+  reverseConversion,
+  reverseConversionBatch,
   type ConversionBatchDetail,
   type ConversionBatchSummary,
   type ConversionInput,
@@ -606,6 +608,8 @@ interface BatchDetailDrawerProps {
   getProductLink: (productId?: number | null, childProductId?: number | null) => string | null;
   onAddConversion: (conversions: ConversionInput[]) => Promise<void>;
   onRollbackConversion: (conversionId: number) => Promise<void>;
+  onReverseConversion: (conversionId: number) => Promise<void>;
+  onReverseBatch: (batchId: number) => Promise<void>;
 }
 
 function BatchDetailDrawer({
@@ -621,6 +625,8 @@ function BatchDetailDrawer({
   getProductLink,
   onAddConversion,
   onRollbackConversion,
+  onReverseConversion,
+  onReverseBatch,
 }: BatchDetailDrawerProps) {
   const {hasPermission} = useAuth()
   return (
@@ -720,13 +726,23 @@ function BatchDetailDrawer({
                 <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
                   Conversions ({detail.conversions.length})
                 </h3>
-                <button
-                  className="btn btn-outline btn-sm"
-                  onClick={() => setAddMode(true)}
-                  disabled={!hasPermission("conversions:edit")}
-                >
-                  Add Conversion
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    className="btn btn-outline btn-sm text-red-600 hover:bg-red-50 border-red-200"
+                    onClick={() => onReverseBatch(detail.batch.id)}
+                    disabled={!hasPermission("conversions:edit")}
+                    title="Reverse entire batch"
+                  >
+                    Reverse Batch
+                  </button>
+                  <button
+                    className="btn btn-outline btn-sm"
+                    onClick={() => setAddMode(true)}
+                    disabled={!hasPermission("conversions:edit")}
+                  >
+                    Add Conversion
+                  </button>
+                </div>
               </div>
 
               {detail.conversions.length === 0 && (
@@ -756,8 +772,8 @@ function BatchDetailDrawer({
                         {conv.state !== "rolled_back" && (
                           <button
                             className="btn btn-xs"
-                            onClick={() => onRollbackConversion(conv.id)}
-                            disabled={!hasPermission("conversions:rollback")}
+                            onClick={() => onReverseConversion(conv.id)}
+                            disabled={!hasPermission("conversions:edit")}
                           >
                             Reverse
                           </button>
@@ -1013,6 +1029,63 @@ export default function ConversionsPage() {
     }
   };
 
+  const handleReverseConversion = async (conversionId: number) => {
+    if (!selectedBatchId) return;
+    if (!confirm("Are you sure you want to reverse this conversion? This will create a new conversion that reverses the inventory changes.")) {
+      return;
+    }
+    try {
+      await reverseConversion(conversionId);
+      alert("Conversion reversed successfully! A new reverse conversion has been created.");
+      // Refresh the batch details
+      fetchConversionBatch(selectedBatchId)
+        .then((res) => {
+          setDetail(res);
+        })
+        .catch(() => setError("Failed to load conversion details."));
+      // Refresh the batch list to show updated status
+      handleSearch();
+    } catch (e) {
+      console.error(e);
+      const msg =
+        e instanceof Error ? e.message : "Please try again or contact support.";
+      alert(`Failed to reverse conversion: ${msg}`);
+    }
+  };
+
+  const handleReverseBatch = async (batchId: number) => {
+    if (!confirm("Are you sure you want to reverse this entire batch? This will create a new batch with reverse conversions for all eligible conversions in this batch.")) {
+      return;
+    }
+    try {
+      const response = await reverseConversionBatch(batchId);
+      const result = response as any;
+      const reversed = result.reversed || [];
+      const skipped = result.skipped || [];
+      
+      let message = `Batch reversal complete!\n`;
+      message += `${reversed.length} conversion(s) reversed successfully.\n`;
+      if (skipped.length > 0) {
+        message += `${skipped.length} conversion(s) skipped (insufficient stock or already reversed).`;
+      }
+      alert(message);
+      
+      // Refresh the batch details
+      fetchConversionBatch(batchId)
+        .then((res) => {
+          setDetail(res);
+        })
+        .catch(() => setError("Failed to load conversion details."));
+      // Refresh the batch list
+      handleSearch();
+    } catch (e) {
+      console.error(e);
+      const msg =
+        e instanceof Error ? e.message : "Please try again or contact support.";
+      alert(`Failed to reverse batch: ${msg}`);
+    }
+  };
+
   const totalPages = Math.max(1, Math.ceil(totalBatches / 10));
 
   const withOrderCount = useMemo(() => batches.filter((b) => b.order_id).length, [batches]);
@@ -1185,7 +1258,14 @@ export default function ConversionsPage() {
                         }}
                       >
                         <td className="px-2 py-3 text-xs text-gray-400 align-middle">
-                          #{batch.id}
+                          <div className="flex items-center gap-1">
+                            <span>#{batch.id}</span>
+                            {batch.note && batch.note.toLowerCase().includes("reversal") && (
+                              <span className="inline-block px-1.5 py-0.5 text-[10px] font-medium bg-purple-100 text-purple-700 rounded" title="Reversal batch">
+                                ↩
+                              </span>
+                            )}
+                          </div>
                         </td>
                         <td className="px-4 py-3 text-sm align-middle">
                           {batch.external_ref ? (
@@ -1238,7 +1318,14 @@ export default function ConversionsPage() {
                       }}
                     >
                       <div className="flex items-center justify-between">
-                        <span className="text-xs text-gray-400">#{batch.id}</span>
+                        <div className="flex items-center gap-1">
+                          <span className="text-xs text-gray-400">#{batch.id}</span>
+                          {batch.note && batch.note.toLowerCase().includes("reversal") && (
+                            <span className="inline-block px-1.5 py-0.5 text-[10px] font-medium bg-purple-100 text-purple-700 rounded" title="Reversal batch">
+                              ↩
+                            </span>
+                          )}
+                        </div>
                         {batch.order_id && (
                           <Link
                             to={`/orders/${batch.order_id}`}
@@ -1353,6 +1440,8 @@ export default function ConversionsPage() {
           getProductLink={getProductLink}
           onAddConversion={handleAddConversion}
           onRollbackConversion={handleRollbackConversion}
+          onReverseConversion={handleReverseConversion}
+          onReverseBatch={handleReverseBatch}
         />
       </div>
     </MainLayout>
