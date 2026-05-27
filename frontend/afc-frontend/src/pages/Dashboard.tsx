@@ -746,7 +746,7 @@ export default function Dashboard() {
                     )}
                   </div>
 
-                {/* Historical Daily Stock Graph - Top Right */}
+                {/* Historical Daily Stock Graph - Top Right
                 <div className="bg-white rounded-lg shadow p-6">
                   <h2 className="text-sm font-semibold uppercase text-gray-700 mb-4">
                     Historical Changes Graph
@@ -754,7 +754,7 @@ export default function Dashboard() {
                   <div className="text-sm font-medium text-gray-600 mb-2">
                     HISTORICAL CHANGES - PAST 30 DAYS
                   </div>
-                </div>
+                </div> */}
 
                 {/* Top 20 Distribution Pie Chart - Bottom Right */}
                 <div className="bg-white rounded-lg shadow p-6">
