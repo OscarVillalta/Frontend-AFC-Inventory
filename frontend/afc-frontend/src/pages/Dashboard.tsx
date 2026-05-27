@@ -445,7 +445,7 @@ export default function Dashboard() {
 
             {/* ── CHARTS SECTION ──────────────────────────────── */}
             {hasPermission("inventory:view") && (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 auto-rows-max">
                 {/* Multi-Product Projection Graph - Takes full height on left */}
                 <div className="bg-white rounded-lg shadow p-6 lg:row-span-2">
                   <h2 className="text-sm font-semibold uppercase text-gray-700 mb-4">
@@ -757,7 +757,7 @@ export default function Dashboard() {
                 </div> */}
 
                 {/* Top 20 Distribution Pie Chart - Bottom Right */}
-                <div className="bg-white rounded-lg shadow p-6">
+                <div className="bg-white rounded-lg lg:grid-cols-2 shadow p-6">
                   <h2 className="text-sm font-semibold uppercase text-gray-700 mb-4">
                     Top 20 Items - Stock Distribution
                   </h2>
