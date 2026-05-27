@@ -128,6 +128,7 @@ function ConversionBuilder({
   includeBatchFields = false,
   submitLabel,
 }: ConversionBuilderProps) {
+  const { user } = useAuth();
   const createEmptyDraft = useCallback(
     (): ConversionDraft => ({
       id:
@@ -148,7 +149,6 @@ function ConversionBuilder({
   const [drafts, setDrafts] = useState<ConversionDraft[]>([createEmptyDraft()]);
   const [batchNote, setBatchNote] = useState("");
   const [orderId, setOrderId] = useState("");
-  const [createdBy, setCreatedBy] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const handleAddDraft = () => setDrafts((prev) => [...prev, createEmptyDraft()]);
   const handleRemoveDraft = (id: string) => {
@@ -277,10 +277,6 @@ function ConversionBuilder({
     } satisfies ConversionInput;
   };
 
-  const resetConversionFields = () => {
-    setDrafts([createEmptyDraft()]);
-  };
-
   const handleSubmit = async () => {
     const conversions: ConversionInput[] = [];
     for (const draft of drafts) {
@@ -297,11 +293,11 @@ function ConversionBuilder({
           ? {
               batchNote: batchNote || undefined,
               orderId: orderId ? Number(orderId) : undefined,
-              createdBy: createdBy || undefined,
+              createdBy: user?.email || undefined,
             }
           : undefined,
       );
-      resetConversionFields();
+      // Don't reset fields - keep data intact after submission
     } finally {
       setSubmitting(false);
     }
@@ -310,7 +306,7 @@ function ConversionBuilder({
   return (
     <div className="space-y-4">
       {includeBatchFields && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div className="space-y-1">
             <label className="text-xs font-semibold uppercase tracking-wide text-base-content/60">
               Order ID (optional)
@@ -321,16 +317,6 @@ function ConversionBuilder({
               value={orderId}
               onChange={(e) => setOrderId(e.target.value)}
               min={1}
-            />
-          </div>
-          <div className="space-y-1">
-            <label className="text-xs font-semibold uppercase tracking-wide text-base-content/60">
-              Created By (optional)
-            </label>
-            <input
-              className="input input-bordered input-sm w-full"
-              value={createdBy}
-              onChange={(e) => setCreatedBy(e.target.value)}
             />
           </div>
           <div className="space-y-1">

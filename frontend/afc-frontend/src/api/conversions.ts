@@ -42,6 +42,7 @@ export interface ConversionBatchRequest {
   note?: string;
   order_id?: number;
   created_by?: string;
+  external_ref?: string;
   conversions: ConversionInput[];
 }
 
@@ -50,6 +51,7 @@ export interface ConversionBatchSummary {
   order_id?: number;
   note?: string;
   created_by?: string;
+  external_ref?: string;
   created_at: string;
   totals?: { conversions: number };
 }
