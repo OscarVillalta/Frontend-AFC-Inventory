@@ -310,7 +310,17 @@ function ConversionBuilder({
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <div className="space-y-1">
             <label className="text-xs font-semibold uppercase tracking-wide text-base-content/60">
-              Order ID (optional)
+              Quickbooks Order Number
+            </label>
+            <input
+              className="input input-bordered input-sm w-full"
+              value={externalRef}
+              onChange={(e) => setExternalRef(e.target.value)}
+            />
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs font-semibold uppercase tracking-wide text-base-content/60">
+              Local Order Number
             </label>
             <input
               type="number"
@@ -318,16 +328,6 @@ function ConversionBuilder({
               value={orderId}
               onChange={(e) => setOrderId(e.target.value)}
               min={1}
-            />
-          </div>
-          <div className="space-y-1">
-            <label className="text-xs font-semibold uppercase tracking-wide text-base-content/60">
-              External Ref (optional)
-            </label>
-            <input
-              className="input input-bordered input-sm w-full"
-              value={externalRef}
-              onChange={(e) => setExternalRef(e.target.value)}
             />
           </div>
           <div className="space-y-1">
