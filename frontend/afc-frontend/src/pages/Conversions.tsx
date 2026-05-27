@@ -1153,8 +1153,11 @@ export default function ConversionsPage() {
                 >
                   <thead>
                     <tr className="bg-gray-50 border-b border-gray-200">
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                      <th className="px-2 py-3 text-left text-xs font-normal text-gray-400 uppercase tracking-wider w-16">
                         ID
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                        External Ref
                       </th>
                       <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
                         Order ID
@@ -1181,8 +1184,17 @@ export default function ConversionsPage() {
                           setDetailDrawerOpen(true);
                         }}
                       >
-                        <td className="px-4 py-3 text-sm font-semibold text-blue-600 align-middle">
+                        <td className="px-2 py-3 text-xs text-gray-400 align-middle">
                           #{batch.id}
+                        </td>
+                        <td className="px-4 py-3 text-sm align-middle">
+                          {batch.external_ref ? (
+                            <span className="text-gray-700 font-medium">
+                              {batch.external_ref}
+                            </span>
+                          ) : (
+                            <span className="text-gray-400">—</span>
+                          )}
                         </td>
                         <td className="px-4 py-3 text-sm align-middle">
                           {batch.order_id ? (
@@ -1226,7 +1238,7 @@ export default function ConversionsPage() {
                       }}
                     >
                       <div className="flex items-center justify-between">
-                        <span className="font-semibold text-blue-600">#{batch.id}</span>
+                        <span className="text-xs text-gray-400">#{batch.id}</span>
                         {batch.order_id && (
                           <Link
                             to={`/orders/${batch.order_id}`}
@@ -1237,6 +1249,11 @@ export default function ConversionsPage() {
                           </Link>
                         )}
                       </div>
+                      {batch.external_ref && (
+                        <div className="mt-1 text-sm font-medium text-gray-700">
+                          {batch.external_ref}
+                        </div>
+                      )}
                       <div className="mt-1 text-sm text-gray-600 truncate">
                         {batch.note || "—"}
                       </div>
