@@ -112,7 +112,7 @@ function KpiCard({ label, value, borderColor, valueColor }: KpiCardProps) {
 
 // ── ConversionBuilder ─────────────────────────────────────────────────────────
 interface ConversionBuilderProps {
-  onSubmit: (conversions: ConversionInput[], extras?: { batchNote?: string; orderId?: number; createdBy?: string }) => Promise<void>;
+  onSubmit: (conversions: ConversionInput[], extras?: { batchNote?: string; orderId?: number; externalRef?: string; createdBy?: string }) => Promise<void>;
   onCancel: () => void;
   products: Product[];
   childProducts: ChildProductName[];
@@ -149,6 +149,7 @@ function ConversionBuilder({
   const [drafts, setDrafts] = useState<ConversionDraft[]>([createEmptyDraft()]);
   const [batchNote, setBatchNote] = useState("");
   const [orderId, setOrderId] = useState("");
+  const [externalRef, setExternalRef] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const handleAddDraft = () => setDrafts((prev) => [...prev, createEmptyDraft()]);
   const handleRemoveDraft = (id: string) => {
@@ -293,6 +294,7 @@ function ConversionBuilder({
           ? {
               batchNote: batchNote || undefined,
               orderId: orderId ? Number(orderId) : undefined,
+              externalRef: externalRef || undefined,
               createdBy: user?.email || undefined,
             }
           : undefined,
@@ -306,7 +308,7 @@ function ConversionBuilder({
   return (
     <div className="space-y-4">
       {includeBatchFields && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <div className="space-y-1">
             <label className="text-xs font-semibold uppercase tracking-wide text-base-content/60">
               Order ID (optional)
@@ -317,6 +319,16 @@ function ConversionBuilder({
               value={orderId}
               onChange={(e) => setOrderId(e.target.value)}
               min={1}
+            />
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs font-semibold uppercase tracking-wide text-base-content/60">
+              External Ref (optional)
+            </label>
+            <input
+              className="input input-bordered input-sm w-full"
+              value={externalRef}
+              onChange={(e) => setExternalRef(e.target.value)}
             />
           </div>
           <div className="space-y-1">
@@ -516,7 +528,7 @@ interface ConversionBuilderDrawerProps {
   submitLabel: string;
   onSubmit: (
     conversions: ConversionInput[],
-    extras?: { batchNote?: string; orderId?: number; createdBy?: string },
+    extras?: { batchNote?: string; orderId?: number; externalRef?: string; createdBy?: string },
   ) => Promise<void>;
 }
 
@@ -683,6 +695,10 @@ function BatchDetailDrawer({
                     ) : (
                       <span className="text-gray-500">—</span>
                     )}
+                  </div>
+                  <div>
+                    <p className="text-gray-400 text-xs mb-0.5">External Ref</p>
+                    <span className="text-gray-700">{detail.batch.external_ref || "—"}</span>
                   </div>
                   <div>
                     <p className="text-gray-400 text-xs mb-0.5">Created</p>
@@ -916,12 +932,13 @@ export default function ConversionsPage() {
 
   const handleCreate = async (
     conversions: ConversionInput[],
-    extras?: { batchNote?: string; orderId?: number; createdBy?: string },
+    extras?: { batchNote?: string; orderId?: number; externalRef?: string; createdBy?: string },
   ) => {
     try {
       const response = await createConversionBatch({
         note: extras?.batchNote,
         order_id: extras?.orderId,
+        external_ref: extras?.externalRef,
         created_by: extras?.createdBy,
         conversions,
       });

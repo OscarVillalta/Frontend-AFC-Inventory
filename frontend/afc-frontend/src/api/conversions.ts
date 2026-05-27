@@ -40,8 +40,10 @@ export interface ConversionRecord {
 
 export interface ConversionBatchRequest {
   note?: string;
+  /** Can be sent along with external_ref; backend autofills the missing field */
   order_id?: number;
   created_by?: string;
+  /** Can be sent along with order_id; backend autofills the missing field */
   external_ref?: string;
   conversions: ConversionInput[];
 }
