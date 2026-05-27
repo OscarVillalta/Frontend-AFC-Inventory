@@ -137,7 +137,6 @@ function ConversionBuilder({
           : `${Date.now()}-${Math.random()}`,
       sources: [
         { selection: "", quantity: 1 },
-        { selection: "", quantity: 1 },
       ],
       targetSelection: "",
       targetQty: 1,
