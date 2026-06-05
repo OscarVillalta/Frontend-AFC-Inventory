@@ -289,6 +289,7 @@ function TypePill({ type }: { type: string }) {
   else if (t.includes("shipment")) cls += "bg-cyan-100 text-cyan-700";
   else if (t.includes("will_call") || t.includes("will call")) cls += "bg-purple-100 text-purple-700";
   else if (t === "incoming") cls += "bg-orange-100 text-orange-700";
+  else if (t === "void") cls += "bg-gray-100 text-gray-700";
   else cls += "bg-slate-100 text-slate-600";
 
   // Display "Purchase Order" for incoming orders; use canonical label otherwise
