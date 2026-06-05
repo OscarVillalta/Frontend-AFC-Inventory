@@ -1034,6 +1034,7 @@ export default function PackingSlipTrackerPage() {
               <option value="shipment">Shipment</option>
               <option value="will_call">Will Call</option>
               <option value="incoming">Purchase Order</option>
+              <option value="void">Void</option>
             </select>
           </div>
 
