@@ -22,6 +22,7 @@ const ORDER_TYPE_BADGE_CLASSES: Record<OrderType, string> = {
   will_call:    "bg-purple-100 text-purple-700",
   delivery:     "bg-teal-100   text-teal-700",
   shipment:     "bg-cyan-100   text-cyan-700",
+  void:         "bg-gray-100   text-gray-700",
 };
 
 export default function OrdersSearchPage() {
