@@ -16,6 +16,7 @@ export const OUTGOING_ORDER_TYPES: OrderType[] = [
   "will_call",
   "delivery",
   "shipment",
+  // Note: "void" is intentionally excluded as voided orders don't follow the outgoing workflow
 ];
 
 export const ALL_ORDER_TYPES: OrderType[] = [
