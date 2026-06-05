@@ -8,7 +8,8 @@ export type OrderType =
   | "installation"
   | "will_call"
   | "delivery"
-  | "shipment";
+  | "shipment"
+  | "void";
 
 export const OUTGOING_ORDER_TYPES: OrderType[] = [
   "installation",
@@ -23,6 +24,7 @@ export const ALL_ORDER_TYPES: OrderType[] = [
   "will_call",
   "delivery",
   "shipment",
+  "void",
 ];
 
 /** Human-readable display label for each order type. */
@@ -32,6 +34,7 @@ export const ORDER_TYPE_LABELS: Record<OrderType, string> = {
   will_call: "Will Call",
   delivery: "Delivery",
   shipment: "Shipment",
+  void: "Void",
 };
 
 /** Tailwind color classes for each order type badge. */
@@ -63,6 +66,11 @@ export const ORDER_TYPE_COLORS: Record<
     bg: "bg-cyan-600/20",
     text: "text-cyan-200",
     border: "border-cyan-400/40",
+  },
+  void: {
+    bg: "bg-gray-600/20",
+    text: "text-gray-200",
+    border: "border-gray-400/40",
   },
 };
 
