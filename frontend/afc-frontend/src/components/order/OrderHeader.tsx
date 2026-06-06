@@ -12,6 +12,7 @@ interface Props {
   onCopyOrder?: () => void;
   copyStatus?: "idle" | "copied" | "error";
   selectedCount?: number;
+  isVoided?: boolean;
 }
 
 export default function OrderHeader({
@@ -22,6 +23,7 @@ export default function OrderHeader({
   onCopyOrder,
   copyStatus = "idle",
   selectedCount = 0,
+  isVoided = false,
 }: Props) {
 
   const copyLabel =
@@ -37,12 +39,15 @@ export default function OrderHeader({
   const typeLabel = ORDER_TYPE_LABELS[type] ?? type;
 
   return (
-    <div className="bg-[#3A3F51] text-white px-4 sm:px-6 py-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 rounded-xl shadow-sm">
+    <div className={`${isVoided ? "bg-gray-500" : "bg-[#3A3F51]"} text-white px-4 sm:px-6 py-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 rounded-xl shadow-sm`}>
       {/* LEFT: Order Number */}
       <div className="flex flex-col gap-1">
         <h1 className="text-lg font-semibold tracking-widest">
           Order #{orderNumber}
         </h1>
+        {isVoided && (
+          <span className="text-xl font-bold text-white">Voided</span>
+        )}
         {externalOrderNumber && (
           <div className="flex items-center gap-2">
             <span className="text-md font-medium text-slate-400 uppercase tracking-wide">Ext #</span>

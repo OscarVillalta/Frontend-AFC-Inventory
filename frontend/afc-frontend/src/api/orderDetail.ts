@@ -139,3 +139,9 @@ export function updateOrderItem(itemId: number, payload: {
     body: JSON.stringify(payload),
   });
 }
+
+export function void_order(orderId: number) {
+  return apiRequest(`/orders/${orderId}/void`, {
+    method: "POST",
+  });
+}

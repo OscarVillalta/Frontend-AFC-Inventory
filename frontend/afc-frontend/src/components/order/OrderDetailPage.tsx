@@ -23,6 +23,7 @@ import {
   cancelTransaction,
   rollbackTransaction,
   fetchOrderItemTransactions,
+  void_order,
 } from "../../api/orderDetail";
 
 import { fetchOrderTracking } from "../../api/tracker";
@@ -73,6 +74,7 @@ export default function OrderDetailPage() {
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
 
   const [deleting, setDeleting] = useState(false);
+  const [voiding, setVoiding] = useState(false);
 
   const [items, setItems] = useState<OrderItemPayload[]>([]);
   const [itemsLoading, setItemsLoading] = useState(true);
@@ -129,6 +131,22 @@ export default function OrderDetailPage() {
       alert(msg);
     } finally {
       setDeleting(false);
+    }
+  }
+
+  async function handleVoidOrder() {
+    if (!orderId || !order) return;
+    if (!confirm(`Void order ${order.order_number}? This cannot be undone.`)) return;
+
+    setVoiding(true);
+    try {
+      await void_order(order.id);
+      await refreshOrder();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to void order";
+      alert(msg);
+    } finally {
+      setVoiding(false);
     }
   }
 
@@ -411,6 +429,8 @@ export default function OrderDetailPage() {
     activeWarehouseId !== null &&
     order.warehouse_id !== activeWarehouseId;
 
+  const isVoided = order.type === "void";
+
 
   const orderWarehouseName =
     warehouseMismatch
@@ -454,6 +474,7 @@ export default function OrderDetailPage() {
                 onCopyOrder={handleCopySerializedOrder}
                 copyStatus={copyStatus}
                 selectedCount={selectedItems.size}
+                isVoided={isVoided}
               />
               
 
@@ -484,7 +505,7 @@ export default function OrderDetailPage() {
                     setOrder({ ...order, type: newType });
                     scheduleAutoSave(buildPatch({ type: newType }));
                   }}
-                  disabled={!hasPermission("orders:edit")}
+                  disabled={!hasPermission("orders:edit") || isVoided}
                 />
               </div>
 
@@ -498,6 +519,7 @@ export default function OrderDetailPage() {
                 txnRefreshKey={txnRefreshKey}
                 selectedItems={selectedItems}
                 onSelectedItemsChange={setSelectedItems}
+                isVoided={isVoided}
               />
             </div>
 
@@ -521,6 +543,7 @@ export default function OrderDetailPage() {
                 disableCancel={!hasPermission("orders:edit")}
                 disableRollback={!hasPermission("transactions:rollback")}
                 disableDescription={!hasPermission("orders:edit")}
+                isVoided={isVoided}
               />
 
               <OrderLifecycleCard
@@ -539,6 +562,13 @@ export default function OrderDetailPage() {
                 {autoSaveError && (
                   <p className="text-sm text-red-500">{autoSaveError}</p>
                 )}
+                <button
+                  className="btn btn-sm btn-warning"
+                  onClick={handleVoidOrder}
+                  disabled={voiding || isVoided || !hasPermission("orders:void")}
+                >
+                  {voiding ? "Voiding..." : "Void Order"}
+                </button>
                 <button
                   className="btn btn-sm btn-error"
                   onClick={handleDeleteOrder}

@@ -18,6 +18,7 @@ interface Props {
   disableCancel?: boolean;
   disableRollback?: boolean;
   disableDescription?: boolean;
+  isVoided?: boolean;
 }
 
 export default function OrderDescription({ 
@@ -35,6 +36,7 @@ export default function OrderDescription({
   disableCancel = false,
   disableRollback = false,
   disableDescription = false,
+  isVoided = false,
 }: Props) {
   const {hasPermission} = useAuth()
   return (
@@ -51,7 +53,7 @@ export default function OrderDescription({
         disabled={disableDescription}
       />
 
-      {hasPermission("orders:edit") && (
+      {hasPermission("orders:edit") && !isVoided && (
         <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
           <div className="text-xs font-semibold text-blue-800 mb-2">
             Bulk Actions ({selectedItemsCount} selected)

@@ -26,9 +26,10 @@ interface Props {
   txnRefreshKey: number;
   isSelected: boolean;
   onSelectChange: (checked: boolean, shiftKey: boolean) => void;
+  isVoided?: boolean;
 }
 
-export default function OrderItemRow({ item, orderType, onRefresh, txnRefreshKey, isSelected, onSelectChange }: Props) {
+export default function OrderItemRow({ item, orderType, onRefresh, txnRefreshKey, isSelected, onSelectChange, isVoided = false }: Props) {
   const { hasPermission } = useAuth();
   const [expanded, setExpanded] = useState(false);
   
@@ -421,13 +422,13 @@ export default function OrderItemRow({ item, orderType, onRefresh, txnRefreshKey
                 </div>
               ) : (
                 <span 
-                  className={`font-bold text-base ${hasPermission("orders:edit") ? "cursor-pointer" : ""} px-2 py-1 rounded flex-1 ${
+                  className={`font-bold text-base ${hasPermission("orders:edit") && !isVoided ? "cursor-pointer" : ""} px-2 py-1 rounded flex-1 ${
                     isSectionSeparator
-                      ? `text-white ${hasPermission("orders:edit") ? "hover:bg-gray-600" : ""}`
-                      : `text-blue-900 ${hasPermission("orders:edit") ? "hover:bg-blue-100" : ""}`
+                      ? `text-white ${hasPermission("orders:edit") && !isVoided ? "hover:bg-gray-600" : ""}`
+                      : `text-blue-900 ${hasPermission("orders:edit") && !isVoided ? "hover:bg-blue-100" : ""}`
                   }`}
-                  onClick={() => hasPermission("orders:edit") && setIsEditingNote(true)}
-                  title={hasPermission("orders:edit") ? "Click to edit" : undefined}
+                  onClick={() => hasPermission("orders:edit") && !isVoided && setIsEditingNote(true)}
+                  title={hasPermission("orders:edit") && !isVoided ? "Click to edit" : undefined}
                 >
                   {item.note || (isSectionSeparator ? "Section Separator" : "Separator")}
                 </span>
@@ -525,9 +526,9 @@ export default function OrderItemRow({ item, orderType, onRefresh, txnRefreshKey
             ) : (
               <div className="flex flex-col gap-1">
                 <span
-                  className={`${hasPermission("orders:edit") ? "cursor-pointer hover:bg-gray-100" : ""} px-2 py-1 rounded inline-block`}
-                  onClick={() => hasPermission("orders:edit") && setIsEditingNote(true)}
-                  title={hasPermission("orders:edit") ? "Click to edit" : undefined}
+                  className={`${hasPermission("orders:edit") && !isVoided ? "cursor-pointer hover:bg-gray-100" : ""} px-2 py-1 rounded inline-block`}
+                  onClick={() => hasPermission("orders:edit") && !isVoided && setIsEditingNote(true)}
+                  title={hasPermission("orders:edit") && !isVoided ? "Click to edit" : undefined}
                 >
                   {item.note || "—"}
                 </span>
@@ -590,12 +591,12 @@ export default function OrderItemRow({ item, orderType, onRefresh, txnRefreshKey
               />
             ) : (
               <span
-                className={`${hasPermission("orders:edit") ? "cursor-pointer hover:bg-blue-50" : ""} px-2 py-1 rounded inline-block `}
+                className={`${hasPermission("orders:edit") && !isVoided ? "cursor-pointer hover:bg-blue-50" : ""} px-2 py-1 rounded inline-block `}
                 onClick={() => {
-                    if (hasPermission("orders:edit")) setIsEditingQty(true);
+                    if (hasPermission("orders:edit") && !isVoided) setIsEditingQty(true);
                 }}
                 title={
-                  !hasPermission("orders:edit")
+                  !hasPermission("orders:edit") || isVoided
                     ? undefined
                     : item.quantity_fulfilled > 0
                       ? "Cannot edit fulfilled items"
@@ -674,7 +675,7 @@ export default function OrderItemRow({ item, orderType, onRefresh, txnRefreshKey
             )}
 
             {/* ===== CREATE PENDING (regular items only) ===== */}
-            {!isMediaCut && remainingSafe > 0 && hasPermission("orders:edit") && (
+            {!isMediaCut && !isVoided && remainingSafe > 0 && hasPermission("orders:edit") && (
               <div className="flex flex-wrap items-center gap-3">
                 <span className="text-sm text-gray-500">
                   {isOutgoingType(orderType)
@@ -800,7 +801,7 @@ export default function OrderItemRow({ item, orderType, onRefresh, txnRefreshKey
 
                         <td>
                           <div className="flex gap-2">
-                            {tx.state === "pending" && !isMediaCut && (
+                            {tx.state === "pending" && !isMediaCut && !isVoided && (
                               <>
                                 <button
                                   className="btn btn-xs btn-success"
@@ -827,7 +828,7 @@ export default function OrderItemRow({ item, orderType, onRefresh, txnRefreshKey
                                 </button>
                               </>
                             )}
-                            {tx.state === "committed" && tx.reason !== "rollback" && !isMediaCut && (
+                            {tx.state === "committed" && tx.reason !== "rollback" && !isMediaCut && !isVoided && (
                               <button
                                 className="btn btn-xs btn-warning"
                                 disabled={!!error || !hasPermission("transactions:rollback")}
