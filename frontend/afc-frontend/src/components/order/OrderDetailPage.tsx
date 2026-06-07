@@ -136,10 +136,34 @@ export default function OrderDetailPage() {
 
   async function handleVoidOrder() {
     if (!orderId || !order) return;
-    if (!confirm(`Void order ${order.order_number}? This cannot be undone.`)) return;
 
     setVoiding(true);
     try {
+      // Check for pending or committed transactions (exclude committed with reason "rolleback")
+      const nonSeparatorItems = items.filter(
+        item => item.type !== "Unit_Separator" && item.type !== "Section_Separator"
+      );
+
+      const transactionsData = await Promise.all(
+        nonSeparatorItems.map(item => fetchOrderItemTransactions(item.id))
+      );
+
+      const blockingTransactions = transactionsData.flat().filter(tx =>
+        tx.state === "pending" ||
+        (tx.state === "committed" && tx.reason !== "rolleback")
+      );
+
+      if (blockingTransactions.length > 0) {
+        alert("Order cannot be voided, please remove any reservations/orders and rollback any Stock Movements");
+        setVoiding(false);
+        return;
+      }
+
+      if (!confirm(`Void order ${order.order_number}? This cannot be undone.`)) {
+        setVoiding(false);
+        return;
+      }
+
       await void_order(order.id);
       await refreshOrder();
     } catch (err: unknown) {
