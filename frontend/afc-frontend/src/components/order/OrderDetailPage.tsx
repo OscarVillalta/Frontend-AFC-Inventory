@@ -32,6 +32,7 @@ import OrderLifecycleCard from "./OrderLifecycleCard";
 
 import { useWarehouse } from "../../hooks/useWarehouse";
 import { useAuth } from "../../hooks/useAuth";
+import { useToast } from "../../hooks/useToast";
 
 import type { OrderType } from "../../constants/orderTypes";
 import { isOutgoingType } from "../../constants/orderTypes";
@@ -64,6 +65,7 @@ export default function OrderDetailPage() {
   const navigate = useNavigate();
   const { activeWarehouseId, warehouses } = useWarehouse();
   const { hasPermission } = useAuth();
+  const { showToast } = useToast();
   const [selectedEntityId, setSelectedEntityId] = useState<number | null>(null);
 
   const [order, setOrder] = useState<OrderDetailPayload | null>(null);
@@ -125,10 +127,11 @@ export default function OrderDetailPage() {
     setDeleting(true);
     try {
       await deleteOrder(orderId);
+      showToast(`Order ${order.order_number} deleted successfully`, "success");
       navigate("/orders/search");
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Failed to delete order";
-      alert(msg);
+      showToast(msg, "error");
     } finally {
       setDeleting(false);
     }
@@ -154,7 +157,7 @@ export default function OrderDetailPage() {
       );
 
       if (blockingTransactions.length > 0) {
-        alert("Order cannot be voided, please remove any reservations/orders and rollback any Stock Movements");
+        showToast("Order cannot be voided, please remove any reservations/orders and rollback any Stock Movements", "error");
         setVoiding(false);
         return;
       }
@@ -165,10 +168,11 @@ export default function OrderDetailPage() {
       }
 
       await void_order(order.id);
+      showToast(`Order ${order.order_number} voided successfully`, "success");
       await refreshOrder();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Failed to void order";
-      alert(msg);
+      showToast(msg, "error");
     } finally {
       setVoiding(false);
     }
@@ -306,7 +310,7 @@ export default function OrderDetailPage() {
 
   async function handleAllocateSelected() {
     if (selectedItems.size === 0) {
-      alert("No items selected");
+      showToast("No items selected", "warning");
       return;
     }
 
@@ -315,27 +319,33 @@ export default function OrderDetailPage() {
     );
 
     if (nonSeparatorItems.length === 0) {
-      alert("No valid items selected (separators cannot be allocated)");
+      showToast("No valid items selected (separators cannot be allocated)", "warning");
       return;
     }
 
-    try {
-      await Promise.all(
-        nonSeparatorItems.map(item => {
-          return allocateOrderItem(item.id);
-        })
-      );
-      await refreshOrder();
-      setSelectedItems(new Set());
-    } catch (err: unknown) {
-      const errorMsg = err instanceof Error ? err.message : "Failed to allocate selected items";
-      alert(errorMsg);
-    }
+    const actionLabel = order?.type && isOutgoingType(order.type) ? "reserve" : "order";
+
+    const results = await Promise.allSettled(
+      nonSeparatorItems.map(item => allocateOrderItem(item.id))
+    );
+
+    results.forEach((result, index) => {
+      const item = nonSeparatorItems[index];
+      if (result.status === "fulfilled") {
+        showToast(`${item.part_number} – ${actionLabel}d successfully (qty: ${item.quantity_ordered})`, "success");
+      } else {
+        const errMsg = result.reason instanceof Error ? result.reason.message : "Unknown error";
+        showToast(`${item.part_number} (qty: ${item.quantity_ordered}) – failed to ${actionLabel}: ${errMsg}`, "error");
+      }
+    });
+
+    await refreshOrder();
+    setSelectedItems(new Set());
   }
 
   async function handleCommitSelected() {
     if (selectedItems.size === 0) {
-      alert("No items selected");
+      showToast("No items selected", "warning");
       return;
     }
 
@@ -344,25 +354,33 @@ export default function OrderDetailPage() {
     );
 
     if (nonSeparatorItems.length === 0) {
-      alert("No valid items selected");
+      showToast("No valid items selected", "warning");
       return;
     }
 
-    try {
-      await Promise.all(
-        nonSeparatorItems.map(item => commitAllOrderItemTransactions(item.id))
-      );
-      await refreshOrder();
-      setSelectedItems(new Set());
-    } catch (err: unknown) {
-      const errorMsg = err instanceof Error ? err.message : (order?.type && isOutgoingType(order.type) ? "Failed to fulfill selected items" : "Failed to receive selected items");
-      alert(errorMsg);
-    }
+    const actionLabel = order?.type && isOutgoingType(order.type) ? "fulfill" : "receive";
+
+    const results = await Promise.allSettled(
+      nonSeparatorItems.map(item => commitAllOrderItemTransactions(item.id))
+    );
+
+    results.forEach((result, index) => {
+      const item = nonSeparatorItems[index];
+      if (result.status === "fulfilled") {
+        showToast(`${item.part_number} – ${actionLabel}ed successfully (qty: ${item.quantity_ordered})`, "success");
+      } else {
+        const errMsg = result.reason instanceof Error ? result.reason.message : "Unknown error";
+        showToast(`${item.part_number} (qty: ${item.quantity_ordered}) – failed to ${actionLabel}: ${errMsg}`, "error");
+      }
+    });
+
+    await refreshOrder();
+    setSelectedItems(new Set());
   }
 
   async function handleCancelSelected() {
     if (selectedItems.size === 0) {
-      alert("No items selected");
+      showToast("No items selected", "warning");
       return;
     }
 
@@ -371,7 +389,7 @@ export default function OrderDetailPage() {
     );
 
     if (nonSeparatorItems.length === 0) {
-      alert("No valid items selected");
+      showToast("No valid items selected", "warning");
       return;
     }
 
@@ -381,31 +399,37 @@ export default function OrderDetailPage() {
       return;
     }
 
-    try {
-      // Fetch all transactions in parallel
-      const transactionsData = await Promise.all(
-        nonSeparatorItems.map(item => fetchOrderItemTransactions(item.id))
-      );
+    // Fetch all transactions in parallel
+    const transactionsData = await Promise.all(
+      nonSeparatorItems.map(item => fetchOrderItemTransactions(item.id))
+    );
 
-      // Cancel all pending transactions in parallel
-      const cancelPromises = transactionsData.flatMap((transactions) => 
-        transactions
-          .filter(tx => tx.state === "pending")
-          .map(tx => cancelTransaction(tx.id))
-      );
+    // Cancel all pending transactions per item using allSettled
+    const cancelResults = await Promise.allSettled(
+      nonSeparatorItems.map(async (item, index) => {
+        const pendingTxns = transactionsData[index].filter(tx => tx.state === "pending");
+        if (pendingTxns.length === 0) return;
+        await Promise.all(pendingTxns.map(tx => cancelTransaction(tx.id)));
+      })
+    );
 
-      await Promise.all(cancelPromises);
-      await refreshOrder();
-      setSelectedItems(new Set());
-    } catch (err: unknown) {
-      const errorMsg = err instanceof Error ? err.message : "Failed to cancel transactions";
-      alert(errorMsg);
-    }
+    cancelResults.forEach((result, index) => {
+      const item = nonSeparatorItems[index];
+      if (result.status === "fulfilled") {
+        showToast(`${item.part_number} – cancelled successfully (qty: ${item.quantity_ordered})`, "success");
+      } else {
+        const errMsg = result.reason instanceof Error ? result.reason.message : "Unknown error";
+        showToast(`${item.part_number} (qty: ${item.quantity_ordered}) – failed to cancel: ${errMsg}`, "error");
+      }
+    });
+
+    await refreshOrder();
+    setSelectedItems(new Set());
   }
 
   async function handleRollbackSelected() {
     if (selectedItems.size === 0) {
-      alert("No items selected");
+      showToast("No items selected", "warning");
       return;
     }
 
@@ -414,7 +438,7 @@ export default function OrderDetailPage() {
     );
 
     if (nonSeparatorItems.length === 0) {
-      alert("No valid items selected");
+      showToast("No valid items selected", "warning");
       return;
     }
 
@@ -422,26 +446,32 @@ export default function OrderDetailPage() {
       return;
     }
 
-    try {
-      // Fetch all transactions in parallel
-      const transactionsData = await Promise.all(
-        nonSeparatorItems.map(item => fetchOrderItemTransactions(item.id))
-      );
+    // Fetch all transactions in parallel
+    const transactionsData = await Promise.all(
+      nonSeparatorItems.map(item => fetchOrderItemTransactions(item.id))
+    );
 
-      // Rollback all committed transactions in parallel
-      const rollbackPromises = transactionsData.flatMap((transactions) => 
-        transactions
-          .filter(tx => tx.state === "committed")
-          .map(tx => rollbackTransaction(tx.id))
-      );
+    // Rollback all committed transactions per item using allSettled
+    const rollbackResults = await Promise.allSettled(
+      nonSeparatorItems.map(async (item, index) => {
+        const committedTxns = transactionsData[index].filter(tx => tx.state === "committed");
+        if (committedTxns.length === 0) return;
+        await Promise.all(committedTxns.map(tx => rollbackTransaction(tx.id)));
+      })
+    );
 
-      await Promise.all(rollbackPromises);
-      await refreshOrder();
-      setSelectedItems(new Set());
-    } catch (err: unknown) {
-      const errorMsg = err instanceof Error ? err.message : "Failed to reverse selected items";
-      alert(errorMsg);
-    }
+    rollbackResults.forEach((result, index) => {
+      const item = nonSeparatorItems[index];
+      if (result.status === "fulfilled") {
+        showToast(`${item.part_number} – rolled back successfully (qty: ${item.quantity_ordered})`, "success");
+      } else {
+        const errMsg = result.reason instanceof Error ? result.reason.message : "Unknown error";
+        showToast(`${item.part_number} (qty: ${item.quantity_ordered}) – failed to rollback: ${errMsg}`, "error");
+      }
+    });
+
+    await refreshOrder();
+    setSelectedItems(new Set());
   }
 
 
