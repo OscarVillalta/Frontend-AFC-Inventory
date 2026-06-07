@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import { ToastContext } from "./toastContextDef";
 import type { Toast } from "./toastContextDef";
 
-const TOAST_DURATION_MS = 4000;
+const SUCCESS_DURATION_MS = 5000;
 
 export default function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
@@ -30,11 +30,15 @@ export default function ToastProvider({ children }: { children: ReactNode }) {
     (message: string, type: Toast["type"] = "error") => {
       const id = idRef.current++;
       setToasts((prev) => [...prev, { id, message, type }]);
-      const timer = setTimeout(() => {
-        timersRef.current.delete(id);
-        setToasts((prev) => prev.filter((t) => t.id !== id));
-      }, TOAST_DURATION_MS);
-      timersRef.current.set(id, timer);
+
+      // Error toasts persist until manually dismissed; others auto-dismiss
+      if (type !== "error") {
+        const timer = setTimeout(() => {
+          timersRef.current.delete(id);
+          setToasts((prev) => prev.filter((t) => t.id !== id));
+        }, SUCCESS_DURATION_MS);
+        timersRef.current.set(id, timer);
+      }
     },
     []
   );
