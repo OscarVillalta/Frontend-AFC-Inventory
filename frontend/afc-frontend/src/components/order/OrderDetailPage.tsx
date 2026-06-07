@@ -150,7 +150,7 @@ export default function OrderDetailPage() {
 
       const blockingTransactions = transactionsData.flat().filter(tx =>
         tx.state === "pending" ||
-        (tx.state === "committed" && tx.reason !== "rolleback")
+        (tx.state === "committed" && tx.reason !== "reversal")
       );
 
       if (blockingTransactions.length > 0) {
