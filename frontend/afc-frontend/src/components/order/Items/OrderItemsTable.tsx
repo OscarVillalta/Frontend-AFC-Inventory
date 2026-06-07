@@ -36,6 +36,7 @@ interface Props {
   txnRefreshKey: number;
   selectedItems: Set<number>;
   onSelectedItemsChange: (items: Set<number>) => void;
+  isVoided?: boolean;
 }
 
 export default function OrderItemsTable({
@@ -48,6 +49,7 @@ export default function OrderItemsTable({
   txnRefreshKey,
   selectedItems,
   onSelectedItemsChange,
+  isVoided = false,
 }: Props) {
   const [products, setProducts] = useState<Product[]>([]);
   const [showAddForm, setShowAddForm] = useState(false);
@@ -524,6 +526,7 @@ export default function OrderItemsTable({
                       txnRefreshKey={txnRefreshKey}
                       isSelected={selectedItems.has(item.id)}
                       onSelectChange={(checked, shiftKey) => handleSelectItem(item.id, checked, shiftKey)}
+                      isVoided={isVoided}
                     />
                   ))
                 )}
