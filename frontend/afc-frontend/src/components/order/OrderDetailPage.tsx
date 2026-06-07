@@ -324,6 +324,7 @@ export default function OrderDetailPage() {
     }
 
     const actionLabel = order?.type && isOutgoingType(order.type) ? "reserve" : "order";
+    const pastLabel = order?.type && isOutgoingType(order.type) ? "reserved" : "ordered";
 
     const results = await Promise.allSettled(
       nonSeparatorItems.map(item => allocateOrderItem(item.id))
@@ -332,7 +333,7 @@ export default function OrderDetailPage() {
     results.forEach((result, index) => {
       const item = nonSeparatorItems[index];
       if (result.status === "fulfilled") {
-        showToast(`${item.part_number} – ${actionLabel}d successfully (qty: ${item.quantity_ordered})`, "success");
+        showToast(`${item.part_number} – ${pastLabel} successfully (qty: ${item.quantity_ordered})`, "success");
       } else {
         const errMsg = result.reason instanceof Error ? result.reason.message : "Unknown error";
         showToast(`${item.part_number} (qty: ${item.quantity_ordered}) – failed to ${actionLabel}: ${errMsg}`, "error");
@@ -359,6 +360,7 @@ export default function OrderDetailPage() {
     }
 
     const actionLabel = order?.type && isOutgoingType(order.type) ? "fulfill" : "receive";
+    const pastLabel = order?.type && isOutgoingType(order.type) ? "fulfilled" : "received";
 
     const results = await Promise.allSettled(
       nonSeparatorItems.map(item => commitAllOrderItemTransactions(item.id))
@@ -367,7 +369,7 @@ export default function OrderDetailPage() {
     results.forEach((result, index) => {
       const item = nonSeparatorItems[index];
       if (result.status === "fulfilled") {
-        showToast(`${item.part_number} – ${actionLabel}ed successfully (qty: ${item.quantity_ordered})`, "success");
+        showToast(`${item.part_number} – ${pastLabel} successfully (qty: ${item.quantity_ordered})`, "success");
       } else {
         const errMsg = result.reason instanceof Error ? result.reason.message : "Unknown error";
         showToast(`${item.part_number} (qty: ${item.quantity_ordered}) – failed to ${actionLabel}: ${errMsg}`, "error");
@@ -406,17 +408,20 @@ export default function OrderDetailPage() {
 
     // Cancel all pending transactions per item using allSettled
     const cancelResults = await Promise.allSettled(
-      nonSeparatorItems.map(async (item, index) => {
+      nonSeparatorItems.map(async (_, index) => {
         const pendingTxns = transactionsData[index].filter(tx => tx.state === "pending");
-        if (pendingTxns.length === 0) return;
+        if (pendingTxns.length === 0) return { skipped: true };
         await Promise.all(pendingTxns.map(tx => cancelTransaction(tx.id)));
+        return { skipped: false };
       })
     );
 
     cancelResults.forEach((result, index) => {
       const item = nonSeparatorItems[index];
       if (result.status === "fulfilled") {
-        showToast(`${item.part_number} – cancelled successfully (qty: ${item.quantity_ordered})`, "success");
+        if (!result.value?.skipped) {
+          showToast(`${item.part_number} – cancelled successfully (qty: ${item.quantity_ordered})`, "success");
+        }
       } else {
         const errMsg = result.reason instanceof Error ? result.reason.message : "Unknown error";
         showToast(`${item.part_number} (qty: ${item.quantity_ordered}) – failed to cancel: ${errMsg}`, "error");
@@ -453,17 +458,20 @@ export default function OrderDetailPage() {
 
     // Rollback all committed transactions per item using allSettled
     const rollbackResults = await Promise.allSettled(
-      nonSeparatorItems.map(async (item, index) => {
+      nonSeparatorItems.map(async (_, index) => {
         const committedTxns = transactionsData[index].filter(tx => tx.state === "committed");
-        if (committedTxns.length === 0) return;
+        if (committedTxns.length === 0) return { skipped: true };
         await Promise.all(committedTxns.map(tx => rollbackTransaction(tx.id)));
+        return { skipped: false };
       })
     );
 
     rollbackResults.forEach((result, index) => {
       const item = nonSeparatorItems[index];
       if (result.status === "fulfilled") {
-        showToast(`${item.part_number} – rolled back successfully (qty: ${item.quantity_ordered})`, "success");
+        if (!result.value?.skipped) {
+          showToast(`${item.part_number} – rolled back successfully (qty: ${item.quantity_ordered})`, "success");
+        }
       } else {
         const errMsg = result.reason instanceof Error ? result.reason.message : "Unknown error";
         showToast(`${item.part_number} (qty: ${item.quantity_ordered}) – failed to rollback: ${errMsg}`, "error");
