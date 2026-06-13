@@ -79,7 +79,7 @@ export function fetchOrderById(orderId: string) {
 export function patchOrder(
   orderId: string,
   payload: {
-    type?: "incoming" | "installation" | "will_call" | "delivery" | "shipment";
+    type?: "incoming" | "installation" | "will_call" | "delivery" | "shipment" | "void";
     order_type?: string | null;
     cs_id?: number;
     description?: string;

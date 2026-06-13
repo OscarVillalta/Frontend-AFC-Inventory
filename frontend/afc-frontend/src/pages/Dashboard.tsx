@@ -757,7 +757,7 @@ export default function Dashboard() {
                 </div> */}
 
                 {/* Top 20 Distribution Pie Chart - Bottom Right */}
-                <div className="bg-white rounded-lg lg:grid-cols-2 shadow p-6">
+                <div className="bg-white rounded-lg lg:grid-cols-2 shadow p-6 lg:row-span-2">
                   <h2 className="text-sm font-semibold uppercase text-gray-700 mb-4">
                     Top 20 Items - Stock Distribution
                   </h2>
@@ -784,7 +784,7 @@ export default function Dashboard() {
                       No data available
                     </p>
                   ) : (
-                    <div className="flex items-center gap-6">
+                    <div className="flex items-center gap-6 pt-10">
                       <div className="flex-1">
                         <ResponsiveContainer width="100%" height={200}>
                           <PieChart>
