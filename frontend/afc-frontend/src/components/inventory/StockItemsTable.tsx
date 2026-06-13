@@ -122,7 +122,7 @@ export default function StockItemsTable({
   const { hasPermission } = useAuth();
   const activeWarehouseName = warehouses.find((w) => w.id === activeWarehouseId)?.name ?? null;
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(12);
+  const [pageSize, setPageSize] = useState(25);
 
   const [data, setData] = useState<StockItemResponse>();
   const [loading, setLoading] = useState(false);
