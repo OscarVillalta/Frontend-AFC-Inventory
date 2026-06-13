@@ -324,6 +324,18 @@ def get_packing_slips() -> Tuple[Any, int]:
     order_type = request.args.get("order_type", "").strip()
     offset = (page - 1) * limit
 
+    # Date filters for created_at
+    start_date = request.args.get("start_date", "").strip()
+    end_date = request.args.get("end_date", "").strip()
+    before_date = request.args.get("before_date", "").strip()
+    after_date = request.args.get("after_date", "").strip()
+
+    # Date filters for last updated (tracker updated_at)
+    updated_start_date = request.args.get("updated_start_date", "").strip()
+    updated_end_date = request.args.get("updated_end_date", "").strip()
+    updated_before_date = request.args.get("updated_before_date", "").strip()
+    updated_after_date = request.args.get("updated_after_date", "").strip()
+
     # Correlated sub-query: count of completed stages for each order row
     _completed_stages_subq = (
         select(func.count(OrderTrackerStage.id))
@@ -370,6 +382,24 @@ def get_packing_slips() -> Tuple[Any, int]:
 
     if order_type:
         base_query = base_query.where(Order.type == order_type)
+
+    # Created date filters
+    if start_date and end_date:
+        base_query = base_query.where(Order.created_at >= datetime.strptime(start_date, "%Y-%m-%d"))
+        base_query = base_query.where(Order.created_at < datetime.strptime(end_date, "%Y-%m-%d").replace(hour=23, minute=59, second=59))
+    elif before_date:
+        base_query = base_query.where(Order.created_at < datetime.strptime(before_date, "%Y-%m-%d"))
+    elif after_date:
+        base_query = base_query.where(Order.created_at >= datetime.strptime(after_date, "%Y-%m-%d"))
+
+    # Last updated date filters (uses tracker updated_at)
+    if updated_start_date and updated_end_date:
+        base_query = base_query.where(OrderTracker.updated_at >= datetime.strptime(updated_start_date, "%Y-%m-%d"))
+        base_query = base_query.where(OrderTracker.updated_at < datetime.strptime(updated_end_date, "%Y-%m-%d").replace(hour=23, minute=59, second=59))
+    elif updated_before_date:
+        base_query = base_query.where(OrderTracker.updated_at < datetime.strptime(updated_before_date, "%Y-%m-%d"))
+    elif updated_after_date:
+        base_query = base_query.where(OrderTracker.updated_at >= datetime.strptime(updated_after_date, "%Y-%m-%d"))
 
     # Tracker status filter using stage-completion counts
     if tracker_status == "Not Started":
@@ -420,6 +450,21 @@ def get_packing_slips() -> Tuple[Any, int]:
         counts_query = counts_query.where(_search_filter)
     if order_type:
         counts_query = counts_query.where(Order.type == order_type)
+    # Apply same date filters to counts query
+    if start_date and end_date:
+        counts_query = counts_query.where(Order.created_at >= datetime.strptime(start_date, "%Y-%m-%d"))
+        counts_query = counts_query.where(Order.created_at < datetime.strptime(end_date, "%Y-%m-%d").replace(hour=23, minute=59, second=59))
+    elif before_date:
+        counts_query = counts_query.where(Order.created_at < datetime.strptime(before_date, "%Y-%m-%d"))
+    elif after_date:
+        counts_query = counts_query.where(Order.created_at >= datetime.strptime(after_date, "%Y-%m-%d"))
+    if updated_start_date and updated_end_date:
+        counts_query = counts_query.where(OrderTracker.updated_at >= datetime.strptime(updated_start_date, "%Y-%m-%d"))
+        counts_query = counts_query.where(OrderTracker.updated_at < datetime.strptime(updated_end_date, "%Y-%m-%d").replace(hour=23, minute=59, second=59))
+    elif updated_before_date:
+        counts_query = counts_query.where(OrderTracker.updated_at < datetime.strptime(updated_before_date, "%Y-%m-%d"))
+    elif updated_after_date:
+        counts_query = counts_query.where(OrderTracker.updated_at >= datetime.strptime(updated_after_date, "%Y-%m-%d"))
     counts_row = db.execute(counts_query).one()
     status_counts = {
         "Not Started": counts_row.not_started or 0,

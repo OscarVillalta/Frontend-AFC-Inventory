@@ -147,6 +147,16 @@ export function fetchPackingSlips(params?: {
   search?: string;
   tracker_status?: string;
   order_type?: string;
+  // Created date filters
+  start_date?: string;
+  end_date?: string;
+  before_date?: string;
+  after_date?: string;
+  // Last updated date filters
+  updated_start_date?: string;
+  updated_end_date?: string;
+  updated_before_date?: string;
+  updated_after_date?: string;
 }) {
   const query = new URLSearchParams();
   if (params?.page) query.set("page", String(params.page));
@@ -154,5 +164,15 @@ export function fetchPackingSlips(params?: {
   if (params?.search) query.set("search", params.search);
   if (params?.tracker_status) query.set("tracker_status", params.tracker_status);
   if (params?.order_type) query.set("order_type", params.order_type);
+  // Created date filters
+  if (params?.start_date) query.set("start_date", params.start_date);
+  if (params?.end_date) query.set("end_date", params.end_date);
+  if (params?.before_date) query.set("before_date", params.before_date);
+  if (params?.after_date) query.set("after_date", params.after_date);
+  // Last updated date filters
+  if (params?.updated_start_date) query.set("updated_start_date", params.updated_start_date);
+  if (params?.updated_end_date) query.set("updated_end_date", params.updated_end_date);
+  if (params?.updated_before_date) query.set("updated_before_date", params.updated_before_date);
+  if (params?.updated_after_date) query.set("updated_after_date", params.updated_after_date);
   return apiRequest(`/packing-slips?${query.toString()}`) as Promise<PackingSlipsResponse>;
 }
