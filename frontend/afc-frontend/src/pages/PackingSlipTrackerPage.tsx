@@ -804,6 +804,16 @@ export default function PackingSlipTrackerPage() {
   const [filterDepartment, setFilterDepartment] = useState("");
   const [filterStockState, setFilterStockState] = useState("");
 
+  /* ── Date filter state (Created Date) ── */
+  const [dateFilterMode, setDateFilterMode] = useState<"none" | "between" | "before" | "after">("none");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+
+  /* ── Date filter state (Last Updated) ── */
+  const [lastUpdatedMode, setLastUpdatedMode] = useState<"none" | "between" | "before" | "after">("none");
+  const [lastUpdatedStart, setLastUpdatedStart] = useState("");
+  const [lastUpdatedEnd, setLastUpdatedEnd] = useState("");
+
   // Debounce search to reduce API calls
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(search), 400);
@@ -814,12 +824,34 @@ export default function PackingSlipTrackerPage() {
     setLoading(true);
     setFetchError(null);
     try {
+      // Build date filter params for created_at
+      const dateParams: Record<string, string> = {};
+      if (dateFilterMode === "between" && startDate && endDate) {
+        dateParams.start_date = startDate;
+        dateParams.end_date = endDate;
+      } else if (dateFilterMode === "before" && startDate) {
+        dateParams.before_date = startDate;
+      } else if (dateFilterMode === "after" && startDate) {
+        dateParams.after_date = startDate;
+      }
+
+      // Build date filter params for last updated
+      if (lastUpdatedMode === "between" && lastUpdatedStart && lastUpdatedEnd) {
+        dateParams.updated_start_date = lastUpdatedStart;
+        dateParams.updated_end_date = lastUpdatedEnd;
+      } else if (lastUpdatedMode === "before" && lastUpdatedStart) {
+        dateParams.updated_before_date = lastUpdatedStart;
+      } else if (lastUpdatedMode === "after" && lastUpdatedStart) {
+        dateParams.updated_after_date = lastUpdatedStart;
+      }
+
       const resp = await fetchPackingSlips({
         page: p,
         limit: PAGE_SIZE,
         search: s,
         tracker_status: tab === "All" ? undefined : tab,
         order_type: orderType || undefined,
+        ...dateParams,
       });
       setRows(resp.results.map(toPackingSlipRow));
       setTotal(resp.total);
@@ -829,11 +861,11 @@ export default function PackingSlipTrackerPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [dateFilterMode, startDate, endDate, lastUpdatedMode, lastUpdatedStart, lastUpdatedEnd]);
 
   useEffect(() => {
     loadData(page, debouncedSearch, activeTab, filterOrderType);
-  }, [page, debouncedSearch, activeTab, filterOrderType, loadData, activeWarehouseId]);
+  }, [page, debouncedSearch, activeTab, filterOrderType, loadData, activeWarehouseId, dateFilterMode, startDate, endDate, lastUpdatedMode, lastUpdatedStart, lastUpdatedEnd]);
 
   // Reset page when search or tab changes
   const handleSearch = (v: string) => {
