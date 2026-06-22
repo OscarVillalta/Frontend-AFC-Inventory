@@ -17,6 +17,7 @@ import {
 import { ORDER_TYPE_LABELS } from "../constants/orderTypes";
 import { useWarehouse } from "../hooks/useWarehouse";
 import { useAuth } from "../hooks/useAuth";
+import { usePersistedFilters } from "../hooks/usePersistedFilters";
 
 // ─────────────────────────────────────────────
 // Tracker step-path definitions (one per order type group)
@@ -813,6 +814,20 @@ export default function PackingSlipTrackerPage() {
   const [lastUpdatedMode, setLastUpdatedMode] = useState<"none" | "between" | "before" | "after">("none");
   const [lastUpdatedStart, setLastUpdatedStart] = useState("");
   const [lastUpdatedEnd, setLastUpdatedEnd] = useState("");
+
+    // === FILTER STATES (PERSISTED) ===
+  const [filters, setFilter, clearFilters] = usePersistedFilters("filters_tracker", {
+    ordertype: "",
+    department: "",
+    stockstate: "",
+    search: "",
+    startDate: "",
+    endDate: "",
+    dateFilterMode: "none" as "between" | "before" | "after" | "none",
+    lastUpdatedStart: "",
+    lastUpdatedEnd: "",
+    lastUpdatedMode: "none" as "between" | "before" | "after" | "none",
+  });
 
   // Debounce search to reduce API calls
   useEffect(() => {

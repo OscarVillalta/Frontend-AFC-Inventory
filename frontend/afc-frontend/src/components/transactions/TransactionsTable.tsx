@@ -9,6 +9,7 @@ import { usePersistedFilters } from "../../hooks/usePersistedFilters";
 import TransactionSummaryBar from "./TransactionSummaryBar";
 import TransactionDetailDrawer from "./TransactionDetailDrawer";
 import { useWarehouse } from "../../hooks/useWarehouse";
+import DateSelection from "../DateSelection";
 
 interface TransactionRow {
   id: string;
@@ -441,89 +442,26 @@ export default function TransactionsTable() {
 
                   {/* Created Date Range */}
                   <div>
-                    <label className="text-xs font-medium text-gray-500 mb-1 block">Created Date Range</label>
-                    <select
-                      className="select select-bordered select-sm w-full"
-                      value={filters.dateFilterMode}
-                      onChange={(e) => {
-                        setFilter("dateFilterMode", e.target.value as typeof filters.dateFilterMode);
-                        setFilter("startDate", "");
-                        setFilter("endDate", "");
-                      }}
-                    >
-                      <option value="none">All Dates</option>
-                      <option value="between">Between</option>
-                      <option value="before">Before</option>
-                      <option value="after">After</option>
-                    </select>
-                    {filters.dateFilterMode === "between" && (
-                      <div className="flex gap-2 mt-1">
-                        <input
-                          type="date"
-                          className="input input-bordered input-sm w-full"
-                          value={filters.startDate}
-                          onChange={(e) => setFilter("startDate", e.target.value)}
-                        />
-                        <input
-                          type="date"
-                          className="input input-bordered input-sm w-full"
-                          value={filters.endDate}
-                          onChange={(e) => setFilter("endDate", e.target.value)}
-                        />
-                      </div>
-                    )}
-                    {(filters.dateFilterMode === "before" || filters.dateFilterMode === "after") && (
-                      <input
-                        type="date"
-                        className="input input-bordered input-sm w-full mt-1"
-                        value={filters.startDate}
-                        onChange={(e) => setFilter("startDate", e.target.value)}
-                      />
-                    )}
+                    <DateSelection
+                    label="Created Date Range"
+                    setFilter={setFilter}
+                    filters={filters}
+                    startdateKey="startDate"
+                    enddatekey="endDate"
+                    datemodekey="dateFiltermode"/>
                   </div>
 
                   {/* Last Updated Date Range */}
                   <div>
-                    <label className="text-xs font-medium text-gray-500 mb-1 block">Last Updated Date Range</label>
-                    <select
-                      className="select select-bordered select-sm w-full"
-                      value={filters.lastUpdatedMode}
-                      onChange={(e) => {
-                        setFilter("lastUpdatedMode", e.target.value as typeof filters.lastUpdatedMode);
-                        setFilter("lastUpdatedStart", "");
-                        setFilter("lastUpdatedEnd", "");
-                      }}
-                    >
-                      <option value="none">All Dates</option>
-                      <option value="between">Between</option>
-                      <option value="before">Before</option>
-                      <option value="after">After</option>
-                    </select>
-                    {filters.lastUpdatedMode === "between" && (
-                      <div className="flex gap-2 mt-1">
-                        <input
-                          type="date"
-                          className="input input-bordered input-sm w-full"
-                          value={filters.lastUpdatedStart}
-                          onChange={(e) => setFilter("lastUpdatedStart", e.target.value)}
-                        />
-                        <input
-                          type="date"
-                          className="input input-bordered input-sm w-full"
-                          value={filters.lastUpdatedEnd}
-                          onChange={(e) => setFilter("lastUpdatedEnd", e.target.value)}
-                        />
-                      </div>
-                    )}
-                    {(filters.lastUpdatedMode === "before" || filters.lastUpdatedMode === "after") && (
-                      <input
-                        type="date"
-                        className="input input-bordered input-sm w-full mt-1"
-                        value={filters.lastUpdatedStart}
-                        onChange={(e) => setFilter("lastUpdatedStart", e.target.value)}
-                      />
-                    )}
+                    <DateSelection
+                    label="Last Updated Date Range"
+                    setFilter={setFilter}
+                    filters={filters}
+                    startdateKey="lastUpdatedStart"
+                    enddatekey="lastUpdatedEnd"
+                    datemodekey="lastUpdatedMode"/>
                   </div>
+                  
                 </div>
 
                 {/* Clear Filters Button */}
