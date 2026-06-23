@@ -40,7 +40,7 @@ function formatDate(iso: string) {
 interface DateSelectionProps{
     label: string;
     setFilter: (key: any, value: any) => void;
-    filters: Record<string, string>;
+    filters: Record<string, any>;
     startdateKey: string;
     enddatekey: string;
     datemodekey: string;

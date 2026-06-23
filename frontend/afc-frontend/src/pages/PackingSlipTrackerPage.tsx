@@ -13,7 +13,10 @@ import {
   type OrderTrackerPayload,
   type OrderHistoryPayload,
   type OrderTrackerStagePayload,
+  type TrackerFilters,
+  type PackingSlipsResponse,
 } from "../api/tracker";
+import DateSelection from "../components/DateSelection";
 import { ORDER_TYPE_LABELS } from "../constants/orderTypes";
 import { useWarehouse } from "../hooks/useWarehouse";
 import { useAuth } from "../hooks/useAuth";
@@ -788,11 +791,9 @@ const DEFAULT_STATUS_COUNTS = { "Not Started": 0, "In Progress": 0, Completed: 0
 
 export default function PackingSlipTrackerPage() {
   const { activeWarehouseId } = useWarehouse();
-  const [activeTab, setActiveTab] = useState<FilterTab>("All");
-  const [search, setSearch] = useState("");
+
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [expandedId, setExpandedId] = useState<number | null>(null);
-  const [page, setPage] = useState(1);
 
   const [rows, setRows] = useState<PackingSlipRow[]>([]);
   const [total, setTotal] = useState(0);
@@ -801,26 +802,16 @@ export default function PackingSlipTrackerPage() {
   const [fetchError, setFetchError] = useState<string | null>(null);
 
   /* ── Additional filter state ── */
-  const [filterOrderType, setFilterOrderType] = useState("");
   const [filterDepartment, setFilterDepartment] = useState("");
   const [filterStockState, setFilterStockState] = useState("");
 
-  /* ── Date filter state (Created Date) ── */
-  const [dateFilterMode, setDateFilterMode] = useState<"none" | "between" | "before" | "after">("none");
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
-
-  /* ── Date filter state (Last Updated) ── */
-  const [lastUpdatedMode, setLastUpdatedMode] = useState<"none" | "between" | "before" | "after">("none");
-  const [lastUpdatedStart, setLastUpdatedStart] = useState("");
-  const [lastUpdatedEnd, setLastUpdatedEnd] = useState("");
-
-    // === FILTER STATES (PERSISTED) ===
+  // === FILTER STATES (PERSISTED) ===
   const [filters, setFilter, clearFilters] = usePersistedFilters("filters_tracker", {
-    ordertype: "",
-    department: "",
-    stockstate: "",
+    page: 1,
+    limit: 50,
     search: "",
+    tracker_status: "",
+    order_type: "",
     startDate: "",
     endDate: "",
     dateFilterMode: "none" as "between" | "before" | "after" | "none",
@@ -829,68 +820,57 @@ export default function PackingSlipTrackerPage() {
     lastUpdatedMode: "none" as "between" | "before" | "after" | "none",
   });
 
+  const buildApiFilters = useCallback((): TrackerFilters => {
+      const apiFilters: TrackerFilters = {};
+      if (filters.page) apiFilters.page = filters.page;
+      if (filters.limit) apiFilters.limit = Number(filters.limit);
+      if (filters.tracker_status && filters.tracker_status !== "All") apiFilters.tracker_status = filters.tracker_status;
+      if (filters.order_type) apiFilters.order_type = filters.order_type;
+  
+      if (filters.dateFilterMode === "between" && filters.startDate && filters.endDate) {
+        apiFilters.start_date = filters.startDate;
+        apiFilters.end_date = filters.endDate;
+      } else if (filters.dateFilterMode === "before" && filters.startDate) {
+        apiFilters.before_date = filters.startDate;
+      } else if (filters.dateFilterMode === "after" && filters.startDate) {
+        apiFilters.after_date = filters.startDate;
+      }
+      return apiFilters;
+    }, [filters]);
+
   // Debounce search to reduce API calls
   useEffect(() => {
-    const t = setTimeout(() => setDebouncedSearch(search), 400);
+    const t = setTimeout(() => setDebouncedSearch(filters.search), 400);
     return () => clearTimeout(t);
-  }, [search]);
+  }, [filters.search]);
 
-  const loadData = useCallback(async (p: number, s: string, tab: FilterTab, orderType: string) => {
+  const loadData = () => {
     setLoading(true);
     setFetchError(null);
-    try {
-      // Build date filter params for created_at
-      const dateParams: Record<string, string> = {};
-      if (dateFilterMode === "between" && startDate && endDate) {
-        dateParams.start_date = startDate;
-        dateParams.end_date = endDate;
-      } else if (dateFilterMode === "before" && startDate) {
-        dateParams.before_date = startDate;
-      } else if (dateFilterMode === "after" && startDate) {
-        dateParams.after_date = startDate;
-      }
-
-      // Build date filter params for last updated
-      if (lastUpdatedMode === "between" && lastUpdatedStart && lastUpdatedEnd) {
-        dateParams.updated_start_date = lastUpdatedStart;
-        dateParams.updated_end_date = lastUpdatedEnd;
-      } else if (lastUpdatedMode === "before" && lastUpdatedStart) {
-        dateParams.updated_before_date = lastUpdatedStart;
-      } else if (lastUpdatedMode === "after" && lastUpdatedStart) {
-        dateParams.updated_after_date = lastUpdatedStart;
-      }
-
-      const resp = await fetchPackingSlips({
-        page: p,
-        limit: PAGE_SIZE,
-        search: s,
-        tracker_status: tab === "All" ? undefined : tab,
-        order_type: orderType || undefined,
-        ...dateParams,
-      });
+    const apifilters = buildApiFilters();
+    Promise.resolve(
+      fetchPackingSlips(apifilters)
+    ).then((resp) => {
       setRows(resp.results.map(toPackingSlipRow));
       setTotal(resp.total);
       setStatusCounts(resp.status_counts);
-    } catch (err) {
-      setFetchError(err instanceof Error ? err.message : "Failed to load data.");
-    } finally {
       setLoading(false);
-    }
-  }, [dateFilterMode, startDate, endDate, lastUpdatedMode, lastUpdatedStart, lastUpdatedEnd]);
+    })
+  }
 
   useEffect(() => {
-    loadData(page, debouncedSearch, activeTab, filterOrderType);
-  }, [page, debouncedSearch, activeTab, filterOrderType, loadData, activeWarehouseId, dateFilterMode, startDate, endDate, lastUpdatedMode, lastUpdatedStart, lastUpdatedEnd]);
+    loadData();
+  }, [filters.page, filters.limit, filters.endDate, filters.lastUpdatedEnd, filters.lastUpdatedStart, filters.order_type, filters.search, filters.startDate, filters.tracker_status]);
 
   // Reset page when search or tab changes
   const handleSearch = (v: string) => {
-    setSearch(v);
-    setPage(1);
+    setFilter("search", v);
+    setFilter("page", 1)
   };
 
   const handleTabChange = (tab: FilterTab) => {
-    setActiveTab(tab);
-    setPage(1);
+    setFilter("tracker_status", tab);
+    setFilter("page", 1)
   };
 
   // Optimistic update: update a stage in local state without a full reload
@@ -1012,15 +992,12 @@ export default function PackingSlipTrackerPage() {
   });
 
   const hasActiveFilters =
-    filterOrderType !== "" || filterDepartment !== "" || filterStockState !== "" || search !== "" || activeTab !== "All";
+    filters.order_type !== "" || filterDepartment !== "" || filterStockState !== "" || filters.search !== "" || filters.tracker_status !== "All";
 
   const handleClearFilters = () => {
-    setFilterOrderType("");
-    setFilterDepartment("");
-    setFilterStockState("");
-    setSearch("");
-    setActiveTab("All");
-    setPage(1);
+    setFilter("order_type", "");
+    setFilter("search", "");
+    setFilter("tracker_status", "All");
   };
 
   const STATUS_TABS: FilterTab[] = ["All", "Not Started", "In Progress", "Completed", "Backordered"];
@@ -1060,7 +1037,7 @@ export default function PackingSlipTrackerPage() {
               </div>
               <input
                 type="text"
-                value={search}
+                value={filters.search}
                 onChange={(e) => handleSearch(e.target.value)}
                 placeholder="Slip #, customer…"
                 className="border border-gray-200 rounded-lg pl-7 pr-2 py-1.5 text-sm text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-400 w-full"
@@ -1073,8 +1050,8 @@ export default function PackingSlipTrackerPage() {
             <label className="text-xs text-gray-400 font-medium uppercase tracking-wide">Order Type</label>
             <select
               className="border border-gray-200 rounded-lg px-2 py-1.5 text-sm text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-400"
-              value={filterOrderType}
-              onChange={(e) => { setFilterOrderType(e.target.value); setPage(1); }}
+              value={filters.order_type}
+              onChange={(e) => { setFilter("order_type", e); setFilter("page", 1); }}
             >
               <option value="">All Types</option>
               <option value="installation">Installation</option>
@@ -1091,8 +1068,8 @@ export default function PackingSlipTrackerPage() {
             <label className="text-xs text-gray-400 font-medium uppercase tracking-wide">Tracker State</label>
             <select
               className="border border-gray-200 rounded-lg px-2 py-1.5 text-sm text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-400"
-              value={activeTab}
-              onChange={(e) => { handleTabChange(e.target.value as FilterTab); }}
+              value={filters.tracker_status}
+              onChange={(e) => { setFilter("tracker_status", e); }}
             >
               <option value="All">All States</option>
               <option value="Not Started">Not Started</option>
@@ -1108,7 +1085,7 @@ export default function PackingSlipTrackerPage() {
             <select
               className="border border-gray-200 rounded-lg px-2 py-1.5 text-sm text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-400"
               value={filterDepartment}
-              onChange={(e) => { setFilterDepartment(e.target.value); setPage(1); }}
+              onChange={(e) => { setFilterDepartment(e.target.value); setFilter("page", 1); }}
             >
               <option value="">All Departments</option>
               <option value="SALES">Sales</option>
@@ -1125,13 +1102,25 @@ export default function PackingSlipTrackerPage() {
             <select
               className="border border-gray-200 rounded-lg px-2 py-1.5 text-sm text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-400"
               value={filterStockState}
-              onChange={(e) => { setFilterStockState(e.target.value); setPage(1); }}
+              onChange={(e) => { setFilterStockState(e.target.value); setFilter("page", 1); }}
             >
               <option value="">All States</option>
               <option value="Reserved">Reserved</option>
               <option value="Delivered">Delivered</option>
             </select>
           </div>
+          {/* Created dated */}
+          <div>
+            <DateSelection
+            label="Created Date Range"
+            setFilter={setFilter}
+            filters={filters}
+            startdateKey="startDate"
+            enddatekey="endDate"
+            datemodekey="dateFiltermode"/>
+          </div>
+
+          {/* last updated date */}
 
           {/* Clear All */}
           <div className="flex items-center ml-auto">
@@ -1151,9 +1140,9 @@ export default function PackingSlipTrackerPage() {
           {STATUS_TABS.map((tab) => (
             <button
               key={tab}
-              onClick={() => handleTabChange(tab)}
+              onClick={() => setFilter("tracker_status", tab)}
               className={`px-3 py-1 rounded-full text-xs font-medium transition border ${
-                activeTab === tab
+                filters.tracker_status === tab
                   ? "bg-blue-600 text-white border-blue-600"
                   : "bg-white text-gray-600 border-gray-200 hover:bg-gray-100"
               }`}
@@ -1161,7 +1150,7 @@ export default function PackingSlipTrackerPage() {
               {tab}{" "}
               <span
                 className={`ml-1 rounded-full px-1.5 py-0.5 text-xs ${
-                  activeTab === tab
+                  filters.tracker_status === tab
                     ? "bg-blue-500 text-white"
                     : "bg-gray-100 text-gray-500"
                 }`}
@@ -1371,9 +1360,9 @@ export default function PackingSlipTrackerPage() {
           {/* Pagination */}
           <Pagination
             total={total}
-            page={page}
+            page={filters.page}
             pageSize={PAGE_SIZE}
-            onPageChange={setPage}
+            onPageChange={(v) => {setFilter("page", v)}}
           />
         </div>
 
