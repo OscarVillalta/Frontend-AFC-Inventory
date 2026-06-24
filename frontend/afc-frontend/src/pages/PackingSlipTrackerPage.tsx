@@ -806,37 +806,20 @@ export default function PackingSlipTrackerPage() {
   const [filterStockState, setFilterStockState] = useState("");
 
   // === FILTER STATES (PERSISTED) ===
-  const [filters, setFilter, clearFilters] = usePersistedFilters("filters_tracker", {
+  const [filters, setFilter] = usePersistedFilters("filters_tracker", {
     page: 1,
     limit: 50,
     search: "",
     tracker_status: "",
     order_type: "",
-    startDate: "",
-    endDate: "",
+    start_date: "",
+    end_date: "",
     dateFilterMode: "none" as "between" | "before" | "after" | "none",
-    lastUpdatedStart: "",
-    lastUpdatedEnd: "",
+    updated_start_date: "",
+    updated_end_date: "",
     lastUpdatedMode: "none" as "between" | "before" | "after" | "none",
   });
 
-  const buildApiFilters = useCallback((): TrackerFilters => {
-      const apiFilters: TrackerFilters = {};
-      if (filters.page) apiFilters.page = filters.page;
-      if (filters.limit) apiFilters.limit = Number(filters.limit);
-      if (filters.tracker_status && filters.tracker_status !== "All") apiFilters.tracker_status = filters.tracker_status;
-      if (filters.order_type) apiFilters.order_type = filters.order_type;
-  
-      if (filters.dateFilterMode === "between" && filters.startDate && filters.endDate) {
-        apiFilters.start_date = filters.startDate;
-        apiFilters.end_date = filters.endDate;
-      } else if (filters.dateFilterMode === "before" && filters.startDate) {
-        apiFilters.before_date = filters.startDate;
-      } else if (filters.dateFilterMode === "after" && filters.startDate) {
-        apiFilters.after_date = filters.startDate;
-      }
-      return apiFilters;
-    }, [filters]);
 
   // Debounce search to reduce API calls
   useEffect(() => {
@@ -847,9 +830,8 @@ export default function PackingSlipTrackerPage() {
   const loadData = () => {
     setLoading(true);
     setFetchError(null);
-    const apifilters = buildApiFilters();
     Promise.resolve(
-      fetchPackingSlips(apifilters)
+      fetchPackingSlips(filters)
     ).then((resp) => {
       setRows(resp.results.map(toPackingSlipRow));
       setTotal(resp.total);
@@ -860,7 +842,7 @@ export default function PackingSlipTrackerPage() {
 
   useEffect(() => {
     loadData();
-  }, [filters.page, filters.limit, filters.endDate, filters.lastUpdatedEnd, filters.lastUpdatedStart, filters.order_type, filters.search, filters.startDate, filters.tracker_status]);
+  }, [filters.page, filters.limit, filters.end_date, filters.updated_end_date, filters.updated_start_date, filters.order_type, filters.search, filters.start_date, filters.tracker_status]);
 
   // Reset page when search or tab changes
   const handleSearch = (v: string) => {
@@ -1051,7 +1033,7 @@ export default function PackingSlipTrackerPage() {
             <select
               className="border border-gray-200 rounded-lg px-2 py-1.5 text-sm text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-400"
               value={filters.order_type}
-              onChange={(e) => { setFilter("order_type", e); setFilter("page", 1); }}
+              onChange={(e) => { setFilter("order_type", e.target.value); setFilter("page", 1);}}
             >
               <option value="">All Types</option>
               <option value="installation">Installation</option>
@@ -1069,7 +1051,7 @@ export default function PackingSlipTrackerPage() {
             <select
               className="border border-gray-200 rounded-lg px-2 py-1.5 text-sm text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-400"
               value={filters.tracker_status}
-              onChange={(e) => { setFilter("tracker_status", e); }}
+              onChange={(e) => { setFilter("tracker_status", e.target.value); }}
             >
               <option value="All">All States</option>
               <option value="Not Started">Not Started</option>
@@ -1110,18 +1092,26 @@ export default function PackingSlipTrackerPage() {
             </select>
           </div>
           {/* Created dated */}
-          <div>
+          <div className="min-w-[140px]">
             <DateSelection
-            label="Created Date Range"
+            label="Created Date"
             setFilter={setFilter}
             filters={filters}
-            startdateKey="startDate"
-            enddatekey="endDate"
+            startdateKey="start_date"
+            enddatekey="end_date"
             datemodekey="dateFiltermode"/>
           </div>
 
           {/* last updated date */}
-
+          <div className="min-w-[140px]">
+            <DateSelection
+            label="Last Update Date"
+            setFilter={setFilter}
+            filters={filters}
+            startdateKey="updated_start_date"
+            enddatekey="updated_end_date"
+            datemodekey="lastUpdatedMode"/>
+          </div>
           {/* Clear All */}
           <div className="flex items-center ml-auto">
             {hasActiveFilters && (

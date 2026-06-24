@@ -176,5 +176,6 @@ export function fetchPackingSlips(filters?: TrackerFilters): Promise<PackingSlip
   if (filters?.updated_end_date) query.set("updated_end_date", filters?.updated_end_date);
   if (filters?.updated_before_date) query.set("updated_before_date", filters?.updated_before_date);
   if (filters?.updated_after_date) query.set("updated_after_date", filters?.updated_after_date);
+  console.log(query.toString());
   return apiRequest(`/packing-slips?${query.toString()}`) as Promise<PackingSlipsResponse>;
 }
