@@ -156,6 +156,9 @@ export default function Dashboard() {
     fetchDashboardStats()
       .then((res) => {
         if (!cancelled) {
+          // #region agent log
+          fetch('http://127.0.0.1:7756/ingest/b534a512-8c61-4949-b370-9c3da92fffc9',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'495c74'},body:JSON.stringify({sessionId:'495c74',hypothesisId:'A,D,E',location:'Dashboard.tsx:fetchDashboardStats',message:'stats response received',data:{txnCount:res.feeds.recent_transactions.length,sample:res.feeds.recent_transactions.slice(0,3),firstKeys:res.feeds.recent_transactions[0]?Object.keys(res.feeds.recent_transactions[0]):[]},timestamp:Date.now()})}).catch(()=>{});
+          // #endregion
           setStatsData(res);
           setStatsLoading(false);
         }
@@ -266,11 +269,11 @@ export default function Dashboard() {
 
         {hasPermission("inventory:view") && (
           <>
-            <DashboardOverviewRow
+            {/* <DashboardOverviewRow
               kpis={statsData?.kpis ?? null}
               loading={statsLoading}
               error={statsError}
-            />
+            /> */}
 
             <DashboardKpiRow
               netKpis={netKpis}
