@@ -842,7 +842,7 @@ export default function PackingSlipTrackerPage() {
 
   useEffect(() => {
     loadData();
-  }, [filters.page, filters.limit, filters.end_date, filters.updated_end_date, filters.updated_start_date, filters.order_type, filters.search, filters.start_date, filters.tracker_status]);
+  }, [filters.page, filters.limit, filters.end_date, filters.updated_end_date, filters.updated_start_date, filters.order_type, filters.search, filters.start_date, filters.tracker_status, activeWarehouseId]);
 
   // Reset page when search or tab changes
   const handleSearch = (v: string) => {

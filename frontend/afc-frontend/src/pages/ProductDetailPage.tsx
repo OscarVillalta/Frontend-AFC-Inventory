@@ -568,8 +568,8 @@ export default function ProductDetailPage() {
   // MERV rating label helper
   // Percentages represent minimum particle filtration efficiency (ASHRAE 52.2)
   const getMervLabel = (merv: number) => {
-    if (merv === 17) return `MERV 17 (99.99%)`;
-    if (merv === 18) return `MERV 18 (99.999%)`;
+    if (merv === 17) return `99.99%`;
+    if (merv === 18) return `99.999%`;
     return `MERV ${merv}`;
   };
 
