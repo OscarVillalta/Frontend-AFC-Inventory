@@ -1,4 +1,5 @@
 import { apiRequest } from "./apiClient";
+import type { PendingProjectionItem } from "./productDetail";
 
 /* ── response shapes ────────────────────────────────────────────── */
 
@@ -61,6 +62,7 @@ export interface ProductProjection {
   product_id: number;
   current_on_hand: number;
   projections: ProjectionItem[];
+  error?: string;
 }
 
 export type BulkProjectionsResponse = ProductProjection[];
@@ -96,11 +98,27 @@ export interface TopRankedItem {
 }
 
 export interface TopRankedItemsResponse {
-  field: number;
+  field: string;
   limit: number;
   total: number;
   top_items: TopRankedItem[];
   all_others: number;
+}
+
+/** Map bulk projection API response to PendingProjectionItem for chart processing. */
+export function mapBulkProjectionToPending(
+  projections: ProjectionItem[]
+): PendingProjectionItem[] {
+  return projections.map((p) => ({
+    id: p.transaction_id,
+    quantity_delta: p.quantity_delta,
+    order_id: null,
+    order_number: null,
+    external_order_number: null,
+    order_type: null,
+    eta: p.eta,
+    reason: "",
+  }));
 }
 
 /* ── API calls ──────────────────────────────────────────────────── */

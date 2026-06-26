@@ -6,13 +6,12 @@ import {
   CartesianGrid,
   ResponsiveContainer,
   Area,
-  AreaChart,
   ReferenceLine,
   Line,
   ComposedChart,
 } from "recharts";
-import { processGraphData, type ProjectedStockPoint } from "../components/charts/processGraphData";
-import CustomTooltip from "../components/charts/CustomTooltip";
+import ProjectedStockChart from "../components/charts/ProjectedStockChart";
+import { getDotFill } from "../components/dashboard/chartColors";
 
 import MainLayout from "../layouts/MainLayout";
 import {
@@ -119,11 +118,6 @@ export default function ProductDetailPage() {
     cx: number;
     cy: number;
   } | null>(null);
-  const [hoveredProjPoint, setHoveredProjPoint] = useState<{
-    data: ProjectedStockPoint;
-    cx: number;
-    cy: number;
-  } | null>(null);
 
   // Projection interval state
   const {
@@ -134,18 +128,12 @@ export default function ProductDetailPage() {
     resetRange: resetProjRange,
   } = useProjectionDateRange();
 
-  const projContainerRef = useRef<HTMLDivElement>(null);
   const histContainerRef = useRef<HTMLDivElement>(null);
 
   type ClickableDotProps<TPayload> = {
     cx?: number;
     cy?: number;
     payload?: TPayload;
-  };
-
-  const getDotFill = (isHovered: boolean, hasOrder: boolean): string => {
-    if (isHovered) return hasOrder ? "#2563eb" : "#2d3143";
-    return hasOrder ? "#3b82f6" : "#363b4c";
   };
 
   const loadData = useCallback(async () => {
@@ -516,16 +504,21 @@ export default function ProductDetailPage() {
     );
   }
 
-  const stockProjection = processGraphData(pendingProjection, product.quantity.on_hand, {
-    fillerIntervalDays: projFillerInterval,
-    startDate: projStart,
-    endDate: projEnd,
-  });
+  const partNumber = product.details.part_number || product.details.name || "N/A";
+
+  const productProjectionMap = new Map([
+    [
+      product.id,
+      {
+        orders: pendingProjection,
+        currentStock: product.quantity.on_hand,
+      },
+    ],
+  ]);
 
   // Extract details
   const isAirFilter = product.category === "Air Filters";
   const isStockItem = product.category === "Stock Items";
-  const partNumber = product.details.part_number || product.details.name || "N/A";
   const description = isStockItem
     ? product.details.description || "No description"
     : product.details.description || null;
@@ -910,160 +903,23 @@ export default function ProductDetailPage() {
           </div>
 
           <div className="p-6">
-            {graphTab === "projected" && (() => {
-              const projLevels = stockProjection.map(p => p.projectedStock);
-              const projMax = projLevels.length ? Math.max(...projLevels) : 0;
-              const projMin = projLevels.length ? Math.min(...projLevels) : 0;
-              const projGradientOffset =
-                projMax <= 0 ? 0 : projMin >= 0 ? 1 : projMax / (projMax - projMin);
-              return (
-                <>
-                  <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
-                    <h2 className="text-xl font-semibold text-[#363b4c]">
-                      Projected Stock Level
-                    </h2>
-                    <div className="flex items-center gap-3 flex-wrap">
-                      {/* Filler interval toggle */}
-                      <div className="flex items-center gap-1">
-                        <span className="text-xs text-gray-500">Interval:</span>
-                        {([1, 2] as const).map((days) => (
-                          <button
-                            key={days}
-                            onClick={() => setProjFillerInterval(days)}
-                            className={`text-xs px-2 py-1 rounded-full border transition-colors ${
-                              projFillerInterval === days
-                                ? "bg-[#363b4c] text-white border-[#363b4c]"
-                                : "bg-white text-gray-600 border-gray-300 hover:border-[#363b4c]"
-                            }`}
-                          >
-                            {days}d
-                          </button>
-                        ))}
-                      </div>
-                      {/* Date range */}
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="date"
-                          className="text-xs border border-gray-300 rounded px-2 py-1"
-                          value={projStart}
-                          min={todayStr}
-                          max={projEnd}
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            if (val >= todayStr) setProjStart(val);
-                          }}
-                        />
-                        <span className="text-xs text-gray-500">to</span>
-                        <input
-                          type="date"
-                          className="text-xs border border-gray-300 rounded px-2 py-1"
-                          value={projEnd}
-                          min={projStart}
-                          max={maxEndStr}
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            if (val <= maxEndStr && val >= projStart) setProjEnd(val);
-                          }}
-                        />
-                      </div>
-                      <button
-                        className="text-xs px-2 py-1 rounded-full border border-gray-300 bg-white text-gray-600 hover:border-[#363b4c] transition-colors"
-                        onClick={() => resetProjRange()}
-                      >
-                        Reset
-                      </button>
-                    </div>
-                  </div>
-                  <div
-                    ref={projContainerRef}
-                    className="relative"
-                    onMouseLeave={() => setHoveredProjPoint(null)}
-                  >
-                  <ResponsiveContainer width="100%" height={300}>
-                    <AreaChart data={stockProjection}>
-                      <defs>
-                        <linearGradient id="colorStock" x1="0" y1="0" x2="0" y2="1">
-                          {projGradientOffset >= 1 ? (
-                            <>
-                              <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.3} />
-                              <stop offset="100%" stopColor="#3b82f6" stopOpacity={0.05} />
-                            </>
-                          ) : projGradientOffset <= 0 ? (
-                            <>
-                              <stop offset="0%" stopColor="#ef4444" stopOpacity={0.2} />
-                              <stop offset="100%" stopColor="#ef4444" stopOpacity={0.05} />
-                            </>
-                          ) : (
-                            <>
-                              <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.3} />
-                              <stop offset={`${projGradientOffset * 100}%`} stopColor="#3b82f6" stopOpacity={0.1} />
-                              <stop offset={`${projGradientOffset * 100}%`} stopColor="#ef4444" stopOpacity={0.2} />
-                              <stop offset="100%" stopColor="#ef4444" stopOpacity={0.05} />
-                            </>
-                          )}
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                      <XAxis dataKey="date" style={{ fontSize: "12px" }} stroke="#6b7280" />
-                      <YAxis style={{ fontSize: "12px" }} stroke="#6b7280" />
-                      <ReferenceLine y={0} stroke="#363b4c" strokeWidth={2} />
-                      <Area
-                        type="monotone"
-                        dataKey="projectedStock"
-                        stroke="#363b4c"
-                        strokeWidth={2}
-                        fill="url(#colorStock)"
-                        dot={(props: ClickableDotProps<ProjectedStockPoint>) => {
-                          const { cx, cy, payload } = props;
-                          if (cx == null || cy == null || !payload) return null;
-                          const hasOrder = payload.dailyOrders.some(o => o.order_id != null);
-                          const isHovered = hoveredProjPoint?.data.date === payload.date;
-                          return (
-                            <circle
-                              key={`proj-dot-${payload.date}`}
-                              cx={cx}
-                              cy={cy}
-                              r={isHovered ? (hasOrder ? 8 : 6) : (hasOrder ? 6 : (payload.isFiller ? 4 : 4))}
-                              fill={getDotFill(isHovered, hasOrder)}
-                              stroke={payload.isFiller && !isHovered ? "transparent" : "white"}
-                              strokeWidth={2}
-                              style={{ cursor: hasOrder ? "pointer" : "default" }}
-                              onMouseEnter={() => setHoveredProjPoint({ data: payload, cx, cy })}
-                              onClick={() => {
-                                const firstOrderId = payload.dailyOrders.find(o => o.order_id)?.order_id;
-                                if (firstOrderId) window.open(`/orders/${firstOrderId}`, "_blank");
-                              }}
-                            />
-                          );
-                        }}
-                        activeDot={false}
-                      />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                  {hoveredProjPoint && (() => {
-                    const containerWidth = projContainerRef.current?.offsetWidth ?? 0;
-                    const isRightThird = containerWidth > 0 && hoveredProjPoint.cx > (containerWidth * 2) / 3;
-                    return (
-                      <div
-                        className="pointer-events-auto absolute z-50"
-                        style={{
-                          ...(isRightThird
-                            ? { right: containerWidth - hoveredProjPoint.cx + 12 }
-                            : { left: hoveredProjPoint.cx + 12 }),
-                          top: Math.max(4, hoveredProjPoint.cy - 60),
-                          zIndex: 100
-                        }}
-                      >
-                        <CustomTooltip 
-                        point={hoveredProjPoint.data} 
-                        />
-                      </div>
-                    );
-                  })()}
-                  </div>
-                </>
-              );
-            })()}
+            {graphTab === "projected" && (
+              <ProjectedStockChart
+                selectedProducts={[{ id: product.id, name: partNumber }]}
+                productProjections={productProjectionMap}
+                singleProductOrders={pendingProjection}
+                gradientId="colorStockProductDetail"
+                todayStr={todayStr}
+                maxEndStr={maxEndStr}
+                projStart={projStart}
+                setProjStart={setProjStart}
+                projEnd={projEnd}
+                setProjEnd={setProjEnd}
+                projFillerInterval={projFillerInterval}
+                setProjFillerInterval={setProjFillerInterval}
+                resetRange={resetProjRange}
+              />
+            )}
 
             {graphTab === "historical" && (
               <>
