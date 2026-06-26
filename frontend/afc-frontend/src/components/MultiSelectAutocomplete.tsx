@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { Link } from "react-router-dom";
 
 interface AutocompleteOption {
   id: number;
@@ -12,6 +13,10 @@ interface MultiSelectAutocompleteProps {
   selectedIds: number[];
   onChange: (selectedIds: number[]) => void;
   className?: string;
+  /** Background color for each selected badge (matches chart line colors). */
+  getSelectedColor?: (optionId: number, indexInSelection: number) => string;
+  /** When provided, selected product names link to the product detail page. */
+  getSelectedHref?: (optionId: number) => string | undefined;
 }
 
 export default function MultiSelectAutocomplete({
@@ -21,6 +26,8 @@ export default function MultiSelectAutocomplete({
   selectedIds,
   onChange,
   className = "",
+  getSelectedColor,
+  getSelectedHref,
 }: MultiSelectAutocompleteProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [inputValue, setInputValue] = useState("");
@@ -49,7 +56,9 @@ export default function MultiSelectAutocomplete({
       !selectedIds.includes(option.id)
   );
 
-  const selectedOptions = options.filter((opt) => selectedIds.includes(opt.id));
+  const selectedOptions = selectedIds
+    .map((id) => options.find((opt) => opt.id === id))
+    .filter((opt): opt is AutocompleteOption => opt != null);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
@@ -153,21 +162,37 @@ export default function MultiSelectAutocomplete({
       {/* Selected items */}
       {selectedOptions.length > 0 && (
         <div className="flex flex-wrap gap-2 mb-2">
-          {selectedOptions.map((option) => (
-            <div
-              key={option.id}
-              className="badge badge-primary gap-2"
-            >
-              {option.name}
-              <button
-                type="button"
-                onClick={() => handleRemoveOption(option.id)}
-                className="hover:text-error"
+          {selectedOptions.map((option, index) => {
+            const bgColor = getSelectedColor?.(option.id, index);
+            const href = getSelectedHref?.(option.id);
+            const badgeClass = bgColor
+              ? "inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium text-white"
+              : "badge badge-primary gap-2";
+
+            return (
+              <div
+                key={option.id}
+                className={badgeClass}
+                style={bgColor ? { backgroundColor: bgColor } : undefined}
               >
-                ✕
-              </button>
-            </div>
-          ))}
+                {href ? (
+                  <Link to={href} className="hover:underline">
+                    {option.name}
+                  </Link>
+                ) : (
+                  option.name
+                )}
+                <button
+                  type="button"
+                  onClick={() => handleRemoveOption(option.id)}
+                  className={bgColor ? "hover:bg-white/20 rounded-full p-0.5" : "hover:text-error"}
+                  aria-label={`Remove ${option.name}`}
+                >
+                  ✕
+                </button>
+              </div>
+            );
+          })}
         </div>
       )}
 

@@ -17,6 +17,8 @@ import {
 import type { PendingProjectionItem } from "../../api/productDetail";
 import CustomTooltip from "./CustomTooltip";
 import { getDotFill, getProductColor } from "../dashboard/chartColors";
+import { Link } from "react-router-dom";
+import { productDetailPath } from "../../utils/dashboardLinks";
 
 export interface SelectedProduct {
   id: number;
@@ -292,7 +294,14 @@ export default function ProjectedStockChart({
                                   className="w-3 h-3 rounded-sm"
                                   style={{ backgroundColor: getProductColor(index) }}
                                 />
-                                <span className="text-gray-700 truncate max-w-[140px]">{product.name}</span>
+                                <span className="text-gray-700 truncate max-w-[140px]">
+                                  <Link
+                                    to={productDetailPath(product.id)}
+                                    className="text-blue-600 hover:underline"
+                                  >
+                                    {product.name}
+                                  </Link>
+                                </span>
                               </div>
                               <span className="font-medium text-gray-900 tabular-nums">{value ?? 0}</span>
                             </div>
@@ -405,7 +414,7 @@ export default function ProjectedStockChart({
                       onMouseEnter={() => setHoveredProjPoint({ data: payload, cx, cy })}
                       onClick={() => {
                         const firstOrderId = payload.dailyOrders.find((o) => o.order_id)?.order_id;
-                        if (firstOrderId) window.open(`/orders/${firstOrderId}`, "_blank");
+                        if (firstOrderId) window.open(orderDetailPath(firstOrderId), "_blank");
                       }}
                     />
                   );

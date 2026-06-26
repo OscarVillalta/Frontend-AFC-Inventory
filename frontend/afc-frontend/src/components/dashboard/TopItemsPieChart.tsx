@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { Link } from "react-router-dom";
 import {
   ResponsiveContainer,
   PieChart,
@@ -8,6 +9,7 @@ import {
 } from "recharts";
 import type { TopRankedItem, TopRankedItemsResponse } from "../../api/dashboard";
 import { CHART_COLORS } from "./chartColors";
+import { productDetailPath } from "../../utils/dashboardLinks";
 
 interface TopItemsPieChartProps {
   topField: string;
@@ -113,7 +115,18 @@ export default function TopItemsPieChart({
                             : CHART_COLORS[index % CHART_COLORS.length],
                       }}
                     />
-                    <span className="text-gray-700">{entry.name}</span>
+                    <span className="text-gray-700">
+                      {entry.product_id > 0 ? (
+                        <Link
+                          to={productDetailPath(entry.product_id)}
+                          className="text-blue-600 hover:underline"
+                        >
+                          {entry.name}
+                        </Link>
+                      ) : (
+                        entry.name
+                      )}
+                    </span>
                   </div>
                   <span className="font-semibold text-gray-900">
                     {totalValue > 0 ? ((entry.value / totalValue) * 100).toFixed(1) : "0.0"}%

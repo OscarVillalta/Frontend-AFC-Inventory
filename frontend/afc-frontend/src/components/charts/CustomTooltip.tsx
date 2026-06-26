@@ -1,4 +1,6 @@
 import type { ProjectedStockPoint } from "./processGraphData";
+import { Link } from "react-router-dom";
+import { orderDetailPath } from "../../utils/dashboardLinks";
 
 /* ============================================================
    CustomTooltip – used as a positioned overlay (not via Recharts
@@ -32,20 +34,20 @@ export default function CustomTooltip({ point, label }: CustomTooltipProps) {
           : order.order_number ?? `#${order.order_id ?? order.id}`;
         const isPositive = order.quantity_delta > 0;
         const isNegative = order.quantity_delta < 0;
-        const orderLink = order.order_id ? `/orders/${order.order_id}` : null;
+        const orderLink = order.order_id ? orderDetailPath(order.order_id) : null;
 
         return (
           <div key={order.id} className="flex items-center justify-between gap-4">
             {orderLink ? (
-              <a
-                href={orderLink}
+              <Link
+                to={orderLink}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-blue-600 hover:underline truncate max-w-[140px]"
                 onClick={(e) => e.stopPropagation()}
               >
                 {identifier}
-              </a>
+              </Link>
             ) : (
               <span className="text-gray-700 truncate max-w-[140px]">{identifier}</span>
             )}

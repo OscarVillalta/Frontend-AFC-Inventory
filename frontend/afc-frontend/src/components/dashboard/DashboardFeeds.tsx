@@ -1,4 +1,10 @@
+import { Link } from "react-router-dom";
 import type { RecentOrder, RecentTransaction } from "../../api/dashboard";
+import {
+  orderDisplayLabel,
+  orderDetailPath,
+  productDetailPath,
+} from "../../utils/dashboardLinks";
 
 interface DashboardFeedsProps {
   recentTransactions: RecentTransaction[];
@@ -49,9 +55,34 @@ export default function DashboardFeeds({
         ) : (
           <ul className="space-y-2 text-sm">
             {recentTransactions.map((txn) => (
-              <li key={txn.id} className="flex items-center justify-between border-b border-gray-100 pb-2">
-                <span className="text-gray-700 capitalize">{txn.reason.replace(/_/g, " ")}</span>
-                <div className="flex items-center gap-3">
+              <li key={txn.id} className="flex items-start justify-between gap-3 border-b border-gray-100 pb-2">
+                <div className="min-w-0 flex-1 space-y-0.5">
+                  <span className="text-gray-700 capitalize block">
+                    {txn.reason.replace(/_/g, " ")}
+                  </span>
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-gray-500">
+                    {txn.order_id != null && (
+                      <Link
+                        to={orderDetailPath(txn.order_id)}
+                        className="text-blue-600 hover:underline font-medium"
+                      >
+                        {orderDisplayLabel(txn)}
+                      </Link>
+                    )}
+                    {txn.product_id != null && txn.product_name && (
+                      <>
+                        {txn.order_id != null && <span className="text-gray-300">·</span>}
+                        <Link
+                          to={productDetailPath(txn.product_id)}
+                          className="text-blue-600 hover:underline font-medium"
+                        >
+                          {txn.product_name}
+                        </Link>
+                      </>
+                    )}
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 shrink-0">
                   <span className={`font-medium tabular-nums ${txn.quantity_delta >= 0 ? "text-green-600" : "text-red-600"}`}>
                     {txn.quantity_delta >= 0 ? "+" : ""}{txn.quantity_delta}
                   </span>
@@ -73,12 +104,12 @@ export default function DashboardFeeds({
           <ul className="space-y-2 text-sm">
             {recentOrders.map((order) => (
               <li key={order.id} className="flex items-center justify-between border-b border-gray-100 pb-2">
-                <a
-                  href={`/orders/${order.id}`}
+                <Link
+                  to={orderDetailPath(order.id)}
                   className="text-blue-600 hover:underline font-medium"
                 >
-                  {order.order_number}
-                </a>
+                  {orderDisplayLabel(order)}
+                </Link>
                 <div className="flex items-center gap-3">
                   <span className="text-gray-500 capitalize">{order.type}</span>
                   <span className="text-gray-400 text-xs">{formatDate(order.completed_at)}</span>

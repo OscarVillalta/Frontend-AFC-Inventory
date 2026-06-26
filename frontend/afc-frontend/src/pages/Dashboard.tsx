@@ -26,6 +26,8 @@ import DashboardOverviewRow from "../components/dashboard/DashboardOverviewRow";
 import DashboardFeeds from "../components/dashboard/DashboardFeeds";
 import TopItemsPieChart from "../components/dashboard/TopItemsPieChart";
 import MultiSelectAutocomplete from "../components/MultiSelectAutocomplete";
+import { getProductColor } from "../components/dashboard/chartColors";
+import { productDetailPath } from "../utils/dashboardLinks";
 
 function formatHeaderDate(date: Date): string {
   return date.toLocaleDateString(undefined, {
@@ -304,6 +306,8 @@ export default function Dashboard() {
                       options={productOptions}
                       selectedIds={selectedProductIds}
                       onChange={handleProductIdsChange}
+                      getSelectedColor={(_, index) => getProductColor(index)}
+                      getSelectedHref={(id) => productDetailPath(id)}
                     />
                   )}
                 </div>

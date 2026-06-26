@@ -16,11 +16,17 @@ export interface RecentTransaction {
   quantity_delta: number;
   reason: string;
   created_at: string;
+  order_id: number | null;
+  order_number: string | null;
+  external_order_number: string | null;
+  product_id: number | null;
+  product_name: string | null;
 }
 
 export interface RecentOrder {
   id: number;
-  order_number: string;
+  order_number: string | null;
+  external_order_number: string | null;
   type: string;
   completed_at: string | null;
 }
