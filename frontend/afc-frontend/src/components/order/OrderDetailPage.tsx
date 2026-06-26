@@ -459,7 +459,9 @@ export default function OrderDetailPage() {
     // Rollback all committed transactions per item using allSettled
     const rollbackResults = await Promise.allSettled(
       nonSeparatorItems.map(async (_, index) => {
-        const committedTxns = transactionsData[index].filter(tx => tx.state === "committed");
+        const committedTxns = transactionsData[index].filter(
+          tx => tx.state === "committed" && tx.reason !== "rollback"
+        );
         if (committedTxns.length === 0) return { skipped: true };
         await Promise.all(committedTxns.map(tx => rollbackTransaction(tx.id)));
         return { skipped: false };
@@ -506,8 +508,8 @@ export default function OrderDetailPage() {
         {/* Warehouse mismatch banner */}
         {warehouseMismatch && (
           <div className="modal modal-open pointer-events-none">
-            <div className="bg-red-600/90 border-2 border-red-400 text-white rounded-xl px-8 py-5 shadow-2xl max-w-xl text-center pointer-events-auto">
-              <p className="text-lg font-bold mb-2">⚠️ Warehouse Mismatch</p>
+            <div className="bg-red-600/90 border-2 border-red-400 text-white rounded-xl px-4 sm:px-8 py-5 shadow-2xl max-w-xl text-center pointer-events-auto">
+              <p className="text-base sm:text-lg font-bold mb-2">⚠️ Warehouse Mismatch</p>
               <p className="text-sm leading-relaxed">
                 This order belongs to <span className="font-semibold">{orderWarehouseName}</span>,
                 not the currently active warehouse. All interactions are locked.
@@ -526,7 +528,7 @@ export default function OrderDetailPage() {
         <div className={warehouseMismatch ? "pointer-events-none select-none" : ""}>
           <div className="flex flex-col lg:flex-row justify-start flex-grow gap-4">
             {/* LEFT COLUMN */}
-            <div className="max-w-7xl space-y-4 lg:flex-3 w-full bg-slate-100 ">
+            <div className="max-w-7xl space-y-4 lg:flex-[3] w-full min-w-0 bg-slate-100 ">
               <OrderHeader
                 orderNumber={order.order_number}
                 externalOrderNumber={order.external_order_number}
@@ -586,7 +588,7 @@ export default function OrderDetailPage() {
             </div>
 
             {/* RIGHT COLUMN */}
-            <div className="lg:flex-1 w-full lg:w-auto lg:sticky lg:top-1 lg:self-start">
+            <div className="lg:flex-1 w-full min-w-0 lg:w-auto lg:sticky lg:top-1 lg:self-start">
               <OrderDescription
                 value={order.description}
                 onChange={(v) => {
@@ -619,7 +621,7 @@ export default function OrderDetailPage() {
                 onRefresh={refreshOrder}
               />
 
-              <div className="flex justify-end pt-2 gap-x-2 items-center">
+              <div className="flex flex-wrap justify-end pt-2 gap-2 items-center">
                 {/* ===== ORDER ACTIONS ===== */}
                 {autoSaveError && (
                   <p className="text-sm text-red-500">{autoSaveError}</p>

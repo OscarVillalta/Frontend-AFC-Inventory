@@ -676,7 +676,7 @@ export default function OrderItemRow({ item, orderType, onRefresh, txnRefreshKey
 
             {/* ===== CREATE PENDING (regular items only) ===== */}
             {!isMediaCut && !isVoided && remainingSafe > 0 && hasPermission("orders:edit") && (
-              <div className="flex flex-wrap items-center gap-3">
+              <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3">
                 <span className="text-sm text-gray-500">
                   {isOutgoingType(orderType)
                     ? "Reserve Qty:"
@@ -699,7 +699,7 @@ export default function OrderItemRow({ item, orderType, onRefresh, txnRefreshKey
                 <input
                   type="text"
                   placeholder="Note (optional)"
-                  className="input input-xs input-bordered w-64"
+                  className="input input-xs input-bordered w-full max-w-xs sm:max-w-md"
                   value={note}
                   onClick={(e) => e.stopPropagation()}
                   onChange={(e) => setNote(e.target.value)}
@@ -724,7 +724,7 @@ export default function OrderItemRow({ item, orderType, onRefresh, txnRefreshKey
                     {error}
                   </div>
                 )}
-            <div className="rounded-lg bg-white shadow-sm">
+            <div className="rounded-lg bg-white shadow-sm overflow-x-auto">
               <table className="table table-sm w-full">
                 <thead>
                   <tr className="text-xs text-gray-500">

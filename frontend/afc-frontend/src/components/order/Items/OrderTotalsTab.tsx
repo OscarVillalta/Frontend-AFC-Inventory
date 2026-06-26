@@ -130,15 +130,15 @@ export default function OrderTotalsTab({ items, orderType }: Props) {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <div className="bg-gray-50 rounded-lg p-3 border">
           <div className="text-xs text-gray-500">Unique Products</div>
-          <div className="text-2xl font-bold text-gray-800">{totalUniqueProducts}</div>
+          <div className="text-xl sm:text-2xl font-bold text-gray-800">{totalUniqueProducts}</div>
         </div>
         <div className="bg-gray-50 rounded-lg p-3 border">
           <div className="text-xs text-gray-500">Total Ordered</div>
-          <div className="text-2xl font-bold text-gray-800">{totalOrdered}</div>
+          <div className="text-xl sm:text-2xl font-bold text-gray-800">{totalOrdered}</div>
         </div>
         <div className="bg-gray-50 rounded-lg p-3 border">
           <div className="text-xs text-gray-500">Total Fulfilled</div>
-          <div className="text-2xl font-bold text-gray-800">{totalFulfilled}</div>
+          <div className="text-xl sm:text-2xl font-bold text-gray-800">{totalFulfilled}</div>
         </div>
         <div
           className={`rounded-lg p-3 border ${

@@ -26,15 +26,6 @@ export default function OrderHeader({
   isVoided = false,
 }: Props) {
 
-  const copyLabel =
-    copyStatus === "copied"
-      ? "✅ Copied!"
-      : copyStatus === "error"
-      ? "❌ Failed"
-      : selectedCount > 0
-      ? `📋 Copy Selected (${selectedCount})`
-      : "📋 Copy Order";
-
   const colors = ORDER_TYPE_COLORS[type] ?? ORDER_TYPE_COLORS["installation"];
   const typeLabel = ORDER_TYPE_LABELS[type] ?? type;
 
@@ -59,14 +50,28 @@ export default function OrderHeader({
       </div>
 
       {/* RIGHT: Type + Status + Copy */}
-      <div className="flex items-top gap-x-3">
+      <div className="flex flex-wrap items-center gap-2">
         {onCopyOrder && (
           <button
-            className="btn btn-xs btn-outline text-white border-white hover:bg-white hover:text-[#3A3F51] mt-1"
+            className="btn btn-xs btn-outline text-white border-white hover:bg-white hover:text-[#3A3F51]"
             onClick={onCopyOrder}
             disabled={copyStatus !== "idle"}
           >
-            {copyLabel}
+            {copyStatus === "copied" ? (
+              "✅ Copied!"
+            ) : copyStatus === "error" ? (
+              "❌ Failed"
+            ) : selectedCount > 0 ? (
+              <>
+                <span className="sm:hidden">📋 ({selectedCount})</span>
+                <span className="hidden sm:inline">📋 Copy Selected ({selectedCount})</span>
+              </>
+            ) : (
+              <>
+                <span className="sm:hidden">📋 Copy</span>
+                <span className="hidden sm:inline">📋 Copy Order</span>
+              </>
+            )}
           </button>
         )}
 

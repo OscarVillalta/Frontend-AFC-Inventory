@@ -281,13 +281,6 @@ export default function Dashboard() {
               error={kpisError}
             />
 
-            <DashboardFeeds
-              recentTransactions={statsData?.feeds.recent_transactions ?? []}
-              recentOrders={statsData?.feeds.recent_orders ?? []}
-              loading={statsLoading}
-              error={statsError}
-            />
-
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               <div className="bg-white rounded-lg shadow p-6">
                 <h2 className="text-sm font-semibold uppercase text-gray-700 mb-4">
@@ -340,7 +333,14 @@ export default function Dashboard() {
                 loading={topItemsLoading}
                 error={topItemsError}
               />
+
             </div>
+            <DashboardFeeds
+              recentTransactions={statsData?.feeds.recent_transactions ?? []}
+              recentOrders={statsData?.feeds.recent_orders ?? []}
+              loading={statsLoading}
+              error={statsError}
+            />
           </>
         )}
       </div>

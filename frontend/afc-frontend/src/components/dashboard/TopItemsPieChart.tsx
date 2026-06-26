@@ -46,7 +46,7 @@ export default function TopItemsPieChart({
   return (
     <div className="bg-white rounded-lg shadow p-6">
       <h2 className="text-sm font-semibold uppercase text-gray-700 mb-4">
-        Top 20 Items - Stock Distribution
+        Top Items - Stock Distribution
       </h2>
       <select
         className="select select-bordered select-sm w-full mb-4"
@@ -60,7 +60,7 @@ export default function TopItemsPieChart({
         <option value="ordered">Ordered</option>
       </select>
       <div className="text-sm font-semibold text-gray-700 mb-2 text-right">
-        TOP 20 ITEMS BY FIELD
+        TOP ITEMS BY FIELD
       </div>
       {loading ? (
         <div className="flex justify-center py-8">

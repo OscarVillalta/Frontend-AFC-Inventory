@@ -270,7 +270,7 @@ export default function OrderLifecycleCard({
     <div className="bg-gray-50 border border-gray-200 rounded-xl p-6 mt-4">
       {/* Header row */}
       <div className="flex items-center justify-between mb-5 gap-2 flex-wrap">
-        <h2 className="text-xl font-extrabold text-gray-900">Progress Tracker</h2>
+        <h2 className="text-lg sm:text-xl font-extrabold text-gray-900">Progress Tracker</h2>
         {allCompleted && (
           <span className="text-sm font-semibold text-green-700 bg-green-100 border border-green-300 px-3 py-1 rounded-full">
             ✓ Tracking Complete
@@ -282,7 +282,7 @@ export default function OrderLifecycleCard({
         <p className="text-sm text-red-500 mb-3">{toggleError}</p>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* ── Column 1: Vertical lifecycle tracker ── */}
         <div>
           {steps.map((step, i) => (

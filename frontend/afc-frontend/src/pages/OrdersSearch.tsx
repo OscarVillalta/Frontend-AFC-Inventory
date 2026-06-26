@@ -39,12 +39,14 @@ export default function OrdersSearchPage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showPullQBModal, setShowPullQBModal] = useState(false);
 
-  // Collapsible Advanced Filters sidebar
-  const LG_BREAKPOINT = 1200;
-  const [filtersOpen, setFiltersOpen] = useState(() => window.innerWidth >= LG_BREAKPOINT);
+  // Advanced Filters: inline sidebar at xl+, overlay below
+  const XL_BREAKPOINT = 1280;
+  const [filtersOpen, setFiltersOpen] = useState(() => window.innerWidth >= XL_BREAKPOINT);
 
   const handleResize = useCallback(() => {
-    setFiltersOpen(window.innerWidth >= LG_BREAKPOINT);
+    if (window.innerWidth >= XL_BREAKPOINT) {
+      setFiltersOpen(true);
+    }
   }, []);
 
   useEffect(() => {
@@ -244,18 +246,170 @@ export default function OrdersSearchPage() {
     });
   };
 
+  const advancedFiltersContent = (
+    <>
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-lg font-semibold text-gray-800">
+          Advanced Filters
+        </h2>
+        <button
+          className="btn btn-ghost btn-sm btn-square"
+          onClick={() => setFiltersOpen(false)}
+          title="Close filters"
+        >
+          ✕
+        </button>
+      </div>
+
+      <div className="mb-6">
+        <h3 className="text-sm font-medium text-gray-700 mb-3">
+          Date Range
+        </h3>
+        <div className="mb-3">
+          <div className="flex rounded-lg border border-gray-300 overflow-hidden">
+            <button
+              className={`flex-1 py-2 text-xs font-medium transition-colors ${
+                filters.dateFilterType === "created"
+                  ? "bg-primary text-white"
+                  : "bg-white text-gray-700 hover:bg-gray-50"
+              }`}
+              onClick={() => setFilter("dateFilterType", "created")}
+            >
+              Creation Date
+            </button>
+            <button
+              className={`flex-1 py-2 text-xs font-medium transition-colors ${
+                filters.dateFilterType === "completed"
+                  ? "bg-primary text-white"
+                  : "bg-white text-gray-700 hover:bg-gray-50"
+              }`}
+              onClick={() => setFilter("dateFilterType", "completed")}
+            >
+              Completion Date
+            </button>
+          </div>
+        </div>
+        <div className="flex gap-2 mb-4">
+          <button className="btn btn-sm btn-outline flex-1" onClick={() => setPresetDateRange('today')}>
+            Today
+          </button>
+          <button className="btn btn-sm btn-outline flex-1" onClick={() => setPresetDateRange('last7')}>
+            Last 7d
+          </button>
+          <button className="btn btn-sm btn-outline flex-1" onClick={() => setPresetDateRange('last30')}>
+            Last 30d
+          </button>
+        </div>
+        <div className="space-y-3">
+          <div>
+            <label className="block text-xs text-gray-600 mb-1">Start Date</label>
+            <input
+              type="date"
+              className="input input-bordered input-sm w-full"
+              value={filters.dateFrom}
+              onChange={(e) => setFilter("dateFrom", e.target.value)}
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-gray-600 mb-1">End Date</label>
+            <input
+              type="date"
+              className="input input-bordered input-sm w-full"
+              value={filters.dateTo}
+              onChange={(e) => setFilter("dateTo", e.target.value)}
+            />
+          </div>
+        </div>
+      </div>
+
+      <div className="mb-6">
+        <h3 className="text-sm font-medium text-gray-700 mb-3">
+          Products Included
+        </h3>
+        <input
+          type="text"
+          placeholder="Search products..."
+          className="input input-bordered input-sm w-full mb-3"
+          value={filters.productSearch}
+          onChange={(e) => setFilter("productSearch", e.target.value)}
+        />
+        {filters.selectedProducts.length > 0 && (
+          <div className="text-xs text-gray-600 mb-2">
+            {filters.selectedProducts.length} product{filters.selectedProducts.length !== 1 ? 's' : ''} selected
+          </div>
+        )}
+        <div className="max-h-48 overflow-y-auto border border-gray-200 rounded-lg">
+          {(() => {
+            const filteredProducts = availableProducts.filter((product) =>
+              filters.productSearch === "" ||
+              (product.part_number?.toLowerCase().includes(filters.productSearch.toLowerCase()) ?? false) ||
+              product.category.toLowerCase().includes(filters.productSearch.toLowerCase())
+            );
+            return filteredProducts.length > 0 ? (
+              filteredProducts.map((product) => (
+                <label
+                  key={product.id}
+                  className="flex items-center gap-2 p-2 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+                >
+                  <input
+                    type="checkbox"
+                    className="checkbox checkbox-sm checkbox-primary"
+                    checked={filters.selectedProducts.includes(product.id)}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setFilter("selectedProducts", [...filters.selectedProducts, product.id]);
+                      } else {
+                        setFilter("selectedProducts",
+                          filters.selectedProducts.filter((id) => id !== product.id)
+                        );
+                      }
+                    }}
+                  />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-xs font-medium text-gray-900 truncate">
+                      {product.part_number}
+                    </div>
+                    <div className="text-xs text-gray-500">{product.category}</div>
+                  </div>
+                </label>
+              ))
+            ) : (
+              <div className="p-4 text-xs text-gray-400 text-center">No products found</div>
+            );
+          })()}
+        </div>
+        {filters.selectedProducts.length > 0 && (
+          <button
+            className="btn btn-ghost btn-sm w-full mt-2"
+            onClick={() => setFilter("selectedProducts", [])}
+          >
+            Clear Selection
+          </button>
+        )}
+      </div>
+
+      <button
+        className="btn btn-primary btn-block"
+        onClick={() => handleSearch(1)}
+        disabled={loading}
+      >
+        Apply Filters
+      </button>
+    </>
+  );
+
   return (
     <MainLayout>
-      <div className="flex gap-6">
+      <div className="flex flex-col xl:flex-row gap-4 xl:gap-6 relative">
         {/* Main Content Area */}
         <div className="flex-1 min-w-0">
           {/* Header Search Controls */}
           <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-            <div className="flex items-center justify-between mb-6">
-              <h1 className="text-2xl font-bold text-gray-800">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
+              <h1 className="text-xl sm:text-2xl font-bold text-gray-800">
                 Search Orders
               </h1>
-              <div className="flex gap-3">
+              <div className="flex flex-wrap gap-2 w-full sm:w-auto">
                 {hasPermission("qb:pull_orders") && (
                 <button
                   className="
@@ -407,14 +561,13 @@ export default function OrdersSearchPage() {
 
           {/* Results Summary */}
           {searched && (
-            <div className="bg-white rounded-lg shadow-sm px-6 py-4 mb-4 flex justify-between items-center">
+            <div className="bg-white rounded-lg shadow-sm px-6 py-4 mb-4 flex flex-col sm:flex-row flex-wrap items-start sm:items-center gap-3">
               <div className="text-sm text-gray-600">
                 Found <span className="font-semibold text-gray-900">{totalResults}</span> result{totalResults !== 1 ? 's' : ''}
               </div>
               
-              {/* Pagination Controls in Center */}
               {totalResults > pageSize && (
-                <div className="flex gap-2">
+                <div className="flex gap-2 order-last sm:order-none sm:mx-auto">
                   <button
                     className="btn btn-sm btn-outline"
                     onClick={() => handleSearch(currentPage - 1)}
@@ -436,7 +589,7 @@ export default function OrdersSearchPage() {
               )}
               
               <button
-                className="btn btn-ghost btn-sm"
+                className="btn btn-ghost btn-sm self-start sm:self-auto sm:ml-auto"
                 onClick={handleClearSearch}
               >
                 Clear Search
@@ -453,12 +606,12 @@ export default function OrdersSearchPage() {
               </div>
             ) : results.length === 0 && searched ? (
               <div className="bg-white rounded-lg shadow-sm p-12 text-center">
-                <p className="text-gray-500 text-lg">No orders found</p>
+                <p className="text-gray-500 text-base sm:text-lg">No orders found</p>
                 <p className="text-gray-400 text-sm mt-2">Try adjusting your search criteria</p>
               </div>
             ) : results.length === 0 ? (
               <div className="bg-white rounded-lg shadow-sm p-12 text-center">
-                <p className="text-gray-500 text-lg">Start searching for orders</p>
+                <p className="text-gray-500 text-base sm:text-lg">Start searching for orders</p>
                 <p className="text-gray-400 text-sm mt-2">Use the search filters above to find orders</p>
               </div>
             ) : (
@@ -469,15 +622,15 @@ export default function OrdersSearchPage() {
                     className="bg-white rounded-lg shadow-sm hover:shadow-lg transition-shadow cursor-pointer p-5 border border-gray-100"
                     onClick={() => navigate(`/orders/${order.id}`)}
                   >
-                    <div className="flex items-start justify-between">
+                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
                       {/* Left section */}
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-2">
                           <h3 className="text-lg font-semibold text-gray-900">
                             Order #{order.id}
                           </h3>
                           {order.external_order_number && (
-                            <span className="px-3 py-1 rounded-full text-sm font-semibold bg-yellow-100 text-yellow-800 border border-yellow-300">
+                            <span className="px-3 py-1 rounded-full text-sm font-semibold bg-yellow-100 text-yellow-800 border border-yellow-300 truncate max-w-[200px] sm:max-w-none">
                               QB# {order.external_order_number}
                             </span>
                           )}
@@ -505,7 +658,7 @@ export default function OrdersSearchPage() {
                       </div>
 
                       {/* Right section */}
-                      <div className="text-right ml-4">
+                      <div className="sm:text-right self-start sm:self-auto flex-shrink-0">
                         <div
                           className={`inline-block px-3 py-1 rounded-full text-sm font-medium mb-2 ${
                             order.status === "Completed"
@@ -529,194 +682,27 @@ export default function OrdersSearchPage() {
           </div>
         </div>
 
-        {/* Right Sidebar - Advanced Filters */}
+        {/* Advanced Filters — desktop inline sidebar */}
         {filtersOpen && (
-        <div className="w-80 flex-shrink-0">
-          <div className="bg-white rounded-lg shadow-sm p-6 sticky top-0">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-lg font-semibold text-gray-800">
-                Advanced Filters
-              </h2>
-              <button
-                className="btn btn-ghost btn-sm btn-square"
-                onClick={() => setFiltersOpen(false)}
-                title="Close filters"
-              >
-                ✕
-              </button>
+          <div className="hidden xl:block w-80 flex-shrink-0">
+            <div className="bg-white rounded-lg shadow-sm p-6 sticky top-0">
+              {advancedFiltersContent}
             </div>
-
-            {/* Date Filters */}
-            <div className="mb-6">
-              <h3 className="text-sm font-medium text-gray-700 mb-3">
-                Date Range
-              </h3>
-              
-              {/* Date Filter Type Toggle */}
-              <div className="mb-3">
-                <div className="flex rounded-lg border border-gray-300 overflow-hidden">
-                  <button
-                    className={`flex-1 py-2 text-xs font-medium transition-colors ${
-                      filters.dateFilterType === "created"
-                        ? "bg-primary text-white"
-                        : "bg-white text-gray-700 hover:bg-gray-50"
-                    }`}
-                    onClick={() => setFilter("dateFilterType", "created")}
-                  >
-                    Creation Date
-                  </button>
-                  <button
-                    className={`flex-1 py-2 text-xs font-medium transition-colors ${
-                      filters.dateFilterType === "completed"
-                        ? "bg-primary text-white"
-                        : "bg-white text-gray-700 hover:bg-gray-50"
-                    }`}
-                    onClick={() => setFilter("dateFilterType", "completed")}
-                  >
-                    Completion Date
-                  </button>
-                </div>
-              </div>
-              
-              {/* Preset Buttons */}
-              <div className="flex gap-2 mb-4">
-                <button
-                  className="btn btn-sm btn-outline flex-1"
-                  onClick={() => setPresetDateRange('today')}
-                >
-                  Today
-                </button>
-                <button
-                  className="btn btn-sm btn-outline flex-1"
-                  onClick={() => setPresetDateRange('last7')}
-                >
-                  Last 7d
-                </button>
-                <button
-                  className="btn btn-sm btn-outline flex-1"
-                  onClick={() => setPresetDateRange('last30')}
-                >
-                  Last 30d
-                </button>
-              </div>
-
-              {/* Date Inputs */}
-              <div className="space-y-3">
-                <div>
-                  <label className="block text-xs text-gray-600 mb-1">
-                    Start Date
-                  </label>
-                  <input
-                    type="date"
-                    className="input input-bordered input-sm w-full"
-                    value={filters.dateFrom}
-                    onChange={(e) => setFilter("dateFrom", e.target.value)}
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs text-gray-600 mb-1">
-                    End Date
-                  </label>
-                  <input
-                    type="date"
-                    className="input input-bordered input-sm w-full"
-                    value={filters.dateTo}
-                    onChange={(e) => setFilter("dateTo", e.target.value)}
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Products Filter */}
-            <div className="mb-6">
-              <h3 className="text-sm font-medium text-gray-700 mb-3">
-                Products Included
-              </h3>
-              
-              {/* Product Search Input */}
-              <input
-                type="text"
-                placeholder="Search products..."
-                className="input input-bordered input-sm w-full mb-3"
-                value={filters.productSearch}
-                onChange={(e) => setFilter("productSearch", e.target.value)}
-              />
-              
-              {/* Selected Products Count */}
-              {filters.selectedProducts.length > 0 && (
-                <div className="text-xs text-gray-600 mb-2">
-                  {filters.selectedProducts.length} product{filters.selectedProducts.length !== 1 ? 's' : ''} selected
-                </div>
-              )}
-              
-              {/* Product List */}
-              <div className="max-h-48 overflow-y-auto border border-gray-200 rounded-lg">
-                {(() => {
-                  const filteredProducts = availableProducts.filter((product) =>
-                    filters.productSearch === "" ||
-                    (product.part_number?.toLowerCase().includes(filters.productSearch.toLowerCase()) ?? false) ||
-                    product.category.toLowerCase().includes(filters.productSearch.toLowerCase())
-                  );
-                  
-                  return filteredProducts.length > 0 ? (
-                    filteredProducts.map((product) => (
-                      <label
-                        key={product.id}
-                        className="flex items-center gap-2 p-2 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0"
-                      >
-                        <input
-                          type="checkbox"
-                          className="checkbox checkbox-sm checkbox-primary"
-                          checked={filters.selectedProducts.includes(product.id)}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setFilter("selectedProducts", [...filters.selectedProducts, product.id]);
-                            } else {
-                              setFilter("selectedProducts", 
-                                filters.selectedProducts.filter((id) => id !== product.id)
-                              );
-                            }
-                          }}
-                        />
-                        <div className="flex-1 min-w-0">
-                          <div className="text-xs font-medium text-gray-900 truncate">
-                            {product.part_number}
-                          </div>
-                          <div className="text-xs text-gray-500">
-                            {product.category}
-                          </div>
-                        </div>
-                      </label>
-                    ))
-                  ) : (
-                    <div className="p-4 text-xs text-gray-400 text-center">
-                      No products found
-                    </div>
-                  );
-                })()}
-              </div>
-              
-              {/* Clear Products Button */}
-              {filters.selectedProducts.length > 0 && (
-                <button
-                  className="btn btn-ghost btn-sm w-full mt-2"
-                  onClick={() => setFilter("selectedProducts", [])}
-                >
-                  Clear Selection
-                </button>
-              )}
-            </div>
-
-            {/* Apply Filters Button */}
-            <button
-              className="btn btn-primary btn-block"
-              onClick={() => handleSearch(1)}
-              disabled={loading}
-            >
-              Apply Filters
-            </button>
           </div>
-        </div>
+        )}
+
+        {/* Advanced Filters — mobile/tablet overlay */}
+        {filtersOpen && (
+          <>
+            <div
+              className="xl:hidden fixed inset-0 bg-black/50 z-40"
+              onClick={() => setFiltersOpen(false)}
+              aria-hidden="true"
+            />
+            <div className="xl:hidden fixed inset-y-0 right-0 z-50 w-full max-w-sm overflow-y-auto bg-white shadow-xl p-6">
+              {advancedFiltersContent}
+            </div>
+          </>
         )}
       </div>
 
