@@ -72,7 +72,7 @@ export default function CreateOrderModal({
 
     try {
       const response = await createOrder({
-        type,
+        type: type as "incoming" | "installation" | "will_call" | "delivery" | "shipment",
         customer_id: isOutgoingType(type) ? entityId : undefined,
         supplier_id: type === "incoming" ? entityId : undefined,
         eta: isoToDate(eta) || null,

@@ -721,9 +721,6 @@ export default function OrdersSearchPage() {
         onClose={() => setShowPullQBModal(false)}
         onCreated={(orderId?: number) => {
           setShowPullQBModal(false);
-          if (orderId) {
-            navigate(`/orders/${orderId}`);
-          }
         }}
       />
     </MainLayout>
