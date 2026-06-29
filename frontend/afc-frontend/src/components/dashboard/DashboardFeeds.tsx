@@ -44,22 +44,6 @@ export default function DashboardFeeds({
     );
   }
 
-  // #region agent log
-  if (recentTransactions.length > 0) {
-    const sample = recentTransactions.slice(0, 3).map((txn) => ({
-      id: txn.id,
-      order_id: txn.order_id,
-      order_number: txn.order_number,
-      external_order_number: txn.external_order_number,
-      product_id: txn.product_id,
-      product_name: txn.product_name,
-      showOrder: txn.order_id != null,
-      showProduct: txn.product_id != null && !!txn.product_name,
-    }));
-    fetch('http://127.0.0.1:7756/ingest/b534a512-8c61-4949-b370-9c3da92fffc9',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'495c74'},body:JSON.stringify({sessionId:'495c74',hypothesisId:'C,D',location:'DashboardFeeds.tsx:render',message:'feed render branch checks',data:{count:recentTransactions.length,sample},timestamp:Date.now()})}).catch(()=>{});
-  }
-  // #endregion
-
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
       <div className="bg-white rounded-lg shadow p-6">

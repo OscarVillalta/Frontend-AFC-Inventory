@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { createOrderFromQB } from "../../../api/ordersTable";
-import { syncCalendarForOrder } from "../../../api/calendar";
 import { OUTGOING_ORDER_TYPES, ORDER_TYPE_LABELS } from "../../../constants/orderTypes";
 
 interface Props {
@@ -61,9 +60,6 @@ export default function PullFromQBModal({ open, onClose, onCreated }: Props) {
       });
 
       const orderId = response.order_id;
-      if (orderId) {
-        syncCalendarForOrder(orderId).catch(() => {});
-      }
       onCreated(orderId);
       handleClose();
     } catch (err: unknown) {

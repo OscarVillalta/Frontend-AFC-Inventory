@@ -24,13 +24,19 @@ export async function apiRequest(endpoint: string, options: RequestInit = {}) {
   });
 
   if (!res.ok) {
-    if (res.status === 401) {
+    const message = await res.text();
+    const isAuthFailure =
+      res.status === 401 ||
+      (res.status === 422 &&
+        /signature verification failed|invalid token|token has expired|not enough segments|missing authorization/i.test(
+          message
+        ));
+    if (isAuthFailure) {
       localStorage.removeItem(AUTH_TOKEN_KEY);
       localStorage.removeItem("user_email");
       localStorage.removeItem("user_permissions");
       window.location.href = "/signin";
     }
-    const message = await res.text();
     throw new Error(message || "API request failed");
   }
 
