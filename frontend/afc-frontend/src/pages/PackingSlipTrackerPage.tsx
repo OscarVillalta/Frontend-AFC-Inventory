@@ -1066,6 +1066,14 @@ export default function PackingSlipTrackerPage() {
               Track shipment progress through each checkpoint
             </p>
           </div>
+          <a
+            href="https://calendar.google.com/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center rounded-lg border border-blue-200 px-3 py-2 text-sm font-medium text-blue-700 hover:bg-blue-50"
+          >
+            Open Calendar
+          </a>
         </div>
 
         {/* ── Global Filter Bar (Inventory.tsx style) ─── */}

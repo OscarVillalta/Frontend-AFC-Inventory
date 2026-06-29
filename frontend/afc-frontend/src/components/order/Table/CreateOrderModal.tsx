@@ -4,6 +4,7 @@ import type { Supplier } from "../../../api/suppliers";
 import { fetchCustomers } from "../../../api/customers";
 import { fetchSuppliers } from "../../../api/suppliers";
 import { createOrder } from "../../../api/ordersTable";
+import { syncCalendarForOrder } from "../../../api/calendar";
 import type { OrderType } from "../../../constants/orderTypes";
 import { ALL_ORDER_TYPES, ORDER_TYPE_LABELS, isOutgoingType } from "../../../constants/orderTypes";
 
@@ -80,6 +81,9 @@ export default function CreateOrderModal({
       });
 
       const order_id = response.id;
+      if (order_id && isoToDate(eta)) {
+        syncCalendarForOrder(order_id).catch(() => {});
+      }
 
       onCreated(order_id);
       onClose();
