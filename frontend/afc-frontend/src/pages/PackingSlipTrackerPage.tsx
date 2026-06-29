@@ -28,6 +28,7 @@ import {
   TRACKER_DEPARTMENT_FILTER_OPTIONS,
 } from "../utils/trackerSteps";
 import { toggleTrackerStep } from "../utils/toggleTrackerStep";
+import { maybeSyncCalendarOnTrackerComplete } from "../utils/syncCalendarOnTrackerCompleted";
 
 // ─────────────────────────────────────────────
 // Types
@@ -895,6 +896,8 @@ export default function PackingSlipTrackerPage() {
       prev.map((row) => {
         if (row.id !== orderId) return row;
 
+        const wasCompleted = row.trackerStatus === "Completed";
+
         // Update the stages array
         const existingIndex = row.stages.findIndex((s) => s.stage_index === updatedStage.stage_index);
         const newStages = existingIndex >= 0
@@ -956,6 +959,25 @@ export default function PackingSlipTrackerPage() {
         const lastUpdated = latest?.completed_at
           ? new Date(latest.completed_at).toLocaleDateString()
           : row.lastUpdated;
+
+        const isNowCompleted = completedCount >= totalSteps;
+        if (!wasCompleted && isNowCompleted && updatedStage.is_completed) {
+          void maybeSyncCalendarOnTrackerComplete(
+            {
+              orderId: row.id,
+              orderNumber: row.packingSlipNo,
+              externalOrderNumber: row.externalOrderNumber,
+              type: row.type,
+              status: row.status,
+              description: row.notes,
+            },
+            row.type,
+            row.stages,
+            updatedStage,
+          ).catch((err) => {
+            console.error("Failed to sync calendar after tracker completion:", err);
+          });
+        }
 
         return {
           ...row,

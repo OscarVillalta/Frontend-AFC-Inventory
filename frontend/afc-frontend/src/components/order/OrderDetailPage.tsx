@@ -27,8 +27,9 @@ import {
 } from "../../api/orderDetail";
 
 import { fetchOrderTracking } from "../../api/tracker";
-import type { OrderWithTracking } from "../../api/tracker";
+import type { OrderTrackerStagePayload, OrderWithTracking } from "../../api/tracker";
 import OrderLifecycleCard from "./OrderLifecycleCard";
+import { maybeSyncCalendarOnTrackerComplete } from "../../utils/syncCalendarOnTrackerCompleted";
 
 import { useWarehouse } from "../../hooks/useWarehouse";
 import { useAuth } from "../../hooks/useAuth";
@@ -235,6 +236,28 @@ export default function OrderDetailPage() {
 
     // 🔑 force ALL OrderItemRow txns to reload
     setTxnRefreshKey((k) => k + 1);
+  }
+
+  async function handleTrackerStageToggled(updatedStage: OrderTrackerStagePayload) {
+    if (!order || !trackingData) return;
+
+    try {
+      await maybeSyncCalendarOnTrackerComplete(
+        {
+          orderId: order.id,
+          orderNumber: order.order_number,
+          externalOrderNumber: order.external_order_number,
+          type: order.type,
+          status: order.status,
+          description: order.description,
+        },
+        order.type,
+        trackingData.stages,
+        updatedStage,
+      );
+    } catch (err) {
+      console.error("Failed to sync calendar after tracker completion:", err);
+    }
   }
 
   /* ===================== FETCH ORDER ===================== */
@@ -619,6 +642,7 @@ export default function OrderDetailPage() {
                 orderId={order.id}
                 orderType={order.type}
                 onRefresh={refreshOrder}
+                onTrackerStageToggled={handleTrackerStageToggled}
               />
 
               <div className="flex flex-wrap justify-end pt-2 gap-2 items-center">
