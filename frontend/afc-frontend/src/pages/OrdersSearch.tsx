@@ -712,10 +712,6 @@ export default function OrdersSearchPage() {
         onClose={() => setShowCreateModal(false)}
         onCreated={(orderId?: number) => {
           setShowCreateModal(false);
-          // If backend returns ID → go straight to detail
-          if (orderId) {
-            navigate(`/orders/${orderId}`);
-          }
         }}
       />
 

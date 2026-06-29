@@ -1,55 +1,17 @@
 import { useState } from "react";
-import type { OrderWithTracking, Department, OrderTrackerStagePayload } from "../../api/tracker";
-import { toggleTrackerStage, initOrderTracker } from "../../api/tracker";
-
-// ─────────────────────────────────────────────
-// Tracker step-path definitions (per order type)
-// ─────────────────────────────────────────────
-
-/** 6-step path for Installation orders. */
-const INSTALLATION_STEPS: { dept: Department; label: string }[] = [
-  { dept: "SALES",         label: "Sales" },
-  { dept: "LOGISTICS",     label: "Logistics" },
-  { dept: "DELIVERY_DEPT", label: "Delivery" },
-  { dept: "SERVICE",       label: "Service" },
-  { dept: "SALES",         label: "Sales II" },
-  { dept: "LOGISTICS",     label: "Logistics II" },
-];
-
-/** 4-step path for Will Call, Delivery, and Shipment orders. */
-const WILL_CALL_STEPS: { dept: Department; label: string }[] = [
-  { dept: "SALES",         label: "Sales" },
-  { dept: "LOGISTICS",     label: "Logistics" },
-  { dept: "DELIVERY_DEPT", label: "Delivery" },
-  { dept: "LOGISTICS",     label: "Logistics II" },
-];
-
-/** 3-step path for Purchase Order (incoming) orders. */
-const PURCHASE_ORDER_STEPS: { dept: Department; label: string }[] = [
-  { dept: "LOGISTICS",     label: "Logistics" },
-  { dept: "DELIVERY_DEPT", label: "Delivery" },
-  { dept: "LOGISTICS",     label: "Logistics II" },
-];
-
-function getTrackerSteps(orderType: string): { dept: Department; label: string }[] {
-  const t = orderType?.toLowerCase();
-  if (t === "installation") return INSTALLATION_STEPS;
-  if (t === "incoming") return PURCHASE_ORDER_STEPS;
-  return WILL_CALL_STEPS;
-}
-
-// ─────────────────────────────────────────────
-// Types
-// ─────────────────────────────────────────────
+import type { OrderWithTracking, OrderTrackerStagePayload } from "../../api/tracker";
+import { useAuth } from "../../hooks/useAuth";
+import {
+  getStepsTemplate,
+  getActionableStepIndex,
+  getInlineStepAction,
+} from "../../utils/trackerSteps";
+import { toggleTrackerStep } from "../../utils/toggleTrackerStep";
 
 interface Props {
   trackingData: OrderWithTracking | null;
   onRefresh: () => void;
 }
-
-// ─────────────────────────────────────────────
-// Step circle indicator (clickable)
-// ─────────────────────────────────────────────
 
 function StepCircle({
   isCompleted,
@@ -58,9 +20,10 @@ function StepCircle({
 }: {
   isCompleted: boolean;
   saving: boolean;
-  onClick: () => void;
+  onClick?: () => void;
 }) {
-  const base = "w-8 h-8 rounded-full flex items-center justify-center text-white text-xs shrink-0 transition-all cursor-pointer select-none";
+  const base = "w-8 h-8 rounded-full flex items-center justify-center text-white text-xs shrink-0 transition-all select-none";
+  const interactive = onClick ? "cursor-pointer" : "cursor-default";
   if (saving)
     return (
       <div className={`${base} bg-gray-300 animate-pulse`} title="Saving…">
@@ -70,72 +33,70 @@ function StepCircle({
   if (isCompleted)
     return (
       <div
-        className={`${base} bg-green-500 hover:bg-green-600 shadow-sm`}
+        className={`${base} ${interactive} bg-green-500 ${onClick ? "hover:bg-green-600" : ""} shadow-sm`}
         onClick={onClick}
-        title="Click to mark incomplete"
-        role="button"
-        tabIndex={0}
-        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onClick(); }}
+        title={onClick ? "Click to mark incomplete" : undefined}
+        role={onClick ? "button" : undefined}
+        tabIndex={onClick ? 0 : undefined}
+        onKeyDown={onClick ? (e) => { if (e.key === "Enter" || e.key === " ") onClick(); } : undefined}
       >
         ✓
       </div>
     );
   return (
     <div
-      className={`${base} bg-gray-200 hover:bg-blue-400 hover:text-white text-gray-400`}
+      className={`${base} ${interactive} bg-gray-200 ${onClick ? "hover:bg-blue-400 hover:text-white" : ""} text-gray-400`}
       onClick={onClick}
-      title="Click to mark complete"
-      role="button"
-      tabIndex={0}
-      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onClick(); }}
+      title={onClick ? "Click to mark complete" : undefined}
+      role={onClick ? "button" : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onKeyDown={onClick ? (e) => { if (e.key === "Enter" || e.key === " ") onClick(); } : undefined}
     >
       ○
     </div>
   );
 }
 
-// ─────────────────────────────────────────────
-// Main component
-// ─────────────────────────────────────────────
-
 export default function OrderTrackerControl({ trackingData, onRefresh }: Props) {
+  const { hasPermission, user } = useAuth();
   const [savingIndex, setSavingIndex] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   if (!trackingData) return null;
 
   const orderId = trackingData.order.id;
+  const orderType = trackingData.order.type ?? "";
   const stages = trackingData.stages ?? [];
-  const TRACKER_STEPS = getTrackerSteps(trackingData.order.type ?? "");
+  const TRACKER_STEPS = getStepsTemplate(orderType);
 
-  // Build a lookup map: stage_index → stage record
   const stageMap = new Map<number, OrderTrackerStagePayload>(
     stages.map((s) => [s.stage_index, s])
   );
 
   const allCompleted = TRACKER_STEPS.every((_, i) => stageMap.get(i)?.is_completed);
+  const actionableStepIndex = getActionableStepIndex(orderType, stages, hasPermission);
+  const inlineAction = getInlineStepAction(orderType, stages, hasPermission);
 
   async function handleToggle(index: number) {
-    if (!orderId || savingIndex !== null) return;
+    if (!orderId || savingIndex !== null || actionableStepIndex !== index || !inlineAction) return;
     setSavingIndex(index);
     setError(null);
     try {
-      const currentStage = stageMap.get(index);
-      const newCompleted = !(currentStage?.is_completed ?? false);
-
-      // Ensure tracker exists before toggling stages
-      if (!trackingData!.tracker) {
-        await initOrderTracker(orderId, {
-          current_department: TRACKER_STEPS[0].dept,
-          step_index: 0,
-        });
-      }
-
-      await toggleTrackerStage(orderId, index, { is_completed: newCompleted });
+      const isCompleted = inlineAction.kind === "complete";
+      await toggleTrackerStep({
+        orderId,
+        orderType,
+        stages,
+        tracker: trackingData!.tracker,
+        stageIndex: index,
+        isCompleted,
+        userEmail: user?.email,
+        hasPermission,
+      });
       onRefresh();
     } catch (err) {
       console.error("Failed to toggle stage:", err);
-      setError("Failed to update stage. Please try again.");
+      setError(err instanceof Error ? err.message : "Failed to update stage. Please try again.");
     } finally {
       setSavingIndex(null);
     }
@@ -143,7 +104,6 @@ export default function OrderTrackerControl({ trackingData, onRefresh }: Props) 
 
   return (
     <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
-      {/* Header row */}
       <div className="flex items-center justify-between mb-3 gap-2 flex-wrap">
         <h2 className="text-sm font-semibold text-slate-700">Order Tracker</h2>
         {allCompleted && (
@@ -157,7 +117,6 @@ export default function OrderTrackerControl({ trackingData, onRefresh }: Props) 
         <p className="text-xs text-red-500 mb-2">{error}</p>
       )}
 
-      {/* Step progression */}
       <div className="overflow-x-auto">
         <div className="flex items-start gap-0 min-w-max">
           {TRACKER_STEPS.map((step, i) => {
@@ -174,12 +133,11 @@ export default function OrderTrackerControl({ trackingData, onRefresh }: Props) 
 
             return (
               <div key={`${step.dept}-${i}`} className="flex items-start">
-                {/* Step column */}
                 <div className="flex flex-col items-center w-28">
                   <StepCircle
                     isCompleted={isCompleted}
                     saving={saving}
-                    onClick={() => handleToggle(i)}
+                    onClick={actionableStepIndex === i ? () => handleToggle(i) : undefined}
                   />
                   <span className="text-xs font-medium text-gray-700 mt-1 text-center leading-tight">
                     {step.label}
@@ -195,7 +153,6 @@ export default function OrderTrackerControl({ trackingData, onRefresh }: Props) 
                     </span>
                   )}
                 </div>
-                {/* Connector */}
                 {i < TRACKER_STEPS.length - 1 && (
                   <div
                     className={`w-6 h-0.5 mt-3.5 shrink-0 ${

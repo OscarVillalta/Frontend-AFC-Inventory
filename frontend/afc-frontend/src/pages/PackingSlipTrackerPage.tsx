@@ -4,7 +4,6 @@ import { Link } from "react-router-dom";
 import MainLayout from "../layouts/MainLayout";
 import {
   fetchPackingSlips,
-  toggleTrackerStage,
   initOrderTracker,
   updateOrderTracker,
   patchOrderPaidInvoiced,
@@ -14,59 +13,21 @@ import {
   type OrderHistoryPayload,
   type OrderTrackerStagePayload,
   type TrackerFilters,
-  type PackingSlipsResponse,
 } from "../api/tracker";
 import DateSelection from "../components/DateSelection";
 import { ORDER_TYPE_LABELS } from "../constants/orderTypes";
 import { useWarehouse } from "../hooks/useWarehouse";
 import { useAuth } from "../hooks/useAuth";
 import { usePersistedFilters } from "../hooks/usePersistedFilters";
-
-// ─────────────────────────────────────────────
-// Tracker step-path definitions (one per order type group)
-// ─────────────────────────────────────────────
-
-/** 6-step path used exclusively for Installation orders. */
-const INSTALLATION_STEPS: { dept: Department; label: string; occurrence: number }[] = [
-  { dept: "SALES",         label: "Sales",         occurrence: 0 },
-  { dept: "LOGISTICS",     label: "Logistics",     occurrence: 0 },
-  { dept: "DELIVERY_DEPT", label: "Delivery",      occurrence: 0 },
-  { dept: "SERVICE",       label: "Service",       occurrence: 0 },
-  { dept: "SALES",         label: "Sales II",      occurrence: 1 },
-  { dept: "LOGISTICS",     label: "Logistics II",  occurrence: 1 },
-];
-
-/** 4-step path used for Will Call, Delivery, and Shipment orders. */
-const WILL_CALL_STEPS: { dept: Department; label: string }[] = [
-  { dept: "SALES",         label: "Sales" },
-  { dept: "LOGISTICS",     label: "Logistics" },
-  { dept: "DELIVERY_DEPT", label: "Delivery" },
-  { dept: "LOGISTICS",     label: "Logistics II" },
-];
-
-/** 3-step path used for Purchase Order (incoming) orders. */
-const PURCHASE_ORDER_STEPS: { dept: Department; label: string }[] = [
-  { dept: "LOGISTICS",     label: "Logistics" },
-  { dept: "DELIVERY_DEPT", label: "Delivery" },
-  { dept: "LOGISTICS",     label: "Logistics II" },
-];
-
-/** Permissiones required for each Department */
-const DEPARTMENT_PERMISSION: Record<Department,string> = {
-  "SALES": "tracker:update_sales",
-  "LOGISTICS": "tracker:update_logistics",
-  "DELIVERY_DEPT": "tracker:update_delivery",
-  "SERVICE": "tracker:update_service",
-  "ACCOUNTING": "tracker:update_accounting"
-};
-
-/** Returns the correct step template for the given order type string. */
-function getStepsTemplate(orderType: string): { dept: Department; label: string }[] {
-  const t = orderType?.toLowerCase();
-  if (t === "installation") return INSTALLATION_STEPS;
-  if (t === "incoming") return PURCHASE_ORDER_STEPS;
-  return WILL_CALL_STEPS; // will_call, delivery, shipment
-}
+import {
+  getStepsTemplate,
+  getInlineStepAction,
+  getActionableStepIndex,
+  getFirstIncompleteIndex,
+  TRACKER_UPDATE_ANY,
+  TRACKER_DEPARTMENT_FILTER_OPTIONS,
+} from "../utils/trackerSteps";
+import { toggleTrackerStep } from "../utils/toggleTrackerStep";
 
 // ─────────────────────────────────────────────
 // Types
@@ -195,18 +156,11 @@ function toPackingSlipRow(r: PackingSlipResult): PackingSlipRow {
 
 export function buildSteps(row: PackingSlipRow): Step[] {
   const stepsTemplate = getStepsTemplate(row.type ?? "");
-  const isInstallation = row.type?.toLowerCase() === "installation";
-
-  // Build a map from stage_index → stage record
   const stageMap = new Map<number, OrderTrackerStagePayload>(
     (row.stages ?? []).map((s) => [s.stage_index, s])
   );
 
   return stepsTemplate.map((d, i) => {
-    const wantedOccurrence = isInstallation
-      ? (d as typeof INSTALLATION_STEPS[0]).occurrence
-      : 0;
-
     const stage = stageMap.get(i);
     const isCompleted = stage?.is_completed ?? false;
 
@@ -219,7 +173,7 @@ export function buildSteps(row: PackingSlipRow): Step[] {
     const performedBy = stage?.completed_by ?? "";
 
     return {
-      key: `${d.dept}-${wantedOccurrence}-${i}`,
+      key: `${d.dept}-${i}`,
       label: d.label,
       dept: d.dept,
       index: i,
@@ -363,22 +317,27 @@ function ProgressStepper({
   steps,
   onToggleStep,
   savingIndex,
+  actionableStepIndex,
 }: {
   steps: Step[];
   onToggleStep?: (index: number) => void;
   savingIndex?: number | null;
+  actionableStepIndex?: number | null;
 }) {
   return (
     <div className="overflow-x-auto">
       <div className="flex items-start gap-0 min-w-max">
         {steps.map((step, i) => (
           <div key={step.key} className="flex items-start">
-            {/* Step */}
             <div className="flex flex-col items-center w-32">
               <StepCircle
                 isCompleted={step.isCompleted}
                 saving={savingIndex === step.index}
-                onClick={onToggleStep ? () => onToggleStep(step.index) : undefined}
+                onClick={
+                  onToggleStep && actionableStepIndex === step.index
+                    ? () => onToggleStep(step.index)
+                    : undefined
+                }
               />
               <span className="text-xs font-semibold text-gray-700 mt-1 text-center">
                 {step.label}
@@ -406,6 +365,79 @@ function ProgressStepper({
           </div>
         ))}
       </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────
+// QuickStepAction — inline complete/undo without expanding row
+// ─────────────────────────────────────────────
+
+function QuickStepAction({
+  row,
+  saving,
+  onSavingChange,
+  onStagesUpdate,
+}: {
+  row: PackingSlipRow;
+  saving: boolean;
+  onSavingChange: (orderId: number | null) => void;
+  onStagesUpdate: (orderId: number, updatedStage: OrderTrackerStagePayload) => void;
+}) {
+  const { hasPermission, user } = useAuth();
+  const [error, setError] = useState<string | null>(null);
+
+  const action = getInlineStepAction(row.type, row.stages ?? [], hasPermission, {
+    isVoid: row.type?.toLowerCase() === "void",
+  });
+
+  if (!action) return null;
+
+  const handleClick = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (saving) return;
+    onSavingChange(row.id);
+    setError(null);
+    try {
+      const isCompleted = action.kind === "complete";
+      const updated = await toggleTrackerStep({
+        orderId: row.id,
+        orderType: row.type,
+        stages: row.stages ?? [],
+        tracker: row.tracker,
+        stageIndex: action.stageIndex,
+        isCompleted,
+        userEmail: user?.email,
+        hasPermission,
+      });
+      onStagesUpdate(row.id, updated);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to update step.");
+    } finally {
+      onSavingChange(null);
+    }
+  };
+
+  const label =
+    action.kind === "complete"
+      ? `Complete ${action.label}`
+      : `Undo ${action.label}`;
+
+  return (
+    <div className="flex flex-col gap-0.5">
+      <button
+        type="button"
+        disabled={saving}
+        onClick={handleClick}
+        className={`px-2 py-0.5 rounded-md text-[10px] font-semibold transition-all border whitespace-nowrap ${
+          action.kind === "complete"
+            ? "bg-blue-600 text-white border-blue-600 hover:bg-blue-700"
+            : "bg-white text-gray-600 border-gray-300 hover:bg-gray-50"
+        } disabled:opacity-50`}
+      >
+        {saving ? "…" : label}
+      </button>
+      {error && <span className="text-[10px] text-red-600 max-w-[140px]">{error}</span>}
     </div>
   );
 }
@@ -523,38 +555,38 @@ function ExpandedPanel({
   onStagesUpdate: (orderId: number, updatedStage: OrderTrackerStagePayload) => void;
   onBackorderedUpdate: (orderId: number, isBackordered: boolean) => void;
 }) {
-  const { hasPermission } = useAuth();
-  const canToggleBackorder = hasPermission("tracker:set_backordered") || hasPermission("tracker:update_any");
+  const { hasPermission, user } = useAuth();
+  const canToggleBackorder = hasPermission("tracker:set_backordered") || hasPermission(TRACKER_UPDATE_ANY);
   const [savingIndex, setSavingIndex] = useState<number | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [savingBackordered, setSavingBackordered] = useState(false);
   const steps = buildSteps(row);
+  const actionableStepIndex = getActionableStepIndex(
+    row.type,
+    row.stages ?? [],
+    hasPermission,
+    { isVoid: row.type?.toLowerCase() === "void" }
+  );
+  const inlineAction = getInlineStepAction(row.type, row.stages ?? [], hasPermission, {
+    isVoid: row.type?.toLowerCase() === "void",
+  });
 
   const handleToggleStep = async (index: number) => {
+    if (actionableStepIndex !== index || !inlineAction) return;
     setSavingIndex(index);
     setSaveError(null);
     try {
-      // Ensure tracker exists
-      if (!row.tracker) {
-        const template = getStepsTemplate(row.type ?? "");
-        const firstDept = template[0].dept;
-        await initOrderTracker(row.id, {
-          current_department: firstDept,
-          step_index: 0,
-        });
-      }
-
-      const stepsTemplate = getStepsTemplate(row.type ?? "")
-      const targetDept = stepsTemplate[index].dept;
-      const requiredPermission = DEPARTMENT_PERMISSION[targetDept];
-
-      if (!hasPermission(requiredPermission) && !hasPermission('tracker:update_any')) {
-        throw new Error('You do not have the permissions to complete this department\'s step.');
-      }
-
-      const currentStage = (row.stages ?? []).find((s) => s.stage_index === index);
-      const newCompleted = !(currentStage?.is_completed ?? false);
-      const updated = await toggleTrackerStage(row.id, index, { is_completed: newCompleted });
+      const isCompleted = inlineAction.kind === "complete";
+      const updated = await toggleTrackerStep({
+        orderId: row.id,
+        orderType: row.type,
+        stages: row.stages ?? [],
+        tracker: row.tracker,
+        stageIndex: index,
+        isCompleted,
+        userEmail: user?.email,
+        hasPermission,
+      });
       onStagesUpdate(row.id, updated);
     } catch (err) {
       setSaveError(err instanceof Error ? err.message : "Failed to update step.");
@@ -642,8 +674,9 @@ function ExpandedPanel({
 
               <ProgressStepper
                 steps={steps}
-                onToggleStep={handleToggleStep}
+                onToggleStep={actionableStepIndex !== null ? handleToggleStep : undefined}
                 savingIndex={savingIndex}
+                actionableStepIndex={actionableStepIndex}
               />
 
               {saveError && (
@@ -794,6 +827,7 @@ export default function PackingSlipTrackerPage() {
 
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [expandedId, setExpandedId] = useState<number | null>(null);
+  const [savingStepOrderId, setSavingStepOrderId] = useState<number | null>(null);
 
   const [rows, setRows] = useState<PackingSlipRow[]>([]);
   const [total, setTotal] = useState(0);
@@ -802,7 +836,6 @@ export default function PackingSlipTrackerPage() {
   const [fetchError, setFetchError] = useState<string | null>(null);
 
   /* ── Additional filter state ── */
-  const [filterDepartment, setFilterDepartment] = useState("");
   const [filterStockState, setFilterStockState] = useState("");
 
   // === FILTER STATES (PERSISTED) ===
@@ -811,6 +844,7 @@ export default function PackingSlipTrackerPage() {
     limit: 50,
     search: "",
     tracker_status: "",
+    tracker_department: "",
     order_type: "",
     start_date: "",
     end_date: "",
@@ -842,7 +876,7 @@ export default function PackingSlipTrackerPage() {
 
   useEffect(() => {
     loadData();
-  }, [filters.page, filters.limit, filters.end_date, filters.updated_end_date, filters.updated_start_date, filters.order_type, filters.search, filters.start_date, filters.tracker_status, activeWarehouseId]);
+  }, [filters.page, filters.limit, filters.end_date, filters.updated_end_date, filters.updated_start_date, filters.order_type, filters.search, filters.start_date, filters.tracker_status, filters.tracker_department, activeWarehouseId]);
 
   // Reset page when search or tab changes
   const handleSearch = (v: string) => {
@@ -872,7 +906,32 @@ export default function PackingSlipTrackerPage() {
         const completedCount = newStages.filter((s) => s.is_completed).length;
 
         // Clear backordered when a stage is toggled (mirrors backend behaviour)
-        const newTracker = row.tracker ? { ...row.tracker, is_backordered: false } : row.tracker;
+        const firstIncompleteIdx = getFirstIncompleteIndex(newStages, row.type ?? "");
+        let newTracker = row.tracker
+          ? { ...row.tracker, is_backordered: false }
+          : null;
+
+        if (firstIncompleteIdx >= 0) {
+          const dept = stepsTemplate[firstIncompleteIdx].dept;
+          newTracker = {
+            ...(newTracker ?? {
+              id: 0,
+              order_id: row.id,
+              is_backordered: false,
+              updated_at: new Date().toISOString(),
+            }),
+            current_department: dept,
+            step_index: firstIncompleteIdx,
+            is_backordered: false,
+          };
+        } else if (newTracker && totalSteps > 0) {
+          newTracker = {
+            ...newTracker,
+            current_department: stepsTemplate[totalSteps - 1].dept,
+            step_index: totalSteps - 1,
+            is_backordered: false,
+          };
+        }
 
         let trackerStatus: string;
         let trackerDept: string;
@@ -966,20 +1025,24 @@ export default function PackingSlipTrackerPage() {
     (statusCounts["Completed"] ?? 0) +
     (statusCounts["Backordered"] ?? 0);
 
-  /* ── Client-side filtering for department and stock state (not sent to server) ── */
+  /* ── Client-side filtering for stock state (not sent to server) ── */
   const filteredRows = rows.filter((row) => {
-    if (filterDepartment && row.tracker?.current_department !== filterDepartment) return false;
     if (filterStockState && row.stockState !== filterStockState) return false;
     return true;
   });
 
   const hasActiveFilters =
-    filters.order_type !== "" || filterDepartment !== "" || filterStockState !== "" || filters.search !== "" || filters.tracker_status !== "All";
+    filters.order_type !== "" ||
+    filterStockState !== "" ||
+    filters.search !== "" ||
+    (filters.tracker_status !== "" && filters.tracker_status !== "All") ||
+    filters.tracker_department !== "";
 
   const handleClearFilters = () => {
     setFilter("order_type", "");
     setFilter("search", "");
-    setFilter("tracker_status", "All");
+    setFilter("tracker_status", "");
+    setFilter("tracker_department", "");
   };
 
   const STATUS_TABS: FilterTab[] = ["All", "Not Started", "In Progress", "Completed", "Backordered"];
@@ -1045,36 +1108,23 @@ export default function PackingSlipTrackerPage() {
             </select>
           </div>
 
-          {/* Tracker State */}
+          {/* Tracker State (department) */}
           <div className="flex flex-col gap-0.5 min-w-[140px]">
             <label className="text-xs text-gray-400 font-medium uppercase tracking-wide">Tracker State</label>
             <select
               className="border border-gray-200 rounded-lg px-2 py-1.5 text-sm text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-400"
-              value={filters.tracker_status}
-              onChange={(e) => { setFilter("tracker_status", e.target.value); }}
+              value={filters.tracker_department}
+              onChange={(e) => {
+                setFilter("tracker_department", e.target.value);
+                setFilter("page", 1);
+              }}
             >
-              <option value="All">All States</option>
-              <option value="Not Started">Not Started</option>
-              <option value="In Progress">In Progress</option>
-              <option value="Completed">Completed</option>
-              <option value="Backordered">Backordered</option>
-            </select>
-          </div>
-
-          {/* Department */}
-          <div className="flex flex-col gap-0.5 min-w-[140px]">
-            <label className="text-xs text-gray-400 font-medium uppercase tracking-wide">Department</label>
-            <select
-              className="border border-gray-200 rounded-lg px-2 py-1.5 text-sm text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-400"
-              value={filterDepartment}
-              onChange={(e) => { setFilterDepartment(e.target.value); setFilter("page", 1); }}
-            >
-              <option value="">All Departments</option>
-              <option value="SALES">Sales</option>
-              <option value="LOGISTICS">Logistics</option>
-              <option value="DELIVERY_DEPT">Delivery</option>
-              <option value="SERVICE">Service</option>
-              <option value="ACCOUNTING">Accounting</option>
+              <option value="">All States</option>
+              {TRACKER_DEPARTMENT_FILTER_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
             </select>
           </div>
 
@@ -1288,10 +1338,18 @@ export default function PackingSlipTrackerPage() {
                         </td>
                         {/* Tracker Status */}
                         <td className="px-3 py-1.5 border-b border-slate-200/60 border-r border-slate-200/50">
-                          <TrackerStatusBadge
-                            status={row.trackerStatus}
-                            deptLabel={row.trackerDept}
-                          />
+                          <div className="flex flex-col gap-1 items-start">
+                            <TrackerStatusBadge
+                              status={row.trackerStatus}
+                              deptLabel={row.trackerDept}
+                            />
+                            <QuickStepAction
+                              row={row}
+                              saving={savingStepOrderId === row.id}
+                              onSavingChange={setSavingStepOrderId}
+                              onStagesUpdate={handleStagesUpdate}
+                            />
+                          </div>
                         </td>
                         <td className="px-3 py-1.5 border-b border-slate-200/60 border-r border-slate-200/50 text-slate-700 font-medium">
                           {row.lastUpdated}

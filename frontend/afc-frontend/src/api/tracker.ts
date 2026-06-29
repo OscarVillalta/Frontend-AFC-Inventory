@@ -85,6 +85,7 @@ export interface TrackerFilters{
   limit?: number;
   search?: string;
   tracker_status?: string;
+  tracker_department?: string;
   order_type?: string;
   // Created date filters
   start_date?: string;
@@ -125,7 +126,7 @@ export function updateOrderTracker(
 export function toggleTrackerStage(
   orderId: number | string,
   stageIndex: number,
-  payload: { is_completed: boolean; completed_by?: string }
+  payload: { is_completed: boolean; completed_by?: string; department?: Department }
 ) {
   return apiRequest(`/orders/${orderId}/tracker/stages/${stageIndex}`, {
     method: "PATCH",
@@ -165,6 +166,7 @@ export function fetchPackingSlips(filters?: TrackerFilters): Promise<PackingSlip
   if (filters?.limit) query.set("limit", String(filters?.limit));
   if (filters?.search) query.set("search", filters?.search);
   if (filters?.tracker_status) query.set("tracker_status", filters?.tracker_status);
+  if (filters?.tracker_department) query.set("tracker_department", filters?.tracker_department);
   if (filters?.order_type) query.set("order_type", filters?.order_type);
   // Created date filters
   if (filters?.start_date) query.set("start_date", filters?.start_date);

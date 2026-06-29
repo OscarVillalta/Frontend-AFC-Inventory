@@ -1,52 +1,14 @@
 import { useState, useEffect } from "react";
-import type { OrderWithTracking, Department, OrderTrackerStagePayload } from "../../api/tracker";
-import { patchOrderPaidInvoiced, initOrderTracker, toggleTrackerStage } from "../../api/tracker";
+import type { OrderWithTracking, OrderTrackerStagePayload } from "../../api/tracker";
+import { patchOrderPaidInvoiced } from "../../api/tracker";
 import { useAuth } from "../../hooks/useAuth";
-
-// ─────────────────────────────────────────────
-// Tracker step-path definitions (per order type)
-// ─────────────────────────────────────────────
-
-/** 6-step path for Installation orders. */
-const INSTALLATION_STEPS: { dept: Department; label: string }[] = [
-  { dept: "SALES",         label: "Sales" },
-  { dept: "LOGISTICS",     label: "Logistics" },
-  { dept: "DELIVERY_DEPT", label: "Delivery" },
-  { dept: "SERVICE",       label: "Service" },
-  { dept: "SALES",         label: "Sales II" },
-  { dept: "LOGISTICS",     label: "Logistics II" },
-];
-
-/** 4-step path for Will Call, Delivery, and Shipment orders. */
-const WILL_CALL_STEPS: { dept: Department; label: string }[] = [
-  { dept: "SALES",         label: "Sales" },
-  { dept: "LOGISTICS",     label: "Logistics" },
-  { dept: "DELIVERY_DEPT", label: "Delivery" },
-  { dept: "LOGISTICS",     label: "Logistics II" },
-];
-
-/** 3-step path for Purchase Order (incoming) orders. */
-const PURCHASE_ORDER_STEPS: { dept: Department; label: string }[] = [
-  { dept: "LOGISTICS",     label: "Logistics" },
-  { dept: "DELIVERY_DEPT", label: "Delivery" },
-  { dept: "LOGISTICS",     label: "Logistics II" },
-];
-
-function getTrackerSteps(orderType: string): { dept: Department; label: string }[] {
-  const t = orderType?.toLowerCase();
-  if (t === "installation") return INSTALLATION_STEPS;
-  if (t === "incoming") return PURCHASE_ORDER_STEPS;
-  return WILL_CALL_STEPS; // will_call, delivery, shipment
-}
-
-/** Permissiones required for each Department */
-const DEPARTMENT_PERMISSION: Record<Department,string> = {
-  "SALES": "tracker:update_sales",
-  "LOGISTICS": "tracker:update_logistics",
-  "DELIVERY_DEPT": "tracker:update_delivery",
-  "SERVICE": "tracker:update_service",
-  "ACCOUNTING": "tracker:update_accounting"
-};
+import {
+  getStepsTemplate,
+  getFirstIncompleteIndex,
+  getInlineStepAction,
+  getActionableStepIndex,
+} from "../../utils/trackerSteps";
+import { toggleTrackerStep } from "../../utils/toggleTrackerStep";
 
 // ─────────────────────────────────────────────
 // Types
@@ -75,9 +37,10 @@ function StepIcon({
   saving,
 }: {
   state: StepState;
-  onClick: () => void;
+  onClick?: () => void;
   saving: boolean;
 }) {
+  const interactive = onClick ? "cursor-pointer" : "cursor-default";
   if (saving) {
     return (
       <div className="w-7 h-7 rounded-full bg-gray-300 flex items-center justify-center shrink-0 animate-pulse" />
@@ -86,12 +49,12 @@ function StepIcon({
   if (state === "completed") {
     return (
       <div
-        className="w-7 h-7 rounded-full bg-green-500 flex items-center justify-center shrink-0 cursor-pointer hover:bg-green-600 transition-colors"
+        className={`w-7 h-7 rounded-full bg-green-500 flex items-center justify-center shrink-0 ${interactive} ${onClick ? "hover:bg-green-600" : ""} transition-colors`}
         onClick={onClick}
-        role="button"
-        tabIndex={0}
-        title="Click to mark incomplete"
-        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onClick(); } }}
+        role={onClick ? "button" : undefined}
+        tabIndex={onClick ? 0 : undefined}
+        title={onClick ? "Click to mark incomplete" : undefined}
+        onKeyDown={onClick ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onClick(); } } : undefined}
       >
         <svg className="w-4 h-4 text-white" viewBox="0 0 20 20" fill="currentColor">
           <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
@@ -102,12 +65,12 @@ function StepIcon({
   if (state === "active") {
     return (
       <div
-        className="relative w-9 h-9 flex items-center justify-center shrink-0 cursor-pointer"
+        className={`relative w-9 h-9 flex items-center justify-center shrink-0 ${interactive}`}
         onClick={onClick}
-        role="button"
-        tabIndex={0}
-        title="Click to mark complete"
-        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onClick(); } }}
+        role={onClick ? "button" : undefined}
+        tabIndex={onClick ? 0 : undefined}
+        title={onClick ? "Click to mark complete" : undefined}
+        onKeyDown={onClick ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onClick(); } } : undefined}
       >
         {/* Outer glow ring */}
         <div className="absolute inset-0 rounded-full border-2 border-blue-200 bg-blue-50" />
@@ -120,12 +83,12 @@ function StepIcon({
   }
   return (
     <div
-      className="w-7 h-7 rounded-full border-[3px] border-gray-300 bg-white shrink-0 cursor-pointer hover:border-blue-400 transition-colors"
+      className={`w-7 h-7 rounded-full border-[3px] border-gray-300 bg-white shrink-0 ${onClick ? "cursor-pointer hover:border-blue-400" : ""} transition-colors`}
       onClick={onClick}
-      role="button"
-      tabIndex={0}
-      title="Click to mark complete"
-      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onClick(); } }}
+      role={onClick ? "button" : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      title={onClick ? "Click to mark complete" : undefined}
+      onKeyDown={onClick ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onClick(); } } : undefined}
     />
   );
 }
@@ -144,7 +107,7 @@ export default function OrderLifecycleCard({
   orderType,
   onRefresh,
 }: Props) {
-  const {hasPermission} = useAuth()
+  const { hasPermission, user } = useAuth()
   const canMarkPaid = hasPermission("orders:mark_paid");
   const canMarkInvoiced = hasPermission("orders:mark_invoiced");
   const [paid, setPaid] = useState(isPaid);
@@ -158,18 +121,19 @@ export default function OrderLifecycleCard({
   useEffect(() => { setPaid(isPaid); }, [isPaid]);
   useEffect(() => { setInvoiced(isInvoiced); }, [isInvoiced]);
 
-  const TRACKER_STEPS = getTrackerSteps(orderType);
+  const TRACKER_STEPS = getStepsTemplate(orderType);
 
   const tracker = trackingData?.tracker ?? null;
   const stages = trackingData?.stages ?? [];
 
-  // Build a lookup map: stage_index → stage record
   const stageMap = new Map<number, OrderTrackerStagePayload>(
     stages.map((s) => [s.stage_index, s])
   );
 
-  const firstIncompleteIndex = TRACKER_STEPS.findIndex((_, i) => !stageMap.get(i)?.is_completed);
-  const allCompleted = firstIncompleteIndex === -1 && stages.length > 0;
+  const firstIncompleteIndex = getFirstIncompleteIndex(stages, orderType);
+  const allCompleted = firstIncompleteIndex === -1 && stages.some((s) => s.is_completed);
+  const actionableStepIndex = getActionableStepIndex(orderType, stages, hasPermission);
+  const inlineAction = getInlineStepAction(orderType, stages, hasPermission);
 
   const steps = TRACKER_STEPS.map((step, i) => {
     const stage = stageMap.get(i);
@@ -206,29 +170,21 @@ export default function OrderLifecycleCard({
     : "—";
 
   async function handleToggle(index: number) {
-    if (!orderId || savingIndex !== null) return;
+    if (!orderId || savingIndex !== null || actionableStepIndex !== index || !inlineAction) return;
     setSavingIndex(index);
     setToggleError(null);
     try {
-      const currentStage = stageMap.get(index);
-      const newCompleted = !(currentStage?.is_completed ?? false);
-
-      // Ensure tracker exists before toggling stages
-      if (!tracker) {
-        await initOrderTracker(orderId, {
-          current_department: TRACKER_STEPS[0].dept,
-          step_index: 0,
-        });
-      }
-
-      const targetDept = TRACKER_STEPS[index].dept;
-      const requiredPermission = DEPARTMENT_PERMISSION[targetDept];
-
-      if (!hasPermission(requiredPermission) && !hasPermission('tracker:update_any')) {
-        throw new Error('You do not have the permissions to complete this department\'s step.');
-      }
-
-      await toggleTrackerStage(orderId, index, { is_completed: newCompleted });
+      const isCompleted = inlineAction.kind === "complete";
+      await toggleTrackerStep({
+        orderId,
+        orderType,
+        stages,
+        tracker,
+        stageIndex: index,
+        isCompleted,
+        userEmail: user?.email,
+        hasPermission,
+      });
       onRefresh();
     } catch (err) {
       console.error("Failed to toggle stage:", err);
@@ -289,7 +245,11 @@ export default function OrderLifecycleCard({
             <div key={i} className="flex items-start gap-3">
               {/* Icon + connector line */}
               <div className="flex flex-col items-center">
-                <StepIcon state={step.state} onClick={() => handleToggle(i)} saving={savingIndex === i} />
+                <StepIcon
+                  state={step.state}
+                  onClick={actionableStepIndex === i ? () => handleToggle(i) : undefined}
+                  saving={savingIndex === i}
+                />
                 {i < steps.length - 1 && (
                   <div
                     className={`w-0.5 h-8 mt-0.5 ${
