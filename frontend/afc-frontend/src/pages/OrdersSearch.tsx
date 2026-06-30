@@ -1,19 +1,28 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import MainLayout from "../layouts/MainLayout";
-import { fetchOrders, type OrderRowItemPayload } from "../api/ordersTable";
+import { fetchOrders, type OrderRowItemPayload, type OrderSearchParams } from "../api/ordersTable";
 import { fetchProducts, type Product } from "../api/products";
 import type { Customer } from "../api/customers";
 import type { Supplier } from "../api/suppliers";
 import { fetchCustomers } from "../api/customers";
 import { fetchSuppliers } from "../api/suppliers";
-import AutocompleteInput from "../components/AutocompleteInput";
+import FilterMultiSelect from "../components/FilterMultiSelect";
 import { usePersistedFilters } from "../hooks/usePersistedFilters";
 import CreateOrderModal from "../components/order/Table/CreateOrderModal";
 import PullFromQBModal from "../components/order/Table/PullFromQBModal";
 import { ALL_ORDER_TYPES, ORDER_TYPE_LABELS, type OrderType } from "../constants/orderTypes";
 import { useWarehouse } from "../hooks/useWarehouse";
 import { useAuth } from "../hooks/useAuth";
+import { useToast } from "../hooks/useToast";
+
+function sortOrdersByOrderNumberDesc(orders: OrderRowItemPayload[]): OrderRowItemPayload[] {
+  return [...orders].sort((a, b) => {
+    const aNum = a.order_number ?? `AFC-${String(a.id).padStart(6, "0")}`;
+    const bNum = b.order_number ?? `AFC-${String(b.id).padStart(6, "0")}`;
+    return bNum.localeCompare(aNum, undefined, { numeric: true });
+  });
+}
 
 /** Light-background badge classes keyed by order type. */
 const ORDER_TYPE_BADGE_CLASSES: Record<OrderType, string> = {
@@ -25,11 +34,21 @@ const ORDER_TYPE_BADGE_CLASSES: Record<OrderType, string> = {
   void:         "bg-gray-100   text-gray-700",
 };
 
+function asNumberArray(value: unknown): number[] {
+  if (Array.isArray(value)) {
+    return value
+      .map((v) => (typeof v === "number" ? v : Number(v)))
+      .filter((v) => !Number.isNaN(v));
+  }
+  return [];
+}
+
 export default function OrdersSearchPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { activeWarehouseId } = useWarehouse();
   const { hasPermission } = useAuth();
+  const { showToast } = useToast();
 
   //Customer and supplier list
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -54,29 +73,51 @@ export default function OrdersSearchPage() {
     return () => window.removeEventListener("resize", handleResize);
   }, [handleResize]);
   
-  // Type options for autocomplete
-  const typeOptions = [
-    { id: 0, name: "All" },
-    ...ALL_ORDER_TYPES.map((type, i) => ({
-      id: i + 1,
-      name: ORDER_TYPE_LABELS[type],
-    })),
-  ];
+  const typeFilterOptions = useMemo(
+    () =>
+      ALL_ORDER_TYPES.map((type, index) => ({
+        value: String(index),
+        label: ORDER_TYPE_LABELS[type],
+      })),
+    []
+  );
+
+  const customerFilterOptions = useMemo(
+    () =>
+      customers.map((customer) => ({
+        value: String(customer.id),
+        label: customer.name,
+      })),
+    [customers]
+  );
+
+  const supplierFilterOptions = useMemo(
+    () =>
+      suppliers.map((supplier) => ({
+        value: String(supplier.id),
+        label: supplier.name,
+      })),
+    [suppliers]
+  );
   
   // Search filters (PERSISTED)
   const [filters, setFilter] = usePersistedFilters("filters_orders_search", {
     searchId: "",
     searchQBId: "",
     searchDescription: "",
-    searchCustomer: "",
-    searchSupplier: "",
-    filterType: "All",
+    selectedCustomers: [] as number[],
+    selectedSuppliers: [] as number[],
+    selectedTypes: [] as number[],
     dateFrom: "",
     dateTo: "",
     dateFilterType: "created" as "created" | "completed",
     selectedProducts: [] as number[],
     productSearch: "",
   });
+
+  const selectedCustomers = asNumberArray(filters.selectedCustomers);
+  const selectedSuppliers = asNumberArray(filters.selectedSuppliers);
+  const selectedTypes = asNumberArray(filters.selectedTypes);
   
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
@@ -108,9 +149,10 @@ export default function OrdersSearchPage() {
       const updatedFilters: Record<string, string | number[]> = {};
       
       if (typeParam) {
-        // Convert raw type key from URL (e.g. "will_call") to display label (e.g. "Will Call")
-        updatedFilters.filterType =
-          ORDER_TYPE_LABELS[typeParam as OrderType] ?? typeParam;
+        const typeIndex = ALL_ORDER_TYPES.indexOf(typeParam as OrderType);
+        if (typeIndex >= 0) {
+          updatedFilters.selectedTypes = [typeIndex];
+        }
       }
       if (productIdsParam) {
         const productIds = productIdsParam.split(',').map(id => parseInt(id.trim())).filter(id => !isNaN(id));
@@ -123,30 +165,32 @@ export default function OrdersSearchPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
 
-  const performSearch = async (page: number, additionalFilters: Record<string, string | number[]> = {}) => {
+  const performSearch = async (
+    page: number,
+    additionalFilters: Record<string, string | number[]> = {}
+  ) => {
     setLoading(true);
     setSearched(true);
     setCurrentPage(page);
     
     try {
-      const apiFilters: Record<string, string> = {};
-      
-      // Merge current filters with additional filters
       const activeFilters = { ...filters, ...additionalFilters };
+
+      const activeCustomers = asNumberArray(activeFilters.selectedCustomers);
+      const activeSuppliers = asNumberArray(activeFilters.selectedSuppliers);
+      const activeTypes = asNumberArray(activeFilters.selectedTypes);
+
+      const apiFilters: OrderSearchParams = {};
       
       if (activeFilters.searchId) apiFilters.order_number = activeFilters.searchId as string;
       if (activeFilters.searchQBId) apiFilters.external_order_number = activeFilters.searchQBId as string;
       if (activeFilters.searchDescription) apiFilters.description = activeFilters.searchDescription as string;
-      if (activeFilters.searchCustomer) apiFilters.customer_name = activeFilters.searchCustomer as string;
-      if (activeFilters.searchSupplier) apiFilters.supplier_name = activeFilters.searchSupplier as string;
-      if (activeFilters.filterType && activeFilters.filterType !== "All") {
-        // Map display label (e.g. "Will Call") or raw key (e.g. "will_call") to the API type key
-        const typeKey = ALL_ORDER_TYPES.find(
-          (t) => ORDER_TYPE_LABELS[t] === activeFilters.filterType || t === activeFilters.filterType
-        );
-        if (typeKey) {
-          apiFilters.type = typeKey;
-        }
+      if (activeCustomers.length > 0) apiFilters.customer_id = activeCustomers;
+      if (activeSuppliers.length > 0) apiFilters.supplier_id = activeSuppliers;
+      if (activeTypes.length > 0) {
+        apiFilters.type = activeTypes
+          .map((index) => ALL_ORDER_TYPES[index])
+          .filter((type): type is OrderType => Boolean(type));
       }
       
       // Date filters based on selected type
@@ -165,7 +209,7 @@ export default function OrdersSearchPage() {
       }
       
       const response = await fetchOrders(page, pageSize, apiFilters);
-      setResults(response.results || []);
+      setResults(sortOrdersByOrderNumberDesc(response.results || []));
       setTotalResults(response.total || 0);
       
       // Update the persisted filters if we used additional filters
@@ -187,6 +231,16 @@ export default function OrdersSearchPage() {
     await performSearch(page);
   };
 
+  async function handleOrderCreated(orderId?: number) {
+    showToast(
+      orderId
+        ? `Order #${orderId} created successfully`
+        : "Order created successfully",
+      "success",
+    );
+    await performSearch(1);
+  }
+
   //Perform initial search if URL has relevant params
   useEffect(() => {
     handleSearch(1);
@@ -197,9 +251,9 @@ export default function OrdersSearchPage() {
     setFilter("searchId", "");
     setFilter("searchQBId", "");
     setFilter("searchDescription", "");
-    setFilter("searchCustomer", "");
-    setFilter("searchSupplier", "");
-    setFilter("filterType", "All");
+    setFilter("selectedCustomers", []);
+    setFilter("selectedSuppliers", []);
+    setFilter("selectedTypes", []);
     setFilter("dateFrom", "");
     setFilter("dateTo", "");
     setFilter("dateFilterType", "created");
@@ -502,34 +556,53 @@ export default function OrdersSearchPage() {
                 />
               </div>
 
-              {/* Customer Autocomplete */}
-              <AutocompleteInput
+              {/* Customer */}
+              <FilterMultiSelect
                 label="Customer"
-                placeholder="Search customers..."
-                options={customers}
-                value={filters.searchCustomer}
-                onChange={(value) => setFilter("searchCustomer", value)}
-                className="flex-1 min-w-[140px]"
+                placeholder="All Customers"
+                options={customerFilterOptions}
+                selected={selectedCustomers.map(String)}
+                searchable
+                searchPlaceholder="Search customers…"
+                className="flex-1 min-w-[180px]"
+                onChange={(values) =>
+                  setFilter(
+                    "selectedCustomers",
+                    values.map((value) => Number(value)).filter((id) => !Number.isNaN(id))
+                  )
+                }
               />
 
-              {/* Supplier Autocomplete */}
-              <AutocompleteInput
+              {/* Supplier */}
+              <FilterMultiSelect
                 label="Supplier"
-                placeholder="Search suppliers..."
-                options={suppliers}
-                value={filters.searchSupplier}
-                onChange={(value) => setFilter("searchSupplier", value)}
-                className="flex-1 min-w-[140px]"
+                placeholder="All Suppliers"
+                options={supplierFilterOptions}
+                selected={selectedSuppliers.map(String)}
+                searchable
+                searchPlaceholder="Search suppliers…"
+                className="flex-1 min-w-[180px]"
+                onChange={(values) =>
+                  setFilter(
+                    "selectedSuppliers",
+                    values.map((value) => Number(value)).filter((id) => !Number.isNaN(id))
+                  )
+                }
               />
 
-              {/* Type Autocomplete */}
-              <AutocompleteInput
+              {/* Type */}
+              <FilterMultiSelect
                 label="Type"
-                placeholder="Select type..."
-                options={typeOptions}
-                value={filters.filterType}
-                onChange={(value) => setFilter("filterType", value)}
-                className="flex-1 min-w-[140px]"
+                placeholder="All Types"
+                options={typeFilterOptions}
+                selected={selectedTypes.map(String)}
+                className="flex-1 min-w-[180px]"
+                onChange={(values) =>
+                  setFilter(
+                    "selectedTypes",
+                    values.map((value) => Number(value)).filter((id) => !Number.isNaN(id))
+                  )
+                }
               />
 
               {/* Search Button */}
@@ -710,18 +783,14 @@ export default function OrdersSearchPage() {
       <CreateOrderModal
         open={showCreateModal}
         onClose={() => setShowCreateModal(false)}
-        onCreated={(orderId?: number) => {
-          setShowCreateModal(false);
-        }}
+        onCreated={handleOrderCreated}
       />
 
       {/* ===================== PULL FROM QB MODAL ===================== */}
       <PullFromQBModal
         open={showPullQBModal}
         onClose={() => setShowPullQBModal(false)}
-        onCreated={(orderId?: number) => {
-          setShowPullQBModal(false);
-        }}
+        onCreated={handleOrderCreated}
       />
     </MainLayout>
   );

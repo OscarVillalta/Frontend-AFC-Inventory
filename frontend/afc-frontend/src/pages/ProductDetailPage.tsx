@@ -21,6 +21,7 @@ import {
   fetchPendingProjection,
   fetchProductLedger,
   fetchChildProductLedger,
+  patchProduct,
   type ProductDetail,
   type TransactionItem,
   type ProductOrderSummary,
@@ -101,6 +102,10 @@ export default function ProductDetailPage() {
   const [editSaving, setEditSaving] = useState(false);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
 
+  // Order defaults (product-level preset)
+  const [defaultNoStockDeduction, setDefaultNoStockDeduction] = useState(false);
+  const [orderDefaultSaving, setOrderDefaultSaving] = useState(false);
+
   // Transaction filter state
   const [txnTypeFilter, setTxnTypeFilter] = useState<"all" | "planned" | "executed" | "reversed" | "adjustments">("all");
   const [txnDateRange, setTxnDateRange] = useState<7 | 30 | 90 | null>(null);
@@ -149,6 +154,7 @@ export default function ProductDetailPage() {
         fetchPendingProjection(numericProductId),
       ]);
       setProduct(productData);
+      setDefaultNoStockDeduction(Boolean(productData.default_no_stock_deduction));
       
       let allTransactions = txnData.results || [];
 
@@ -304,7 +310,7 @@ export default function ProductDetailPage() {
         {
           id: 3,
           order_number: "ORD-5678",
-          type: "outgoing",
+          type: "installation",
           cs_name: "ABC Corp",
           status: "Pending",
           created_at: "2026-02-01T10:00:00Z",
@@ -314,7 +320,7 @@ export default function ProductDetailPage() {
         {
           id: 4,
           order_number: "ORD-5679",
-          type: "outgoing",
+          type: "installation",
           cs_name: "XYZ Inc",
           status: "Completed",
           created_at: "2026-02-03T10:00:00Z",
@@ -557,6 +563,24 @@ export default function ProductDetailPage() {
     if (status === "Cancelled") return "bg-gray-100 text-gray-600";
     return "bg-yellow-100 text-yellow-700";
   };
+
+  async function handleToggleDefaultNoStockDeduction(checked: boolean) {
+    if (!product || orderDefaultSaving || defaultNoStockDeduction === checked) return;
+    setDefaultNoStockDeduction(checked);
+    setOrderDefaultSaving(true);
+    try {
+      await patchProduct(product.id, { default_no_stock_deduction: checked });
+      setProduct((prev) =>
+        prev ? { ...prev, default_no_stock_deduction: checked } : prev,
+      );
+    } catch (err) {
+      console.error("Failed to update order default:", err);
+      setDefaultNoStockDeduction(Boolean(product.default_no_stock_deduction));
+      alert("Failed to save order default. Please try again.");
+    } finally {
+      setOrderDefaultSaving(false);
+    }
+  }
 
   // MERV rating label helper
   // Percentages represent minimum particle filtration efficiency (ASHRAE 52.2)
@@ -852,6 +876,38 @@ export default function ProductDetailPage() {
             </div>
           </div>
         </div>
+
+        {/* ========== ORDER DEFAULTS (edit mode only) ========== */}
+        {editingDetails && (
+          <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+            <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-3">
+              Order Defaults
+            </h2>
+            <label
+              className={`flex items-start gap-3 ${
+                hasPermission("catalog:edit") && !orderDefaultSaving
+                  ? "cursor-pointer"
+                  : "cursor-not-allowed opacity-70"
+              }`}
+            >
+              <input
+                type="checkbox"
+                className="checkbox checkbox-sm checkbox-primary mt-0.5"
+                checked={defaultNoStockDeduction}
+                disabled={!hasPermission("catalog:edit") || orderDefaultSaving}
+                onChange={(e) => void handleToggleDefaultNoStockDeduction(e.target.checked)}
+              />
+              <span>
+                <span className="font-medium text-[#363b4c] block">
+                  Default: No Stock Deduction on orders
+                </span>
+                <span className="text-sm text-gray-500">
+                  New order lines for this product will skip inventory deduction unless changed on the order.
+                </span>
+              </span>
+            </label>
+          </div>
+        )}
 
         {/* ========== INVENTORY SNAPSHOT ========== */}
         {activeWarehouseName && (

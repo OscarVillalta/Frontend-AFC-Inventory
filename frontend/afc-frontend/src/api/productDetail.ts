@@ -4,6 +4,7 @@ export interface ProductDetail {
   id: number;
   category: string;
   reference_id: number;
+  default_no_stock_deduction?: boolean;
   details: {
     part_number?: string;
     name?: string;
@@ -113,6 +114,16 @@ export interface OrderItem {
 
 export async function fetchProductDetail(productId: number): Promise<ProductDetail> {
   return apiRequest(`/products/${productId}`) as Promise<ProductDetail>;
+}
+
+export function patchProduct(
+  productId: number,
+  payload: { default_no_stock_deduction?: boolean },
+) {
+  return apiRequest(`/products/${productId}`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
 }
 
 export async function fetchChildProductDetail(childProductId: number): Promise<ChildProductDetail> {

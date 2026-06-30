@@ -2,6 +2,7 @@ import { apiRequest } from "./apiClient";
 
 export interface OrderRowItemPayload {
   id: number;
+  order_number?: string | null;
   type: string;
   cs_name: string;
   description: string;
@@ -24,16 +25,30 @@ export interface OrderSearchParams {
   order_number?: string;
   external_order_number?: string;
   description?: string;
-  type?: string;
+  type?: string | string[];
   status?: string;
   cs_name?: string;
-  customer_name?: string;      // New: Filter by customer name
-  supplier_name?: string;      // New: Filter by supplier name
-  created_from?: string;   // YYYY-MM-DD
+  customer_name?: string;
+  supplier_name?: string;
+  customer_id?: number | number[];
+  supplier_id?: number | number[];
+  created_from?: string;
   created_to?: string;
-  completed_from?: string;  // YYYY-MM-DD
-  completed_to?: string;    // YYYY-MM-DD
-  product_ids?: string;     // Comma-separated product IDs
+  completed_from?: string;
+  completed_to?: string;
+  product_ids?: string;
+}
+
+function appendListParam(
+  params: URLSearchParams,
+  key: string,
+  values?: string | number | (string | number)[]
+) {
+  const list = Array.isArray(values) ? values : values !== undefined && values !== "" ? [values] : [];
+  for (const value of list) {
+    const trimmed = String(value).trim();
+    if (trimmed) params.append(key, trimmed);
+  }
 }
 
 export interface OrderDetailPayload {
@@ -51,6 +66,7 @@ export interface OrderDetailPayload {
   is_paid?: boolean;
   is_invoiced?: boolean;
   warehouse_id?: number | null;
+  can_manual_complete?: boolean;
 }
 
 export function fetchOrders(
@@ -63,11 +79,21 @@ export function fetchOrders(
     limit: String(pageSize),
   });
 
-  Object.entries(filters).forEach(([key, value]) => {
+  const { type, customer_id, supplier_id, product_ids, ...scalarFilters } = filters;
+
+  Object.entries(scalarFilters).forEach(([key, value]) => {
     if (value !== undefined && value !== "") {
-      params.append(key, value);
+      params.append(key, String(value));
     }
   });
+
+  appendListParam(params, "type", type);
+  appendListParam(params, "customer_id", customer_id);
+  appendListParam(params, "supplier_id", supplier_id);
+
+  if (product_ids !== undefined && product_ids !== "") {
+    params.append("product_ids", product_ids);
+  }
 
   return apiRequest(`/orders/search?${params.toString()}`);
 }
@@ -129,4 +155,15 @@ export function createOrderFromQB(payload: {
     method: "POST",
     body: JSON.stringify(payload),
   });
+}
+
+export function completeOrderManual(orderId: string | number) {
+  return apiRequest(`/orders/${orderId}/complete-manual`, {
+    method: "POST",
+  }) as Promise<{
+    message: string;
+    status: string;
+    completed_at: string | null;
+    can_manual_complete: boolean;
+  }>;
 }

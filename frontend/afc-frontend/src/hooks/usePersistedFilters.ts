@@ -1,5 +1,23 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 
+export const TRACKER_FILTERS_STORAGE_KEY = "filters_tracker";
+
+/**
+ * Update persisted filter fields without mounting the hook (e.g. before navigation).
+ */
+export function updatePersistedFilters<T extends Record<string, unknown>>(
+  storageKey: string,
+  partial: Partial<T>
+): void {
+  try {
+    const stored = localStorage.getItem(storageKey);
+    const current = stored ? JSON.parse(stored) : {};
+    localStorage.setItem(storageKey, JSON.stringify({ ...current, ...partial }));
+  } catch (error) {
+    console.error(`Error updating persisted filters (${storageKey}):`, error);
+  }
+}
+
 /**
  * Custom hook to persist filter state in localStorage
  * @param storageKey - Unique key for localStorage (e.g., "filters_airfilters")

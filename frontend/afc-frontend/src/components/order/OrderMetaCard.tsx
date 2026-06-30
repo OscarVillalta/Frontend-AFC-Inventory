@@ -32,6 +32,10 @@ interface Props {
 
   /** When true, all editable inputs/dropdowns are disabled */
   disabled?: boolean;
+
+  canManualComplete?: boolean;
+  onManualComplete?: () => void;
+  manualCompleteLoading?: boolean;
 }
 
 /* ===================== COMPONENT ===================== */
@@ -51,6 +55,9 @@ export default function OrderMetaCard({
   onEtaChange,
   onTypeChange,
   disabled = false,
+  canManualComplete = false,
+  onManualComplete,
+  manualCompleteLoading = false,
 }: Props) {
   const [open, setOpen] = useState(true);
 
@@ -145,10 +152,28 @@ export default function OrderMetaCard({
             <p className="py-2">{status}</p>
           </div>
 
-          {/* Completed At (read-only) */}
+          {/* Completed At / manual complete */}
           <div>
             <p className="font-medium text-gray-700">Completed</p>
-            <p className="py-2">{completedAt ?? "—"}</p>
+            {completedAt ? (
+              <p className="py-2">{completedAt}</p>
+            ) : canManualComplete && onManualComplete ? (
+              <div className="py-1 space-y-1">
+                <button
+                  type="button"
+                  className="btn btn-sm btn-primary"
+                  onClick={onManualComplete}
+                  disabled={disabled || manualCompleteLoading}
+                >
+                  {manualCompleteLoading ? "Completing…" : "Mark Complete"}
+                </button>
+                <p className="text-xs text-gray-500">
+                  This order has no stock-tracked lines.
+                </p>
+              </div>
+            ) : (
+              <p className="py-2">—</p>
+            )}
           </div>
 
         </div>

@@ -76,8 +76,32 @@ export default function OrderItemRow({ item, orderType, onRefresh, txnRefreshKey
   // Separator items don't need transactions
   const isSeparator = item.type === "Unit_Separator" || item.type === "Section_Separator";
   const isSectionSeparator = item.type === "Section_Separator";
-  const isMediaCut = item.type === "Media_Cut";
-  const showMediaToggle = item.is_media || isMediaCut;
+
+  const isIncomingOrder = orderType === "incoming";
+
+  /* ===== Toggle No Stock Deduction (outgoing orders only) ===== */
+  const [noStockDeduction, setNoStockDeduction] = useState(item.no_stock_deduction);
+
+  useEffect(() => {
+    setNoStockDeduction(item.no_stock_deduction);
+  }, [item.no_stock_deduction]);
+
+  const hasBlockingTxns = transactions.some(
+    (tx) => tx.state === "pending" || tx.state === "committed",
+  );
+  // Preset no-stock-deduction lines typically have no transactions — allow toggle without waiting for txn load
+  const canToggleNoStockDeduction =
+    !hasBlockingTxns && (loaded || noStockDeduction);
+
+  const noStockDeductionToggleTitle = hasBlockingTxns
+    ? "Reverse or cancel pending/committed transactions before changing"
+    : !loaded && !noStockDeduction
+      ? "Loading transactions…"
+      : noStockDeduction
+        ? "Uncheck to track inventory for this line (overrides product default)"
+        : "When enabled, this line skips inventory deduction and is excluded from order completion";
+
+  const skipsInventory = !isIncomingOrder && noStockDeduction;
 
   // Separator type toggle menu
   const [showTypeMenu, setShowTypeMenu] = useState(false);
@@ -95,6 +119,13 @@ export default function OrderItemRow({ item, orderType, onRefresh, txnRefreshKey
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [showTypeMenu]);
 
+  useEffect(() => {
+    if (!isSeparator) {
+      void loadTransactions();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [item.id, isSeparator]);
+
   async function handleToggleSeparatorType() {
     const newType: OrderItemType = isSectionSeparator ? "Unit_Separator" : "Section_Separator";
     setSaving(true);
@@ -109,22 +140,19 @@ export default function OrderItemRow({ item, orderType, onRefresh, txnRefreshKey
     }
   }
 
-  /* ===== Toggle Full Roll / Custom Cut ===== */
-  const [localType, setLocalType] = useState<OrderItemType>(item.type);
-
-  useEffect(() => {
-    setLocalType(item.type);
-  }, [item.type]);
-
-  async function handleToggleMediaCut(newType: "Product_Item" | "Media_Cut") {
-    if (localType === newType) return;
-    setLocalType(newType);
+  async function handleToggleNoStockDeduction(checked: boolean) {
+    if (!canToggleNoStockDeduction || noStockDeduction === checked) return;
+    setNoStockDeduction(checked);
     try {
-      await updateOrderItem(item.id, { type: newType });
+      await updateOrderItem(item.id, { no_stock_deduction: checked });
       await onRefresh();
+      if (!checked) {
+        setLoaded(false);
+        await loadTransactions(true);
+      }
     } catch {
-      setLocalType(item.type);
-      setError("Failed to change item type.");
+      setNoStockDeduction(item.no_stock_deduction);
+      setError("Failed to update no stock deduction setting.");
     }
   }
 
@@ -502,29 +530,29 @@ export default function OrderItemRow({ item, orderType, onRefresh, txnRefreshKey
             {item.part_number}
           </td>
           <td className="px-3 py-3 max-w-64 text-balance break-all" onClick={(e) => e.stopPropagation()}>
-            {isEditingNote ? (
-              <input
-                type="text"
-                className="input input-sm input-bordered w-full"
-                value={editedNote}
-                onChange={(e) => setEditedNote(e.target.value)}
-                onBlur={saveNote}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    saveNote();
-                  }
-                  if (e.key === "Escape") {
-                    e.preventDefault();
-                    setEditedNote(item.note || "");
-                    setIsEditingNote(false);
-                  }
-                }}
-                autoFocus
-                disabled={saving}
-              />
-            ) : (
-              <div className="flex flex-col gap-1">
+            <div className="flex flex-col gap-1">
+              {isEditingNote ? (
+                <input
+                  type="text"
+                  className="input input-sm input-bordered w-full"
+                  value={editedNote}
+                  onChange={(e) => setEditedNote(e.target.value)}
+                  onBlur={saveNote}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      saveNote();
+                    }
+                    if (e.key === "Escape") {
+                      e.preventDefault();
+                      setEditedNote(item.note || "");
+                      setIsEditingNote(false);
+                    }
+                  }}
+                  autoFocus
+                  disabled={saving}
+                />
+              ) : (
                 <span
                   className={`${hasPermission("orders:edit") && !isVoided ? "cursor-pointer hover:bg-gray-100" : ""} px-2 py-1 rounded inline-block`}
                   onClick={() => hasPermission("orders:edit") && !isVoided && setIsEditingNote(true)}
@@ -532,31 +560,25 @@ export default function OrderItemRow({ item, orderType, onRefresh, txnRefreshKey
                 >
                   {item.note || "—"}
                 </span>
-                {showMediaToggle && (
-                  <div className="flex items-center gap-1 flex-wrap">
-                    <div className="join">
-                      <button
-                        className={`join-item btn btn-xs ${localType !== "Media_Cut" ? "btn-primary" : "btn-ghost border border-gray-300"}`}
-                        onClick={() => handleToggleMediaCut("Product_Item")}
-                        title="Full Roll: deducts inventory on fulfillment"
-                      >
-                        Full Roll
-                      </button>
-                      <button
-                        className={`join-item btn btn-xs ${localType === "Media_Cut" ? "btn-primary" : "btn-ghost border border-gray-300"}`}
-                        onClick={() => handleToggleMediaCut("Media_Cut")}
-                        title="Custom Cut: no inventory deduction on fulfillment"
-                      >
-                        Custom Cut
-                      </button>
-                    </div>
-                    {localType === "Media_Cut" && (
-                      <span className="badge badge-sm badge-info whitespace-nowrap">No Stock Deduction</span>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
+              )}
+              {!isSeparator && !isIncomingOrder && (
+                <label
+                  className={`flex items-center gap-2 text-xs ${
+                    canToggleNoStockDeduction ? "cursor-pointer" : "cursor-not-allowed opacity-60"
+                  }`}
+                  title={noStockDeductionToggleTitle}
+                >
+                  <input
+                    type="checkbox"
+                    className="checkbox checkbox-xs checkbox-primary"
+                    checked={noStockDeduction}
+                    disabled={!canToggleNoStockDeduction || isVoided || !hasPermission("orders:edit")}
+                    onChange={(e) => void handleToggleNoStockDeduction(e.target.checked)}
+                  />
+                  <span>No Stock Deduction</span>
+                </label>
+              )}
+            </div>
           </td>
           <td 
             className="px-3 py-3"
@@ -616,7 +638,7 @@ export default function OrderItemRow({ item, orderType, onRefresh, txnRefreshKey
             }}
             title="Click to view transactions"
           >
-            {isMediaCut
+            {skipsInventory
               ? (<span className="text-gray-400 italic text-sm">Non-Tracked Material</span>)
               : item.quantity_fulfilled}
           </td>
@@ -665,17 +687,31 @@ export default function OrderItemRow({ item, orderType, onRefresh, txnRefreshKey
         <tr style={expandedStyle}>
           <td colSpan={8} className="bg-gray-50 px-6 py-4 space-y-3" style={{ pointerEvents: isDragging ? 'none' : 'auto' }}>
             {/* ===== MEDIA CUT — non-tracked, no fulfillment actions ===== */}
-            {isMediaCut && (
+            {skipsInventory && (
               <div className="flex flex-wrap items-center gap-3">
-                <span className="badge badge-info badge-sm">Media — Non-Tracked Material</span>
+                <label
+                  className={`flex items-center gap-2 text-sm ${
+                    canToggleNoStockDeduction ? "cursor-pointer" : "cursor-not-allowed opacity-60"
+                  }`}
+                  title={noStockDeductionToggleTitle}
+                >
+                  <input
+                    type="checkbox"
+                    className="checkbox checkbox-sm checkbox-primary"
+                    checked={noStockDeduction}
+                    disabled={!canToggleNoStockDeduction || isVoided || !hasPermission("orders:edit")}
+                    onChange={(e) => void handleToggleNoStockDeduction(e.target.checked)}
+                  />
+                  <span className="font-medium">No Stock Deduction</span>
+                </label>
                 <span className="text-sm text-gray-400 italic">
-                  Bulk floor stock: no discrete fulfillment actions available.
+                  This line skips inventory tracking unless toggled off above.
                 </span>
               </div>
             )}
 
             {/* ===== CREATE PENDING (regular items only) ===== */}
-            {!isMediaCut && !isVoided && remainingSafe > 0 && hasPermission("orders:edit") && (
+            {!skipsInventory && !isVoided && remainingSafe > 0 && hasPermission("orders:edit") && (
               <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3">
                 <span className="text-sm text-gray-500">
                   {isOutgoingType(orderType)
@@ -801,7 +837,7 @@ export default function OrderItemRow({ item, orderType, onRefresh, txnRefreshKey
 
                         <td>
                           <div className="flex gap-2">
-                            {tx.state === "pending" && !isMediaCut && !isVoided && (
+                            {tx.state === "pending" && !skipsInventory && !isVoided && (
                               <>
                                 <button
                                   className="btn btn-xs btn-success"
@@ -828,7 +864,7 @@ export default function OrderItemRow({ item, orderType, onRefresh, txnRefreshKey
                                 </button>
                               </>
                             )}
-                            {tx.state === "committed" && tx.reason !== "rollback" && !isMediaCut && !isVoided && (
+                            {tx.state === "committed" && tx.reason !== "rollback" && !skipsInventory && !isVoided && (
                               <button
                                 className="btn btn-xs btn-warning"
                                 disabled={!!error || !hasPermission("transactions:rollback")}

@@ -3,8 +3,7 @@ import type { OrderWithTracking, OrderTrackerStagePayload } from "../../api/trac
 import { useAuth } from "../../hooks/useAuth";
 import {
   getStepsTemplate,
-  getActionableStepIndex,
-  getInlineStepAction,
+  canUserActOnStepIndex,
 } from "../../utils/trackerSteps";
 import { toggleTrackerStep } from "../../utils/toggleTrackerStep";
 
@@ -74,22 +73,22 @@ export default function OrderTrackerControl({ trackingData, onRefresh }: Props) 
   );
 
   const allCompleted = TRACKER_STEPS.every((_, i) => stageMap.get(i)?.is_completed);
-  const actionableStepIndex = getActionableStepIndex(orderType, stages, hasPermission);
-  const inlineAction = getInlineStepAction(orderType, stages, hasPermission);
 
   async function handleToggle(index: number) {
-    if (!orderId || savingIndex !== null || actionableStepIndex !== index || !inlineAction) return;
+    if (!orderId || savingIndex !== null) return;
+    if (!canUserActOnStepIndex(orderType, index, hasPermission)) return;
+    const stage = stageMap.get(index);
+    const isCompleted = stage?.is_completed ?? false;
     setSavingIndex(index);
     setError(null);
     try {
-      const isCompleted = inlineAction.kind === "complete";
       await toggleTrackerStep({
         orderId,
         orderType,
         stages,
         tracker: trackingData!.tracker,
         stageIndex: index,
-        isCompleted,
+        isCompleted: !isCompleted,
         userEmail: user?.email,
         hasPermission,
       });
@@ -137,7 +136,11 @@ export default function OrderTrackerControl({ trackingData, onRefresh }: Props) 
                   <StepCircle
                     isCompleted={isCompleted}
                     saving={saving}
-                    onClick={actionableStepIndex === i ? () => handleToggle(i) : undefined}
+                    onClick={
+                      canUserActOnStepIndex(orderType, i, hasPermission)
+                        ? () => handleToggle(i)
+                        : undefined
+                    }
                   />
                   <span className="text-xs font-medium text-gray-700 mt-1 text-center leading-tight">
                     {step.label}

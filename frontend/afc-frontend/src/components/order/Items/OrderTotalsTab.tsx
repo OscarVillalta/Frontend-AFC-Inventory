@@ -1,7 +1,13 @@
 import { useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import type { OrderItemPayload } from "../../../api/orderDetail";
 import type { OrderType } from "../../../constants/orderTypes";
 import { isOutgoingType } from "../../../constants/orderTypes";
+
+function itemSkipsInventory(item: OrderItemPayload, orderType: OrderType): boolean {
+  if (orderType === "incoming") return false;
+  return Boolean(item.no_stock_deduction);
+}
 
 interface Props {
   items: OrderItemPayload[];
@@ -73,10 +79,16 @@ export default function OrderTotalsTab({ items, orderType }: Props) {
       if (item.type === "Unit_Separator" || item.type === "Section_Separator") continue;
       if (!item.product_id) continue;
       const existing = map.get(item.product_id);
+      const itemOnHand = itemSkipsInventory(item, orderType) ? null : item.on_hand;
       if (existing) {
         existing.total_ordered += item.quantity_ordered;
         existing.total_fulfilled += item.quantity_fulfilled;
         existing.total_pending += item.quantity_pending ?? 0;
+        if (!itemSkipsInventory(item, orderType) && existing.on_hand === null) {
+          existing.on_hand = item.on_hand;
+          existing.reserved = item.reserved;
+          existing.available = item.available;
+        }
       } else {
         map.set(item.product_id, {
           product_id: item.product_id,
@@ -84,9 +96,9 @@ export default function OrderTotalsTab({ items, orderType }: Props) {
           total_ordered: item.quantity_ordered,
           total_fulfilled: item.quantity_fulfilled,
           total_pending: item.quantity_pending ?? 0,
-          on_hand: item.on_hand,
-          reserved: item.reserved,
-          available: item.available,
+          on_hand: itemOnHand,
+          reserved: itemSkipsInventory(item, orderType) ? null : item.reserved,
+          available: itemSkipsInventory(item, orderType) ? null : item.available,
         });
       }
     }
@@ -190,7 +202,14 @@ export default function OrderTotalsTab({ items, orderType }: Props) {
                 const enough = hasEnoughStock(product, orderType);
                 return (
                   <tr key={product.product_id} className="hover:bg-gray-50">
-                    <td className="font-semibold">{product.part_number}</td>
+                    <td className="font-semibold">
+                      <Link
+                        to={`/products/${product.product_id}`}
+                        className="hover:text-[#3A7BD5] hover:underline"
+                      >
+                        {product.part_number}
+                      </Link>
+                    </td>
                     <td className="text-center">{product.total_ordered}</td>
                     <td className="text-center">{product.total_pending}</td>
                     <td className="text-center">{product.total_fulfilled}</td>

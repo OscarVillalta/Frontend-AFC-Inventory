@@ -13,7 +13,7 @@ import { fetchCustomers } from "../../api/customers";
 import type { Supplier } from "../../api/suppliers";
 import { fetchSuppliers } from "../../api/suppliers";
 
-import { patchOrder, deleteOrder } from "../../api/ordersTable";
+import { patchOrder, deleteOrder, completeOrderManual } from "../../api/ordersTable";
 import type { OrderItemPayload } from "../../api/orderDetail";
 import { 
   fetchOrderItems,
@@ -24,6 +24,8 @@ import {
   rollbackTransaction,
   fetchOrderItemTransactions,
   void_order,
+  canManualCompleteOrder,
+  itemSkipsInventoryForOrder,
 } from "../../api/orderDetail";
 
 import { fetchOrderTracking } from "../../api/tracker";
@@ -37,6 +39,10 @@ import { useToast } from "../../hooks/useToast";
 
 import type { OrderType } from "../../constants/orderTypes";
 import { isOutgoingType } from "../../constants/orderTypes";
+
+function itemSkipsInventory(item: OrderItemPayload, orderType: OrderType): boolean {
+  return itemSkipsInventoryForOrder(item, orderType);
+}
 
 /* ===================== TYPES ===================== */
 
@@ -57,6 +63,7 @@ interface OrderDetailPayload {
   is_paid?: boolean;
   is_invoiced?: boolean;
   warehouse_id?: number | null;
+  can_manual_complete?: boolean;
 }
 
 /* ===================== COMPONENT ===================== */
@@ -78,6 +85,7 @@ export default function OrderDetailPage() {
 
   const [deleting, setDeleting] = useState(false);
   const [voiding, setVoiding] = useState(false);
+  const [manualCompleteLoading, setManualCompleteLoading] = useState(false);
 
   const [items, setItems] = useState<OrderItemPayload[]>([]);
   const [itemsLoading, setItemsLoading] = useState(true);
@@ -176,6 +184,23 @@ export default function OrderDetailPage() {
       showToast(msg, "error");
     } finally {
       setVoiding(false);
+    }
+  }
+
+  async function handleManualComplete() {
+    if (!orderId || !order) return;
+    if (!confirm(`Mark order ${order.order_number} as completed?`)) return;
+
+    setManualCompleteLoading(true);
+    try {
+      await completeOrderManual(orderId);
+      showToast(`Order ${order.order_number} marked as completed`, "success");
+      await refreshOrder();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to complete order";
+      showToast(msg, "error");
+    } finally {
+      setManualCompleteLoading(false);
     }
   }
 
@@ -332,13 +357,17 @@ export default function OrderDetailPage() {
   }
 
   async function handleAllocateSelected() {
+    if (!order) return;
     if (selectedItems.size === 0) {
       showToast("No items selected", "warning");
       return;
     }
 
     const nonSeparatorItems = items.filter(
-      item => selectedItems.has(item.id) && item.type !== "Unit_Separator" && item.type !== "Section_Separator"
+      item => selectedItems.has(item.id)
+        && item.type !== "Unit_Separator"
+        && item.type !== "Section_Separator"
+        && !itemSkipsInventory(item, order.type)
     );
 
     if (nonSeparatorItems.length === 0) {
@@ -368,13 +397,17 @@ export default function OrderDetailPage() {
   }
 
   async function handleCommitSelected() {
+    if (!order) return;
     if (selectedItems.size === 0) {
       showToast("No items selected", "warning");
       return;
     }
 
     const nonSeparatorItems = items.filter(
-      item => selectedItems.has(item.id) && item.type !== "Unit_Separator" && item.type !== "Section_Separator"
+      item => selectedItems.has(item.id)
+        && item.type !== "Unit_Separator"
+        && item.type !== "Section_Separator"
+        && !itemSkipsInventory(item, order.type)
     );
 
     if (nonSeparatorItems.length === 0) {
@@ -404,13 +437,17 @@ export default function OrderDetailPage() {
   }
 
   async function handleCancelSelected() {
+    if (!order) return;
     if (selectedItems.size === 0) {
       showToast("No items selected", "warning");
       return;
     }
 
     const nonSeparatorItems = items.filter(
-      item => selectedItems.has(item.id) && item.type !== "Unit_Separator" && item.type !== "Section_Separator"
+      item => selectedItems.has(item.id)
+        && item.type !== "Unit_Separator"
+        && item.type !== "Section_Separator"
+        && !itemSkipsInventory(item, order.type)
     );
 
     if (nonSeparatorItems.length === 0) {
@@ -456,13 +493,17 @@ export default function OrderDetailPage() {
   }
 
   async function handleRollbackSelected() {
+    if (!order) return;
     if (selectedItems.size === 0) {
       showToast("No items selected", "warning");
       return;
     }
 
     const nonSeparatorItems = items.filter(
-      item => selectedItems.has(item.id) && item.type !== "Unit_Separator" && item.type !== "Section_Separator"
+      item => selectedItems.has(item.id)
+        && item.type !== "Unit_Separator"
+        && item.type !== "Section_Separator"
+        && !itemSkipsInventory(item, order.type)
     );
 
     if (nonSeparatorItems.length === 0) {
@@ -523,6 +564,10 @@ export default function OrderDetailPage() {
     warehouseMismatch
       ? warehouses.find((w) => w.id === order.warehouse_id)?.name ?? `ID ${order.warehouse_id}`
       : null;
+
+  const canManualComplete =
+    order.can_manual_complete ??
+    canManualCompleteOrder(items, order.type, order.status);
 
   return (
     <MainLayout>
@@ -592,7 +637,10 @@ export default function OrderDetailPage() {
                     setOrder({ ...order, type: newType });
                     scheduleAutoSave(buildPatch({ type: newType }));
                   }}
-                  disabled={!hasPermission("orders:edit") || isVoided}
+                  disabled={!hasPermission("orders:edit") || isVoided || warehouseMismatch}
+                  canManualComplete={canManualComplete}
+                  onManualComplete={handleManualComplete}
+                  manualCompleteLoading={manualCompleteLoading}
                 />
               </div>
 
@@ -640,6 +688,7 @@ export default function OrderDetailPage() {
                 isPaid={order.is_paid ?? false}
                 isInvoiced={order.is_invoiced ?? false}
                 orderId={order.id}
+                orderNumber={order.order_number}
                 orderType={order.type}
                 onRefresh={refreshOrder}
                 onTrackerStageToggled={handleTrackerStageToggled}

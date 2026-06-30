@@ -85,8 +85,9 @@ export interface TrackerFilters{
   limit?: number;
   search?: string;
   tracker_status?: string;
-  tracker_department?: string;
-  order_type?: string;
+  tracker_department?: string | string[];
+  order_type?: string | string[];
+  party?: string | string[];
   // Created date filters
   start_date?: string;
   end_date?: string;
@@ -97,6 +98,14 @@ export interface TrackerFilters{
   updated_end_date?: string;
   updated_before_date?: string;
   updated_after_date?: string;
+}
+
+function appendListParam(query: URLSearchParams, key: string, values?: string | string[]) {
+  const list = Array.isArray(values) ? values : values ? [values] : [];
+  for (const value of list) {
+    const trimmed = value.trim();
+    if (trimmed) query.append(key, trimmed);
+  }
 }
 
 export function fetchOrderTracking(orderId: number | string) {
@@ -166,8 +175,9 @@ export function fetchPackingSlips(filters?: TrackerFilters): Promise<PackingSlip
   if (filters?.limit) query.set("limit", String(filters?.limit));
   if (filters?.search) query.set("search", filters?.search);
   if (filters?.tracker_status) query.set("tracker_status", filters?.tracker_status);
-  if (filters?.tracker_department) query.set("tracker_department", filters?.tracker_department);
-  if (filters?.order_type) query.set("order_type", filters?.order_type);
+  appendListParam(query, "tracker_department", filters?.tracker_department);
+  appendListParam(query, "order_type", filters?.order_type);
+  appendListParam(query, "party", filters?.party);
   // Created date filters
   if (filters?.start_date) query.set("start_date", filters?.start_date);
   if (filters?.end_date) query.set("end_date", filters?.end_date);
@@ -178,6 +188,5 @@ export function fetchPackingSlips(filters?: TrackerFilters): Promise<PackingSlip
   if (filters?.updated_end_date) query.set("updated_end_date", filters?.updated_end_date);
   if (filters?.updated_before_date) query.set("updated_before_date", filters?.updated_before_date);
   if (filters?.updated_after_date) query.set("updated_after_date", filters?.updated_after_date);
-  console.log(query.toString());
   return apiRequest(`/packing-slips?${query.toString()}`) as Promise<PackingSlipsResponse>;
 }

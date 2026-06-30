@@ -1,14 +1,19 @@
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import type { OrderWithTracking, OrderTrackerStagePayload } from "../../api/tracker";
 import { patchOrderPaidInvoiced } from "../../api/tracker";
 import { useAuth } from "../../hooks/useAuth";
 import {
   getStepsTemplate,
   getFirstIncompleteIndex,
-  getInlineStepAction,
-  getActionableStepIndex,
+  canUserActOnStepIndex,
 } from "../../utils/trackerSteps";
 import { toggleTrackerStep } from "../../utils/toggleTrackerStep";
+import { orderNumberSearchTerm } from "../../utils/orderNumberSearch";
+import {
+  TRACKER_FILTERS_STORAGE_KEY,
+  updatePersistedFilters,
+} from "../../hooks/usePersistedFilters";
 
 // ─────────────────────────────────────────────
 // Types
@@ -23,6 +28,7 @@ interface Props {
   isPaid: boolean;
   isInvoiced: boolean;
   orderId: number;
+  orderNumber: string;
   orderType: string;
   onRefresh: () => void;
   onTrackerStageToggled?: (updatedStage: OrderTrackerStagePayload) => void | Promise<void>;
@@ -105,6 +111,7 @@ export default function OrderLifecycleCard({
   isPaid,
   isInvoiced,
   orderId,
+  orderNumber,
   orderType,
   onRefresh,
   onTrackerStageToggled,
@@ -134,16 +141,15 @@ export default function OrderLifecycleCard({
 
   const firstIncompleteIndex = getFirstIncompleteIndex(stages, orderType);
   const allCompleted = firstIncompleteIndex === -1 && stages.some((s) => s.is_completed);
-  const actionableStepIndex = getActionableStepIndex(orderType, stages, hasPermission);
-  const inlineAction = getInlineStepAction(orderType, stages, hasPermission);
 
   const steps = TRACKER_STEPS.map((step, i) => {
     const stage = stageMap.get(i);
     const isStageCompleted = stage?.is_completed ?? false;
+    const canAct = canUserActOnStepIndex(orderType, i, hasPermission);
 
     let state: StepState;
     if (isStageCompleted) state = "completed";
-    else if (i === firstIncompleteIndex) state = "active";
+    else if (canAct) state = "active";
     else state = "pending";
 
     const timestamp = stage?.completed_at
@@ -156,7 +162,7 @@ export default function OrderLifecycleCard({
         })
       : null;
 
-    return { ...step, number: i + 1, state, timestamp };
+    return { ...step, number: i + 1, state, timestamp, isStageCompleted };
   });
 
   // Last updated at: use tracker updated_at, fall back to createdAt
@@ -172,18 +178,20 @@ export default function OrderLifecycleCard({
     : "—";
 
   async function handleToggle(index: number) {
-    if (!orderId || savingIndex !== null || actionableStepIndex !== index || !inlineAction) return;
+    if (!orderId || savingIndex !== null) return;
+    if (!canUserActOnStepIndex(orderType, index, hasPermission)) return;
+    const step = steps[index];
+    if (!step) return;
     setSavingIndex(index);
     setToggleError(null);
     try {
-      const isCompleted = inlineAction.kind === "complete";
       const updated = await toggleTrackerStep({
         orderId,
         orderType,
         stages,
         tracker,
         stageIndex: index,
-        isCompleted,
+        isCompleted: !step.isStageCompleted,
         userEmail: user?.email,
         hasPermission,
       });
@@ -229,7 +237,18 @@ export default function OrderLifecycleCard({
     <div className="bg-gray-50 border border-gray-200 rounded-xl p-6 mt-4">
       {/* Header row */}
       <div className="flex items-center justify-between mb-5 gap-2 flex-wrap">
-        <h2 className="text-lg sm:text-xl font-extrabold text-gray-900">Progress Tracker</h2>
+        <Link
+          to="/packing-slip-tracker"
+          onClick={() =>
+            updatePersistedFilters(TRACKER_FILTERS_STORAGE_KEY, {
+              search: orderNumberSearchTerm(orderNumber),
+              page: 1,
+            })
+          }
+          className="text-lg sm:text-xl font-extrabold text-gray-900 hover:text-blue-600 hover:underline"
+        >
+          Progress Tracker
+        </Link>
         {allCompleted && (
           <span className="text-sm font-semibold text-green-700 bg-green-100 border border-green-300 px-3 py-1 rounded-full">
             ✓ Tracking Complete
@@ -250,7 +269,11 @@ export default function OrderLifecycleCard({
               <div className="flex flex-col items-center">
                 <StepIcon
                   state={step.state}
-                  onClick={actionableStepIndex === i ? () => handleToggle(i) : undefined}
+                  onClick={
+                    canUserActOnStepIndex(orderType, i, hasPermission)
+                      ? () => handleToggle(i)
+                      : undefined
+                  }
                   saving={savingIndex === i}
                 />
                 {i < steps.length - 1 && (

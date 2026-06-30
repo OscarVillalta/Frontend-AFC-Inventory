@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import React from "react";
 import { Link } from "react-router-dom";
 import MainLayout from "../layouts/MainLayout";
@@ -15,20 +15,48 @@ import {
   type TrackerFilters,
 } from "../api/tracker";
 import DateSelection from "../components/DateSelection";
+import FilterMultiSelect from "../components/FilterMultiSelect";
 import { ORDER_TYPE_LABELS } from "../constants/orderTypes";
 import { useWarehouse } from "../hooks/useWarehouse";
 import { useAuth } from "../hooks/useAuth";
-import { usePersistedFilters } from "../hooks/usePersistedFilters";
+import {
+  TRACKER_FILTERS_STORAGE_KEY,
+  usePersistedFilters,
+} from "../hooks/usePersistedFilters";
 import {
   getStepsTemplate,
   getInlineStepAction,
-  getActionableStepIndex,
+  canUserActOnStepIndex,
   getFirstIncompleteIndex,
   TRACKER_UPDATE_ANY,
   TRACKER_DEPARTMENT_FILTER_OPTIONS,
 } from "../utils/trackerSteps";
 import { toggleTrackerStep } from "../utils/toggleTrackerStep";
+import { orderNumberSearchTerm } from "../utils/orderNumberSearch";
 import { maybeSyncCalendarOnTrackerComplete } from "../utils/syncCalendarOnTrackerCompleted";
+import { fetchCustomers, type Customer } from "../api/customers";
+import { fetchSuppliers, type Supplier } from "../api/suppliers";
+
+function asStringArray(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value.filter((v): v is string => typeof v === "string" && v.trim() !== "");
+  }
+  if (typeof value === "string" && value.trim() !== "") return [value];
+  return [];
+}
+
+const ORDER_TYPE_FILTER_OPTIONS = [
+  { value: "installation", label: "Installation" },
+  { value: "delivery", label: "Delivery" },
+  { value: "shipment", label: "Shipment" },
+  { value: "will_call", label: "Will Call" },
+  { value: "incoming", label: "Purchase Order" },
+  { value: "void", label: "Void" },
+];
+
+function partyFilterValue(kind: "customer" | "supplier", id: number): string {
+  return `${kind}:${id}`;
+}
 
 // ─────────────────────────────────────────────
 // Types
@@ -88,42 +116,50 @@ function latestCompletedStage(stages: OrderTrackerStagePayload[]): OrderTrackerS
     .sort((a, b) => new Date(b.completed_at!).getTime() - new Date(a.completed_at!).getTime())[0];
 }
 
+function deriveTrackerDeptLabel(orderType: string, stages: OrderTrackerStagePayload[]): string {
+  const stepsTemplate = getStepsTemplate(orderType);
+  if (stepsTemplate.length === 0) return "IN PROGRESS";
+
+  const stageMap = new Map(stages.map((s) => [s.stage_index, s]));
+  const firstIncompleteIdx = stepsTemplate.findIndex((_, i) => !stageMap.get(i)?.is_completed);
+  const dept =
+    firstIncompleteIdx >= 0
+      ? stepsTemplate[firstIncompleteIdx].dept
+      : stepsTemplate[0].dept;
+
+  return `IN ${deptLabel(dept).toUpperCase()}`;
+}
+
+function deriveTrackerStatus(
+  orderType: string,
+  stages: OrderTrackerStagePayload[],
+  options?: { isBackordered?: boolean }
+): { trackerStatus: string; trackerDept: string } {
+  const stepsTemplate = getStepsTemplate(orderType);
+  const totalSteps = stepsTemplate.length;
+  const completedCount = stages.filter((s) => s.is_completed).length;
+
+  if (options?.isBackordered) {
+    return { trackerStatus: "Backordered", trackerDept: "" };
+  }
+  if (totalSteps > 0 && completedCount >= totalSteps) {
+    return { trackerStatus: "Completed", trackerDept: "" };
+  }
+  return {
+    trackerStatus: "In Progress",
+    trackerDept: deriveTrackerDeptLabel(orderType, stages),
+  };
+}
+
 // ─────────────────────────────────────────────
 // Helper: convert API result → PackingSlipRow
 // ─────────────────────────────────────────────
 
 function toPackingSlipRow(r: PackingSlipResult): PackingSlipRow {
-  const stepsTemplate = getStepsTemplate(r.order_type ?? "");
-  const totalSteps = stepsTemplate.length;
   const stages = r.stages ?? [];
-  const completedCount = stages.filter((s) => s.is_completed).length;
-
-  let trackerStatus: string;
-  let trackerDept: string;
-  if (r.tracker?.is_backordered) {
-    trackerStatus = "Backordered";
-    trackerDept = "";
-  } else if (completedCount === 0 && !r.tracker) {
-    trackerStatus = "Not Started";
-    trackerDept = "";
-  } else if (completedCount >= totalSteps) {
-    trackerStatus = "Completed";
-    trackerDept = "";
-  } else if (completedCount > 0 || r.tracker) {
-    trackerStatus = "In Progress";
-    // Find the earliest step that has not been completed
-    const stageMap = new Map((stages ?? []).map((s) => [s.stage_index, s]));
-    const firstIncompleteIdx = stepsTemplate.findIndex((_, i) => !stageMap.get(i)?.is_completed);
-    const firstIncompleteDept = firstIncompleteIdx >= 0 ? stepsTemplate[firstIncompleteIdx].dept : null;
-    trackerDept = firstIncompleteDept
-      ? `IN ${deptLabel(firstIncompleteDept).toUpperCase()}`
-      : "IN PROGRESS";
-  } else {
-    trackerStatus = "Not Started";
-    trackerDept = "";
-  }
-
-  // Physical stock state
+  const { trackerStatus, trackerDept } = deriveTrackerStatus(r.order_type ?? "", stages, {
+    isBackordered: r.tracker?.is_backordered,
+  });
   const stockState = r.status === "Completed" ? "Delivered" : "Reserved";
 
   // Use the most recent completed_at from stages, falling back to tracker updated_at
@@ -226,10 +262,10 @@ function TrackerStatusBadge({ status, deptLabel: dept }: { status: string; deptL
       </span>
     );
   }
-  if (status === "Not Started") {
+  if (status === "In Progress") {
     return (
-      <span className="inline-flex items-center gap-1 rounded-lg px-2.5 py-0.5 text-xs font-semibold bg-slate-100 text-slate-500 uppercase tracking-wide">
-        ○ NOT STARTED
+      <span className="inline-flex items-center gap-1 rounded-lg px-2.5 py-0.5 text-xs font-bold bg-yellow-100 text-yellow-700 uppercase tracking-wide">
+        ● IN PROGRESS
       </span>
     );
   }
@@ -318,12 +354,12 @@ function ProgressStepper({
   steps,
   onToggleStep,
   savingIndex,
-  actionableStepIndex,
+  canToggleStep,
 }: {
   steps: Step[];
   onToggleStep?: (index: number) => void;
   savingIndex?: number | null;
-  actionableStepIndex?: number | null;
+  canToggleStep?: (index: number) => boolean;
 }) {
   return (
     <div className="overflow-x-auto">
@@ -335,7 +371,7 @@ function ProgressStepper({
                 isCompleted={step.isCompleted}
                 saving={savingIndex === step.index}
                 onClick={
-                  onToggleStep && actionableStepIndex === step.index
+                  onToggleStep && canToggleStep?.(step.index)
                     ? () => onToggleStep(step.index)
                     : undefined
                 }
@@ -344,7 +380,7 @@ function ProgressStepper({
                 {step.label}
               </span>
               <span className="text-xs text-gray-500 text-center mt-0.5">
-                {step.isCompleted ? "Completed" : "Not Started"}
+                {step.isCompleted ? "Completed" : "Pending"}
               </span>
               {step.timestamp && (
                 <span className="text-xs text-gray-400 text-center mt-0.5">{step.timestamp}</span>
@@ -400,14 +436,13 @@ function QuickStepAction({
     onSavingChange(row.id);
     setError(null);
     try {
-      const isCompleted = action.kind === "complete";
       const updated = await toggleTrackerStep({
         orderId: row.id,
         orderType: row.type,
         stages: row.stages ?? [],
         tracker: row.tracker,
         stageIndex: action.stageIndex,
-        isCompleted,
+        isCompleted: true,
         userEmail: user?.email,
         hasPermission,
       });
@@ -419,24 +454,15 @@ function QuickStepAction({
     }
   };
 
-  const label =
-    action.kind === "complete"
-      ? `Complete ${action.label}`
-      : `Undo ${action.label}`;
-
   return (
     <div className="flex flex-col gap-0.5">
       <button
         type="button"
         disabled={saving}
         onClick={handleClick}
-        className={`px-2 py-0.5 rounded-md text-[10px] font-semibold transition-all border whitespace-nowrap ${
-          action.kind === "complete"
-            ? "bg-blue-600 text-white border-blue-600 hover:bg-blue-700"
-            : "bg-white text-gray-600 border-gray-300 hover:bg-gray-50"
-        } disabled:opacity-50`}
+        className="px-2 py-0.5 rounded-md text-[10px] font-semibold transition-all border whitespace-nowrap bg-blue-600 text-white border-blue-600 hover:bg-blue-700 disabled:opacity-50"
       >
-        {saving ? "…" : label}
+        {saving ? "…" : `Complete ${action.label}`}
       </button>
       {error && <span className="text-[10px] text-red-600 max-w-[140px]">{error}</span>}
     </div>
@@ -541,7 +567,7 @@ function PaidInvoicedToggle({
 // Filter types
 // ─────────────────────────────────────────────
 
-type FilterTab = "All" | "Not Started" | "In Progress" | "Completed" | "Backordered";
+type FilterTab = "All" | "In Progress" | "Completed" | "Backordered";
 
 // ─────────────────────────────────────────────
 // Expanded Detail Panel
@@ -562,29 +588,21 @@ function ExpandedPanel({
   const [saveError, setSaveError] = useState<string | null>(null);
   const [savingBackordered, setSavingBackordered] = useState(false);
   const steps = buildSteps(row);
-  const actionableStepIndex = getActionableStepIndex(
-    row.type,
-    row.stages ?? [],
-    hasPermission,
-    { isVoid: row.type?.toLowerCase() === "void" }
-  );
-  const inlineAction = getInlineStepAction(row.type, row.stages ?? [], hasPermission, {
-    isVoid: row.type?.toLowerCase() === "void",
-  });
 
   const handleToggleStep = async (index: number) => {
-    if (actionableStepIndex !== index || !inlineAction) return;
+    if (!canUserActOnStepIndex(row.type, index, hasPermission)) return;
+    const step = steps.find((s) => s.index === index);
+    if (!step) return;
     setSavingIndex(index);
     setSaveError(null);
     try {
-      const isCompleted = inlineAction.kind === "complete";
       const updated = await toggleTrackerStep({
         orderId: row.id,
         orderType: row.type,
         stages: row.stages ?? [],
         tracker: row.tracker,
         stageIndex: index,
-        isCompleted,
+        isCompleted: !step.isCompleted,
         userEmail: user?.email,
         hasPermission,
       });
@@ -675,9 +693,11 @@ function ExpandedPanel({
 
               <ProgressStepper
                 steps={steps}
-                onToggleStep={actionableStepIndex !== null ? handleToggleStep : undefined}
+                onToggleStep={handleToggleStep}
                 savingIndex={savingIndex}
-                actionableStepIndex={actionableStepIndex}
+                canToggleStep={(index) =>
+                  canUserActOnStepIndex(row.type, index, hasPermission)
+                }
               />
 
               {saveError && (
@@ -790,18 +810,17 @@ function KpiCards({
   statusCounts,
 }: {
   total: number;
-  statusCounts: { "Not Started": number; "In Progress": number; Completed: number; Backordered: number };
+  statusCounts: { "In Progress": number; Completed: number; Backordered: number };
 }) {
   const cards = [
     { label: "Total Orders", value: total, color: "text-gray-800" },
-    { label: "Not Started", value: statusCounts["Not Started"], color: "text-slate-600" },
     { label: "In Progress", value: statusCounts["In Progress"], color: "text-yellow-600" },
     { label: "Completed", value: statusCounts["Completed"], color: "text-green-600" },
     { label: "Backordered", value: statusCounts["Backordered"], color: "text-orange-600" },
   ];
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
       {cards.map((c) => (
         <div
           key={c.label}
@@ -821,7 +840,17 @@ function KpiCards({
 
 const PAGE_SIZE = 100;
 
-const DEFAULT_STATUS_COUNTS = { "Not Started": 0, "In Progress": 0, Completed: 0, Backordered: 0 };
+const DEFAULT_STATUS_COUNTS = { "In Progress": 0, Completed: 0, Backordered: 0 };
+
+function normalizeStatusCounts(
+  raw: Partial<Record<"Not Started" | "In Progress" | "Completed" | "Backordered", number>>
+): typeof DEFAULT_STATUS_COUNTS {
+  return {
+    "In Progress": (raw["In Progress"] ?? 0) + (raw["Not Started"] ?? 0),
+    Completed: raw.Completed ?? 0,
+    Backordered: raw.Backordered ?? 0,
+  };
+}
 
 export default function PackingSlipTrackerPage() {
   const { activeWarehouseId } = useWarehouse();
@@ -838,15 +867,18 @@ export default function PackingSlipTrackerPage() {
 
   /* ── Additional filter state ── */
   const [filterStockState, setFilterStockState] = useState("");
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
 
   // === FILTER STATES (PERSISTED) ===
-  const [filters, setFilter] = usePersistedFilters("filters_tracker", {
+  const [filters, setFilter] = usePersistedFilters(TRACKER_FILTERS_STORAGE_KEY, {
     page: 1,
     limit: 50,
     search: "",
     tracker_status: "",
-    tracker_department: "",
-    order_type: "",
+    tracker_department: [] as string[],
+    order_type: [] as string[],
+    party: [] as string[],
     start_date: "",
     end_date: "",
     dateFilterMode: "none" as "between" | "before" | "after" | "none",
@@ -855,6 +887,35 @@ export default function PackingSlipTrackerPage() {
     lastUpdatedMode: "none" as "between" | "before" | "after" | "none",
   });
 
+  const selectedOrderTypes = asStringArray(filters.order_type);
+  const selectedTrackerDepartments = asStringArray(filters.tracker_department);
+  const selectedParties = asStringArray(filters.party);
+
+  const partyFilterOptions = useMemo(
+    () =>
+      [
+        ...customers.map((customer) => ({
+          value: partyFilterValue("customer", customer.id),
+          label: customer.name,
+        })),
+        ...suppliers.map((supplier) => ({
+          value: partyFilterValue("supplier", supplier.id),
+          label: `${supplier.name} (Supplier)`,
+        })),
+      ].sort((a, b) => a.label.localeCompare(b.label)),
+    [customers, suppliers]
+  );
+
+  useEffect(() => {
+    fetchCustomers().then(setCustomers).catch(() => setCustomers([]));
+    fetchSuppliers().then(setSuppliers).catch(() => setSuppliers([]));
+  }, [activeWarehouseId]);
+
+  useEffect(() => {
+    if (filters.tracker_status === "Not Started") {
+      setFilter("tracker_status", "In Progress");
+    }
+  }, []);
 
   // Debounce search to reduce API calls
   useEffect(() => {
@@ -865,19 +926,26 @@ export default function PackingSlipTrackerPage() {
   const loadData = () => {
     setLoading(true);
     setFetchError(null);
+    const apiFilters: TrackerFilters = {
+      ...filters,
+      order_type: selectedOrderTypes,
+      tracker_department: selectedTrackerDepartments,
+      party: selectedParties,
+      search: filters.search ? orderNumberSearchTerm(filters.search) : filters.search,
+    };
     Promise.resolve(
-      fetchPackingSlips(filters)
+      fetchPackingSlips(apiFilters)
     ).then((resp) => {
       setRows(resp.results.map(toPackingSlipRow));
       setTotal(resp.total);
-      setStatusCounts(resp.status_counts);
+      setStatusCounts(normalizeStatusCounts(resp.status_counts));
       setLoading(false);
     })
   }
 
   useEffect(() => {
     loadData();
-  }, [filters.page, filters.limit, filters.end_date, filters.updated_end_date, filters.updated_start_date, filters.order_type, filters.search, filters.start_date, filters.tracker_status, filters.tracker_department, activeWarehouseId]);
+  }, [filters.page, filters.limit, filters.end_date, filters.updated_end_date, filters.updated_start_date, selectedOrderTypes.join(","), filters.search, filters.start_date, filters.tracker_status, selectedTrackerDepartments.join(","), selectedParties.join(","), activeWarehouseId]);
 
   // Reset page when search or tab changes
   const handleSearch = (v: string) => {
@@ -936,24 +1004,9 @@ export default function PackingSlipTrackerPage() {
           };
         }
 
-        let trackerStatus: string;
-        let trackerDept: string;
-        if (completedCount === 0 && !newTracker) {
-          trackerStatus = "Not Started";
-          trackerDept = "";
-        } else if (completedCount >= totalSteps) {
-          trackerStatus = "Completed";
-          trackerDept = "";
-        } else {
-          trackerStatus = "In Progress";
-          // Find the earliest step that has not been completed
-          const stageMap = new Map(newStages.map((s) => [s.stage_index, s]));
-          const firstIncompleteIdx = stepsTemplate.findIndex((_, i) => !stageMap.get(i)?.is_completed);
-          const firstIncompleteDept = firstIncompleteIdx >= 0 ? stepsTemplate[firstIncompleteIdx].dept : null;
-          trackerDept = firstIncompleteDept
-            ? `IN ${deptLabel(firstIncompleteDept).toUpperCase()}`
-            : "IN PROGRESS";
-        }
+        const { trackerStatus, trackerDept } = deriveTrackerStatus(row.type ?? "", newStages, {
+          isBackordered: newTracker?.is_backordered,
+        });
 
         const latest = latestCompletedStage(newStages);
         const lastUpdated = latest?.completed_at
@@ -997,30 +1050,10 @@ export default function PackingSlipTrackerPage() {
       prev.map((row) => {
         if (row.id !== orderId) return row;
         const newTracker = row.tracker ? { ...row.tracker, is_backordered: isBackordered } : row.tracker;
-        const stepsTemplate = getStepsTemplate(row.type ?? "");
-        const totalSteps = stepsTemplate.length;
-        const completedCount = row.stages.filter((s) => s.is_completed).length;
 
-        let trackerStatus: string;
-        let trackerDept: string;
-        if (isBackordered) {
-          trackerStatus = "Backordered";
-          trackerDept = "";
-        } else if (completedCount === 0 && !newTracker) {
-          trackerStatus = "Not Started";
-          trackerDept = "";
-        } else if (completedCount >= totalSteps) {
-          trackerStatus = "Completed";
-          trackerDept = "";
-        } else {
-          trackerStatus = "In Progress";
-          const stageMap = new Map(row.stages.map((s) => [s.stage_index, s]));
-          const firstIncompleteIdx = stepsTemplate.findIndex((_, i) => !stageMap.get(i)?.is_completed);
-          const firstIncompleteDept = firstIncompleteIdx >= 0 ? stepsTemplate[firstIncompleteIdx].dept : null;
-          trackerDept = firstIncompleteDept
-            ? `IN ${deptLabel(firstIncompleteDept).toUpperCase()}`
-            : "IN PROGRESS";
-        }
+        const { trackerStatus, trackerDept } = deriveTrackerStatus(row.type ?? "", row.stages, {
+          isBackordered,
+        });
         return { ...row, tracker: newTracker, trackerStatus, trackerDept };
       })
     );
@@ -1042,7 +1075,7 @@ export default function PackingSlipTrackerPage() {
     setExpandedId((prev) => (prev === id ? null : id));
   };
 
-  const allCount = (statusCounts["Not Started"] ?? 0) +
+  const allCount =
     (statusCounts["In Progress"] ?? 0) +
     (statusCounts["Completed"] ?? 0) +
     (statusCounts["Backordered"] ?? 0);
@@ -1054,23 +1087,24 @@ export default function PackingSlipTrackerPage() {
   });
 
   const hasActiveFilters =
-    filters.order_type !== "" ||
+    selectedOrderTypes.length > 0 ||
+    selectedParties.length > 0 ||
     filterStockState !== "" ||
     filters.search !== "" ||
     (filters.tracker_status !== "" && filters.tracker_status !== "All") ||
-    filters.tracker_department !== "";
+    selectedTrackerDepartments.length > 0;
 
   const handleClearFilters = () => {
-    setFilter("order_type", "");
+    setFilter("order_type", []);
+    setFilter("party", []);
     setFilter("search", "");
     setFilter("tracker_status", "");
-    setFilter("tracker_department", "");
+    setFilter("tracker_department", []);
   };
 
-  const STATUS_TABS: FilterTab[] = ["All", "Not Started", "In Progress", "Completed", "Backordered"];
+  const STATUS_TABS: FilterTab[] = ["All", "In Progress", "Completed", "Backordered"];
   const statusTabCounts: Record<FilterTab, number> = {
     All: allCount,
-    "Not Started": statusCounts["Not Started"] ?? 0,
     "In Progress": statusCounts["In Progress"] ?? 0,
     Completed: statusCounts["Completed"] ?? 0,
     Backordered: statusCounts["Backordered"] ?? 0,
@@ -1114,49 +1148,52 @@ export default function PackingSlipTrackerPage() {
                 type="text"
                 value={filters.search}
                 onChange={(e) => handleSearch(e.target.value)}
-                placeholder="Slip #, customer…"
+                placeholder="Slip # or ext #…"
                 className="border border-gray-200 rounded-lg pl-7 pr-2 py-1.5 text-sm text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-400 w-full"
               />
             </div>
           </div>
 
+          {/* Customer / Supplier */}
+          <FilterMultiSelect
+            label="Customer / Supplier"
+            placeholder="All Customers & Suppliers"
+            options={partyFilterOptions}
+            selected={selectedParties}
+            searchable
+            searchPlaceholder="Search customers & suppliers…"
+            onChange={(values) => {
+              setFilter("party", values);
+              setFilter("page", 1);
+            }}
+          />
+
           {/* Order Type */}
-          <div className="flex flex-col gap-0.5 min-w-[140px]">
-            <label className="text-xs text-gray-400 font-medium uppercase tracking-wide">Order Type</label>
-            <select
-              className="border border-gray-200 rounded-lg px-2 py-1.5 text-sm text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-400"
-              value={filters.order_type}
-              onChange={(e) => { setFilter("order_type", e.target.value); setFilter("page", 1);}}
-            >
-              <option value="">All Types</option>
-              <option value="installation">Installation</option>
-              <option value="delivery">Delivery</option>
-              <option value="shipment">Shipment</option>
-              <option value="will_call">Will Call</option>
-              <option value="incoming">Purchase Order</option>
-              <option value="void">Void</option>
-            </select>
-          </div>
+          <FilterMultiSelect
+            label="Order Type"
+            placeholder="All Types"
+            options={ORDER_TYPE_FILTER_OPTIONS}
+            selected={selectedOrderTypes}
+            onChange={(values) => {
+              setFilter("order_type", values);
+              setFilter("page", 1);
+            }}
+          />
 
           {/* Tracker State (department) */}
-          <div className="flex flex-col gap-0.5 min-w-[140px]">
-            <label className="text-xs text-gray-400 font-medium uppercase tracking-wide">Tracker State</label>
-            <select
-              className="border border-gray-200 rounded-lg px-2 py-1.5 text-sm text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-400"
-              value={filters.tracker_department}
-              onChange={(e) => {
-                setFilter("tracker_department", e.target.value);
-                setFilter("page", 1);
-              }}
-            >
-              <option value="">All States</option>
-              {TRACKER_DEPARTMENT_FILTER_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
-          </div>
+          <FilterMultiSelect
+            label="Tracker State"
+            placeholder="All States"
+            options={TRACKER_DEPARTMENT_FILTER_OPTIONS.map((opt) => ({
+              value: opt.value,
+              label: opt.label,
+            }))}
+            selected={selectedTrackerDepartments}
+            onChange={(values) => {
+              setFilter("tracker_department", values);
+              setFilter("page", 1);
+            }}
+          />
 
           {/* Stock State */}
           <div className="flex flex-col gap-0.5 min-w-[140px]">

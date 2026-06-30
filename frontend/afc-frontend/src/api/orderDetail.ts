@@ -1,6 +1,7 @@
 import { apiRequest } from "./apiClient";
+import type { OrderType } from "../constants/orderTypes";
 
-export type OrderItemType = "Unit_Separator" | "Section_Separator" | "Product_Item" | "Sales_Item" | "Media_Cut";
+export type OrderItemType = "Unit_Separator" | "Section_Separator" | "Product_Item" | "Sales_Item";
 
 export interface OrderItemPayload {
   id: number;
@@ -18,6 +19,7 @@ export interface OrderItemPayload {
   reserved: number | null;
   available: number | null;
   is_media: boolean;
+  no_stock_deduction: boolean;
 }
 
 export interface OrderItemTransaction {
@@ -133,6 +135,7 @@ export function updateOrderItem(itemId: number, payload: {
   quantity_ordered?: number;
   note?: string;
   type?: OrderItemType;
+  no_stock_deduction?: boolean;
 }): Promise<void> {
   return apiRequest(`/order_items/${itemId}`, {
     method: "PATCH",
@@ -144,4 +147,36 @@ export function void_order(orderId: number) {
   return apiRequest(`/orders/${orderId}/void`, {
     method: "POST",
   });
+}
+
+const SEPARATOR_TYPES: OrderItemType[] = ["Unit_Separator", "Section_Separator"];
+
+export function itemSkipsInventoryForOrder(
+  item: OrderItemPayload,
+  orderType: OrderType,
+): boolean {
+  if (orderType === "incoming") return false;
+  return Boolean(item.no_stock_deduction);
+}
+
+export function hasStockTrackableItems(
+  items: OrderItemPayload[],
+  orderType: OrderType,
+): boolean {
+  return items.some(
+    (item) =>
+      !SEPARATOR_TYPES.includes(item.type)
+      && !itemSkipsInventoryForOrder(item, orderType),
+  );
+}
+
+export function canManualCompleteOrder(
+  items: OrderItemPayload[],
+  orderType: OrderType,
+  orderStatus: string,
+): boolean {
+  if (orderType === "void") return false;
+  if (orderStatus === "Completed" || orderStatus === "Voided") return false;
+  if (items.length === 0) return false;
+  return !hasStockTrackableItems(items, orderType);
 }

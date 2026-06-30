@@ -7,10 +7,9 @@ import {
 } from "../api/tracker";
 import {
   getDepartmentForStageIndex,
-  getFirstIncompleteIndex,
-  getLastCompletedIndex,
   getStepsTemplate,
   canUserActOnDepartment,
+  isStageCompleted,
 } from "./trackerSteps";
 
 export interface ToggleTrackerStepParams {
@@ -43,14 +42,12 @@ export async function toggleTrackerStep({
     throw new Error("You do not have the permissions to complete this department's step.");
   }
 
-  const firstIncomplete = getFirstIncompleteIndex(stages, orderType);
-  const lastCompleted = getLastCompletedIndex(stages, orderType);
-
-  if (isCompleted && stageIndex !== firstIncomplete) {
-    throw new Error("Steps must be completed in order.");
+  const currentlyCompleted = isStageCompleted(stages, stageIndex);
+  if (isCompleted && currentlyCompleted) {
+    throw new Error("This step is already completed.");
   }
-  if (!isCompleted && stageIndex !== lastCompleted) {
-    throw new Error("Only the most recently completed step can be undone.");
+  if (!isCompleted && !currentlyCompleted) {
+    throw new Error("This step is not completed.");
   }
 
   if (!tracker) {

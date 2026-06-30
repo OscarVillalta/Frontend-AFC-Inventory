@@ -14,6 +14,8 @@ function formatUTCDate(iso: string) {
   return d.toLocaleDateString("en-US", { timeZone: "UTC" });
 }
 
+const DEFAULT_TYPE_ROW_COLORS = { dot: "bg-gray-400", text: "text-gray-600" };
+
 /** Color classes for type badges in the table rows */
 const TYPE_ROW_COLORS: Record<string, { dot: string; text: string }> = {
   incoming:     { dot: "bg-green-500",  text: "text-green-700" },
@@ -21,8 +23,7 @@ const TYPE_ROW_COLORS: Record<string, { dot: string; text: string }> = {
   will_call:    { dot: "bg-purple-500", text: "text-purple-700"},
   delivery:     { dot: "bg-teal-500",   text: "text-teal-700"  },
   shipment:     { dot: "bg-cyan-500",   text: "text-cyan-700"  },
-  // legacy
-  outgoing:     { dot: "bg-red-500",    text: "text-red-700"   },
+  void:         { dot: "bg-gray-500",   text: "text-gray-700"  },
 };
 
 interface Props {
@@ -170,7 +171,7 @@ export default function OrdersTable({ reloadKey }: Props) {
           TABLE ROWS (API-backed)
        ================================================= */}
       {(rows ?? []).map((row) => {
-        const typeColors = TYPE_ROW_COLORS[row.type] ?? TYPE_ROW_COLORS["outgoing"];
+        const typeColors = TYPE_ROW_COLORS[row.type] ?? DEFAULT_TYPE_ROW_COLORS;
         const typeLabel = ORDER_TYPE_LABELS[row.type as keyof typeof ORDER_TYPE_LABELS] ?? row.type;
 
         return (
