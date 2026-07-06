@@ -85,6 +85,7 @@ export interface TrackerFilters{
   limit?: number;
   search?: string;
   tracker_status?: string;
+  stock_state?: string;
   tracker_department?: string | string[];
   order_type?: string | string[];
   party?: string | string[];
@@ -175,6 +176,7 @@ export function fetchPackingSlips(filters?: TrackerFilters): Promise<PackingSlip
   if (filters?.limit) query.set("limit", String(filters?.limit));
   if (filters?.search) query.set("search", filters?.search);
   if (filters?.tracker_status) query.set("tracker_status", filters?.tracker_status);
+  if (filters?.stock_state) query.set("stock_state", filters?.stock_state);
   appendListParam(query, "tracker_department", filters?.tracker_department);
   appendListParam(query, "order_type", filters?.order_type);
   appendListParam(query, "party", filters?.party);

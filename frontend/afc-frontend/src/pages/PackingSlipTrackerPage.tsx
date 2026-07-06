@@ -866,7 +866,6 @@ export default function PackingSlipTrackerPage() {
   const [fetchError, setFetchError] = useState<string | null>(null);
 
   /* ── Additional filter state ── */
-  const [filterStockState, setFilterStockState] = useState("");
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
 
@@ -876,6 +875,7 @@ export default function PackingSlipTrackerPage() {
     limit: 50,
     search: "",
     tracker_status: "",
+    stock_state: "",
     tracker_department: [] as string[],
     order_type: [] as string[],
     party: [] as string[],
@@ -945,7 +945,7 @@ export default function PackingSlipTrackerPage() {
 
   useEffect(() => {
     loadData();
-  }, [filters.page, filters.limit, filters.end_date, filters.updated_end_date, filters.updated_start_date, selectedOrderTypes.join(","), filters.search, filters.start_date, filters.tracker_status, selectedTrackerDepartments.join(","), selectedParties.join(","), activeWarehouseId]);
+  }, [filters.page, filters.limit, filters.end_date, filters.updated_end_date, filters.updated_start_date, selectedOrderTypes.join(","), filters.search, filters.start_date, filters.tracker_status, filters.stock_state, selectedTrackerDepartments.join(","), selectedParties.join(","), activeWarehouseId]);
 
   // Reset page when search or tab changes
   const handleSearch = (v: string) => {
@@ -1080,16 +1080,11 @@ export default function PackingSlipTrackerPage() {
     (statusCounts["Completed"] ?? 0) +
     (statusCounts["Backordered"] ?? 0);
 
-  /* ── Client-side filtering for stock state (not sent to server) ── */
-  const filteredRows = rows.filter((row) => {
-    if (filterStockState && row.stockState !== filterStockState) return false;
-    return true;
-  });
-
+  /* ── Server-side filters; rows match current page from API ── */
   const hasActiveFilters =
     selectedOrderTypes.length > 0 ||
     selectedParties.length > 0 ||
-    filterStockState !== "" ||
+    filters.stock_state !== "" ||
     filters.search !== "" ||
     (filters.tracker_status !== "" && filters.tracker_status !== "All") ||
     selectedTrackerDepartments.length > 0;
@@ -1099,6 +1094,7 @@ export default function PackingSlipTrackerPage() {
     setFilter("party", []);
     setFilter("search", "");
     setFilter("tracker_status", "");
+    setFilter("stock_state", "");
     setFilter("tracker_department", []);
   };
 
@@ -1200,8 +1196,8 @@ export default function PackingSlipTrackerPage() {
             <label className="text-xs text-gray-400 font-medium uppercase tracking-wide">Stock State</label>
             <select
               className="border border-gray-200 rounded-lg px-2 py-1.5 text-sm text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-400"
-              value={filterStockState}
-              onChange={(e) => { setFilterStockState(e.target.value); setFilter("page", 1); }}
+              value={filters.stock_state}
+              onChange={(e) => { setFilter("stock_state", e.target.value); setFilter("page", 1); }}
             >
               <option value="">All States</option>
               <option value="Reserved">Reserved</option>
@@ -1339,7 +1335,7 @@ export default function PackingSlipTrackerPage() {
                   </tr>
                 )}
 
-                {!loading && filteredRows.length === 0 && (
+                {!loading && rows.length === 0 && (
                   <tr>
                     <td colSpan={10} className="py-12 text-center text-slate-400">
                       No records found.
@@ -1348,7 +1344,7 @@ export default function PackingSlipTrackerPage() {
                 )}
 
                 {!loading &&
-                  filteredRows.map((row, rowIndex) => (
+                  rows.map((row, rowIndex) => (
                     <React.Fragment key={row.id}>
                       <tr
                         role="button"
