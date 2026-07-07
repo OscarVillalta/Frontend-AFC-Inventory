@@ -16,6 +16,7 @@ import {
 } from "../api/tracker";
 import DateSelection from "../components/DateSelection";
 import FilterMultiSelect from "../components/FilterMultiSelect";
+import PullFromQBModal from "../components/order/Table/PullFromQBModal";
 import { ORDER_TYPE_LABELS } from "../constants/orderTypes";
 import { useWarehouse } from "../hooks/useWarehouse";
 import { useAuth } from "../hooks/useAuth";
@@ -854,10 +855,12 @@ function normalizeStatusCounts(
 
 export default function PackingSlipTrackerPage() {
   const { activeWarehouseId } = useWarehouse();
+  const { hasPermission } = useAuth();
 
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [savingStepOrderId, setSavingStepOrderId] = useState<number | null>(null);
+  const [showPullQBModal, setShowPullQBModal] = useState(false);
 
   const [rows, setRows] = useState<PackingSlipRow[]>([]);
   const [total, setTotal] = useState(0);
@@ -951,6 +954,11 @@ export default function PackingSlipTrackerPage() {
   const handleSearch = (v: string) => {
     setFilter("search", v);
     setFilter("page", 1)
+  };
+
+  const handlePullQBCreated = () => {
+    setFilter("page", 1);
+    loadData();
   };
 
   const handleTabChange = (tab: FilterTab) => {
@@ -1118,14 +1126,22 @@ export default function PackingSlipTrackerPage() {
               Track shipment progress through each checkpoint
             </p>
           </div>
-          <a
-            href="https://calendar.google.com/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center rounded-lg border border-blue-200 px-3 py-2 text-sm font-medium text-blue-700 hover:bg-blue-50"
-          >
-            Open Calendar
-          </a>
+          {hasPermission("qb:pull_orders") && (
+            <button
+              type="button"
+              className="
+                inline-flex items-center rounded-lg px-5 py-2.5
+                text-sm font-semibold text-white shadow-md transition
+                hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0
+              "
+              style={{
+                background: "linear-gradient(90deg, #2B8A3E 0%, #237032 100%)",
+              }}
+              onClick={() => setShowPullQBModal(true)}
+            >
+              Pull From QB
+            </button>
+          )}
         </div>
 
         {/* ── Global Filter Bar (Inventory.tsx style) ─── */}
@@ -1478,6 +1494,12 @@ export default function PackingSlipTrackerPage() {
         </div>
 
       </div>
+
+      <PullFromQBModal
+        open={showPullQBModal}
+        onClose={() => setShowPullQBModal(false)}
+        onCreated={handlePullQBCreated}
+      />
     </MainLayout>
   );
 }
