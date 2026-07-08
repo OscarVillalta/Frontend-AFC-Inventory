@@ -6,7 +6,7 @@ export type OutgoingOrderType = "Installation" | "Will Call" | "Shipment" | "Del
 export type Department =
   | "SALES"
   | "LOGISTICS"
-  | "DELIVERY_DEPT"
+  | "WAREHOUSE"
   | "SERVICE"
   | "ACCOUNTING";
 

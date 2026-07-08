@@ -100,7 +100,7 @@ function deptLabel(dept: string): string {
   switch (dept) {
     case "SALES": return "Sales";
     case "LOGISTICS": return "Logistics";
-    case "DELIVERY_DEPT": return "Delivery";
+    case "WAREHOUSE": return "Warehouse";
     case "SERVICE": return "Service";
     case "ACCOUNTING": return "Accounting";
     default: return dept;

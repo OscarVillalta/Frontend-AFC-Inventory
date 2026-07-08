@@ -6,7 +6,7 @@ export type TrackerStepTemplate = { dept: Department; label: string };
 export const INSTALLATION_STEPS: TrackerStepTemplate[] = [
   { dept: "SALES", label: "Sales" },
   { dept: "LOGISTICS", label: "Logistics" },
-  { dept: "DELIVERY_DEPT", label: "Delivery" },
+  { dept: "WAREHOUSE", label: "Warehouse" },
   { dept: "SERVICE", label: "Service" },
   { dept: "SALES", label: "Sales II" },
   { dept: "LOGISTICS", label: "Logistics II" },
@@ -16,21 +16,21 @@ export const INSTALLATION_STEPS: TrackerStepTemplate[] = [
 export const WILL_CALL_STEPS: TrackerStepTemplate[] = [
   { dept: "SALES", label: "Sales" },
   { dept: "LOGISTICS", label: "Logistics" },
-  { dept: "DELIVERY_DEPT", label: "Delivery" },
+  { dept: "WAREHOUSE", label: "Warehouse" },
   { dept: "LOGISTICS", label: "Logistics II" },
 ];
 
 /** 3-step path used for Purchase Order (incoming) orders. */
 export const PURCHASE_ORDER_STEPS: TrackerStepTemplate[] = [
   { dept: "LOGISTICS", label: "Logistics" },
-  { dept: "DELIVERY_DEPT", label: "Delivery" },
+  { dept: "WAREHOUSE", label: "Warehouse" },
   { dept: "LOGISTICS", label: "Logistics II" },
 ];
 
 export const DEPARTMENT_PERMISSION: Record<Department, string> = {
   SALES: "tracker:update_sales",
   LOGISTICS: "tracker:update_logistics",
-  DELIVERY_DEPT: "tracker:update_delivery",
+  WAREHOUSE: "tracker:update_delivery",
   SERVICE: "tracker:update_service",
   ACCOUNTING: "tracker:update_accounting",
 };
@@ -46,7 +46,7 @@ export const TRACKER_DEPARTMENT_FILTER_OPTIONS: {
 }[] = [
   { value: "SALES", label: "Sales" },
   { value: "LOGISTICS", label: "Logistics" },
-  { value: "DELIVERY_DEPT", label: "Delivery" },
+  { value: "WAREHOUSE", label: "Warehouse" },
   { value: "SERVICE", label: "Service" },
   { value: TRACKER_DEPARTMENT_COMPLETED, label: "Completed" },
 ];

@@ -6,8 +6,6 @@ import { fetchSuppliers } from "../../../api/suppliers";
 import { createOrder } from "../../../api/ordersTable";
 import type { OrderType } from "../../../constants/orderTypes";
 import { ALL_ORDER_TYPES, ORDER_TYPE_LABELS, isOutgoingType } from "../../../constants/orderTypes";
-import { useAuth } from "../../../hooks/useAuth";
-import { completeFirstTrackerStepOnCreate } from "../../../utils/completeFirstTrackerStepOnCreate";
 
 interface Props {
   open: boolean;
@@ -33,7 +31,6 @@ export default function CreateOrderModal({
   onClose,
   onCreated,
 }: Props) {
-  const { user, hasPermission } = useAuth();
   const [type, setType] = useState<OrderType>("installation");
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
@@ -83,17 +80,6 @@ export default function CreateOrderModal({
       });
 
       const order_id = response.id;
-
-      try {
-        await completeFirstTrackerStepOnCreate(
-          order_id,
-          type,
-          user?.email,
-          hasPermission,
-        );
-      } catch {
-        // Order was created; first-step completion is best-effort (e.g. missing permission).
-      }
 
       onCreated(order_id);
       onClose();

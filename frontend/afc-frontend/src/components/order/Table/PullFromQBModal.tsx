@@ -1,8 +1,6 @@
 import { useState } from "react";
 import { createOrderFromQB } from "../../../api/ordersTable";
 import { OUTGOING_ORDER_TYPES, ORDER_TYPE_LABELS } from "../../../constants/orderTypes";
-import { useAuth } from "../../../hooks/useAuth";
-import { completeFirstTrackerStepOnCreate } from "../../../utils/completeFirstTrackerStepOnCreate";
 
 interface Props {
   open: boolean;
@@ -18,7 +16,6 @@ const QB_DOC_TYPES = [
 ];
 
 export default function PullFromQBModal({ open, onClose, onCreated }: Props) {
-  const { user, hasPermission } = useAuth();
   const [referenceNumber, setReferenceNumber] = useState("");
   const [docType, setDocType] = useState("sales_order");
   const [orderType, setOrderType] = useState("installation");
@@ -63,18 +60,6 @@ export default function PullFromQBModal({ open, onClose, onCreated }: Props) {
       });
 
       const orderId = response.order_id;
-      const resolvedOrderType = isPurchaseOrder ? "incoming" : orderType;
-
-      try {
-        await completeFirstTrackerStepOnCreate(
-          orderId,
-          resolvedOrderType,
-          user?.email,
-          hasPermission,
-        );
-      } catch {
-        // Order was created; first-step completion is best-effort (e.g. missing permission).
-      }
 
       onCreated(orderId);
       handleClose();
