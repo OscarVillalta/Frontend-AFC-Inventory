@@ -20,6 +20,10 @@ export interface OrderItemPayload {
   available: number | null;
   is_media: boolean;
   no_stock_deduction: boolean;
+  on_hand_by_warehouse?: Record<string, number> | null;
+  available_by_warehouse?: Record<string, number> | null;
+  has_blocking_transactions: boolean;
+  has_any_transactions: boolean;
 }
 
 export interface OrderItemTransaction {

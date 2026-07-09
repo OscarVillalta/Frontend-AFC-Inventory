@@ -86,9 +86,9 @@ export default function OrderItemRow({ item, orderType, onRefresh, txnRefreshKey
     setNoStockDeduction(item.no_stock_deduction);
   }, [item.no_stock_deduction]);
 
-  const hasBlockingTxns = transactions.some(
-    (tx) => tx.state === "pending" || tx.state === "committed",
-  );
+  const hasBlockingTxns = loaded
+    ? transactions.some((tx) => tx.state === "pending" || tx.state === "committed")
+    : item.has_blocking_transactions;
   // Preset no-stock-deduction lines typically have no transactions — allow toggle without waiting for txn load
   const canToggleNoStockDeduction =
     !hasBlockingTxns && (loaded || noStockDeduction);
@@ -119,12 +119,6 @@ export default function OrderItemRow({ item, orderType, onRefresh, txnRefreshKey
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [showTypeMenu]);
 
-  useEffect(() => {
-    if (!isSeparator) {
-      void loadTransactions();
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [item.id, isSeparator]);
 
   async function handleToggleSeparatorType() {
     const newType: OrderItemType = isSectionSeparator ? "Unit_Separator" : "Section_Separator";
@@ -175,15 +169,11 @@ export default function OrderItemRow({ item, orderType, onRefresh, txnRefreshKey
     }
   }
 
-  /* ===== Pending total (IMPORTANT FIX) ===== */
-  const pendingTotal = transactions
-    .filter((tx) => tx.state === "pending")
-    .reduce((sum, tx) => sum + Math.abs(tx.quantity_delta), 0);
-
+  /* ===== Remaining quantity ===== */
   const remaining =
     item.quantity_ordered -
     item.quantity_fulfilled -
-    pendingTotal;
+    (item.quantity_pending ?? 0);
 
   const remainingSafe = Math.max(remaining, 0);
 
@@ -256,9 +246,9 @@ export default function OrderItemRow({ item, orderType, onRefresh, txnRefreshKey
   }
 
 
-/* ===== Sync after using quick acces buttons ===== */
+/* ===== Sync after using quick access buttons (only if already expanded) ===== */
   useEffect(() => {
-    loadTransactions(true);
+    if (loaded) loadTransactions(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [txnRefreshKey]);
 
@@ -376,7 +366,8 @@ export default function OrderItemRow({ item, orderType, onRefresh, txnRefreshKey
         return;
       }
     } else {
-      if (!loaded || transactions.length > 0) return;
+      const hasTransactions = loaded ? transactions.length > 0 : item.has_any_transactions;
+      if (hasTransactions) return;
 
       if (!confirm("Delete this item? This cannot be undone.")) {
         return;
@@ -659,7 +650,7 @@ export default function OrderItemRow({ item, orderType, onRefresh, txnRefreshKey
                 <img width="24" height="24" src="https://img.icons8.com/material-rounded/24/expand-arrow--v1.png" alt="expand-arrow--v1"/>
               </button>
               
-              {loaded && transactions.length === 0 
+              {(loaded ? transactions.length === 0 : !item.has_any_transactions)
               ? (
                 <button
                   className="btn btn-xs btn-ghost text-red-500"
@@ -670,13 +661,11 @@ export default function OrderItemRow({ item, orderType, onRefresh, txnRefreshKey
                     <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 </button>
-            )
-            : (
-                <div className="btn btn-xs btn-ghost text-red-500 w-7">
-
-              </div>
-            )
-            }
+              )
+              : (
+                <div className="btn btn-xs btn-ghost text-red-500 w-7"></div>
+              )
+              }
             </div>
           </td>
         </tr>

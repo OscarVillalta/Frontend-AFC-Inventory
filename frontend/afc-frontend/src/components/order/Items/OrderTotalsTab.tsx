@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import type { OrderItemPayload } from "../../../api/orderDetail";
 import type { OrderType } from "../../../constants/orderTypes";
 import { isOutgoingType } from "../../../constants/orderTypes";
+import { useWarehouse } from "../../../hooks/useWarehouse";
 
 function itemSkipsInventory(item: OrderItemPayload, orderType: OrderType): boolean {
   if (orderType === "incoming") return false;
@@ -23,21 +24,27 @@ interface ProductSummary {
   on_hand: number | null;
   reserved: number | null;
   available: number | null;
+  /** on_hand keyed by warehouse name */
+  on_hand_by_wh: Record<string, number | null>;
+  /** available (on_hand − reserved) keyed by warehouse name */
+  available_by_wh: Record<string, number | null>;
+  /** sum of available across all warehouses */
+  available_combined: number | null;
 }
 
 function hasEnoughStock(product: ProductSummary, orderType: OrderType): boolean {
-  if (product.on_hand === null) return true;
+  const available = product.available_combined ?? product.available;
+  if (available === null && product.on_hand === null) return true;
   const remaining = product.total_ordered - product.total_fulfilled;
   if (isOutgoingType(orderType)) {
-    // Available stock + what's already reserved for this order covers the remaining
-    const effectiveAvailable = (product.available ?? 0);
-    return effectiveAvailable >= remaining;
+    return (available ?? 0) >= remaining;
   }
   // For incoming: fully allocated if pending + fulfilled >= ordered
   return product.total_pending + product.total_fulfilled >= product.total_ordered;
 }
 
 export default function OrderTotalsTab({ items, orderType }: Props) {
+  const { warehouses } = useWarehouse();
   const [selectedBuilding, setSelectedBuilding] = useState<string>("__all__");
 
   // Extract unique buildings from Section_Separator items
@@ -75,19 +82,43 @@ export default function OrderTotalsTab({ items, orderType }: Props) {
   // Aggregate product totals from filtered items
   const productSummaries = useMemo(() => {
     const map = new Map<number, ProductSummary>();
+
     for (const item of filteredItems) {
       if (item.type === "Unit_Separator" || item.type === "Section_Separator") continue;
       if (!item.product_id) continue;
+
+      const skips = itemSkipsInventory(item, orderType);
+
+      // Build per-warehouse maps from item payload
+      const itemOnHandByWh: Record<string, number | null> = {};
+      const itemAvailByWh: Record<string, number | null> = {};
+      if (!skips) {
+        for (const wh of warehouses) {
+          itemOnHandByWh[wh.name] = item.on_hand_by_warehouse?.[wh.name] ?? null;
+          itemAvailByWh[wh.name] = item.available_by_warehouse?.[wh.name] ?? null;
+        }
+      }
+
+      // Combined available = sum across all warehouses (null if no warehouse data at all)
+      const whAvailValues = Object.values(itemAvailByWh);
+      const itemAvailCombined =
+        !skips && whAvailValues.some((v) => v !== null)
+          ? whAvailValues.reduce<number>((sum, v) => sum + (v ?? 0), 0)
+          : null;
+
       const existing = map.get(item.product_id);
-      const itemOnHand = itemSkipsInventory(item, orderType) ? null : item.on_hand;
       if (existing) {
         existing.total_ordered += item.quantity_ordered;
         existing.total_fulfilled += item.quantity_fulfilled;
         existing.total_pending += item.quantity_pending ?? 0;
-        if (!itemSkipsInventory(item, orderType) && existing.on_hand === null) {
+        // Fill in inventory data the first time we see a non-skipping item
+        if (!skips && existing.on_hand === null) {
           existing.on_hand = item.on_hand;
           existing.reserved = item.reserved;
           existing.available = item.available;
+          existing.on_hand_by_wh = itemOnHandByWh;
+          existing.available_by_wh = itemAvailByWh;
+          existing.available_combined = itemAvailCombined;
         }
       } else {
         map.set(item.product_id, {
@@ -96,26 +127,38 @@ export default function OrderTotalsTab({ items, orderType }: Props) {
           total_ordered: item.quantity_ordered,
           total_fulfilled: item.quantity_fulfilled,
           total_pending: item.quantity_pending ?? 0,
-          on_hand: itemOnHand,
-          reserved: itemSkipsInventory(item, orderType) ? null : item.reserved,
-          available: itemSkipsInventory(item, orderType) ? null : item.available,
+          on_hand: skips ? null : item.on_hand,
+          reserved: skips ? null : item.reserved,
+          available: skips ? null : item.available,
+          on_hand_by_wh: skips ? {} : itemOnHandByWh,
+          available_by_wh: skips ? {} : itemAvailByWh,
+          available_combined: skips ? null : itemAvailCombined,
         });
       }
     }
+
     return Array.from(map.values()).sort((a, b) =>
       a.part_number.localeCompare(b.part_number)
     );
-  }, [filteredItems]);
+  }, [filteredItems, warehouses]);
 
   const totalUniqueProducts = productSummaries.length;
   const totalOrdered = productSummaries.reduce((s, p) => s + p.total_ordered, 0);
   const totalFulfilled = productSummaries.reduce((s, p) => s + p.total_fulfilled, 0);
-  const productsWithInventory = productSummaries.filter((p) => p.on_hand !== null);
+  const productsWithInventory = productSummaries.filter(
+    (p) =>
+      p.on_hand !== null ||
+      Object.values(p.on_hand_by_wh).some((v) => v !== null)
+  );
   const allHaveEnoughStock =
     productsWithInventory.length > 0 &&
     productsWithInventory.every((p) => hasEnoughStock(p, orderType));
 
   const pendingLabel = isOutgoingType(orderType) ? "Reserved" : "Ordered";
+
+  // Total columns: Part Number + Total Ordered + pendingLabel + Fulfilled + Remaining
+  //                + one per warehouse + Available + Stock Status
+  const colCount = 5 + warehouses.length + 2;
 
   return (
     <div className="p-4 space-y-4">
@@ -184,7 +227,11 @@ export default function OrderTotalsTab({ items, orderType }: Props) {
               <th className="text-center">{pendingLabel}</th>
               <th className="text-center">Fulfilled</th>
               <th className="text-center">Remaining</th>
-              <th className="text-center">On Hand</th>
+              {warehouses.map((wh) => (
+                <th key={wh.id} className="text-center">
+                  {wh.name} - On Hand
+                </th>
+              ))}
               <th className="text-center">Available</th>
               <th className="text-center">Stock Status</th>
             </tr>
@@ -192,7 +239,7 @@ export default function OrderTotalsTab({ items, orderType }: Props) {
           <tbody>
             {productSummaries.length === 0 ? (
               <tr>
-                <td colSpan={8} className="text-gray-400 italic p-4">
+                <td colSpan={colCount} className="text-gray-400 italic p-4">
                   No products found
                 </td>
               </tr>
@@ -200,6 +247,11 @@ export default function OrderTotalsTab({ items, orderType }: Props) {
               productSummaries.map((product) => {
                 const remaining = product.total_ordered - product.total_fulfilled;
                 const enough = hasEnoughStock(product, orderType);
+                const hasInventory =
+                  product.on_hand !== null ||
+                  Object.values(product.on_hand_by_wh).some((v) => v !== null);
+                const displayAvailable =
+                  product.available_combined ?? product.available;
                 return (
                   <tr key={product.product_id} className="hover:bg-gray-50">
                     <td className="font-semibold">
@@ -214,14 +266,19 @@ export default function OrderTotalsTab({ items, orderType }: Props) {
                     <td className="text-center">{product.total_pending}</td>
                     <td className="text-center">{product.total_fulfilled}</td>
                     <td className="text-center">{remaining}</td>
+                    {warehouses.map((wh) => (
+                      <td key={wh.id} className="text-center">
+                        {product.on_hand_by_wh[wh.name] !== null &&
+                        product.on_hand_by_wh[wh.name] !== undefined
+                          ? product.on_hand_by_wh[wh.name]
+                          : "—"}
+                      </td>
+                    ))}
                     <td className="text-center">
-                      {product.on_hand !== null ? product.on_hand : "—"}
+                      {displayAvailable !== null ? displayAvailable : "—"}
                     </td>
                     <td className="text-center">
-                      {product.available !== null ? product.available : "—"}
-                    </td>
-                    <td className="text-center">
-                      {product.on_hand === null ? (
+                      {!hasInventory ? (
                         <span className="text-gray-400">—</span>
                       ) : (
                         <span
@@ -229,9 +286,24 @@ export default function OrderTotalsTab({ items, orderType }: Props) {
                             enough ? "badge-success" : "badge-error"
                           }`}
                         >
-                          {enough ? "✓" : <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-4 my-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-              </svg>}
+                          {enough ? (
+                            "✓"
+                          ) : (
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              className="h-6 w-4 my-1"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                              strokeWidth={3}
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                d="M6 18L18 6M6 6l12 12"
+                              />
+                            </svg>
+                          )}
                         </span>
                       )}
                     </td>
@@ -250,7 +322,9 @@ export default function OrderTotalsTab({ items, orderType }: Props) {
                 </td>
                 <td className="text-right">{totalFulfilled}</td>
                 <td className="text-right">{totalOrdered - totalFulfilled}</td>
-                <td className="text-right">—</td>
+                {warehouses.map((wh) => (
+                  <td key={wh.id} className="text-right">—</td>
+                ))}
                 <td className="text-right">—</td>
                 <td className="text-center">
                   {productsWithInventory.length === 0 ? (
