@@ -104,17 +104,7 @@ export default function Topbar({ onMenuToggle }: Props) {
           </select>
         )}
 
-        {/* Search Input */}
-        <div className="relative hidden sm:block">
-          <input
-            type="text"
-            placeholder="Search here"
-            className="input input-sm bg-white rounded-lg pl-10 pr-3 shadow-sm focus:outline-none w-52"
-          />
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral/50 text-sm">
-            🔍
-          </span>
-        </div>
+
 
         {/* Settings Dropdown */}
         <div className="dropdown dropdown-end">
@@ -131,9 +121,6 @@ export default function Topbar({ onMenuToggle }: Props) {
           </ul>
         </div>
 
-        <button className="btn btn-sm btn-circle bg-white shadow-sm">
-          🔔
-        </button>
 
         {/* User Avatar Dropdown */}
         <div className="dropdown dropdown-end">

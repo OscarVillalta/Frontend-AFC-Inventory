@@ -89,14 +89,14 @@ export default function OrderItemRow({ item, orderType, onRefresh, txnRefreshKey
   const hasBlockingTxns = loaded
     ? transactions.some((tx) => tx.state === "pending" || tx.state === "committed")
     : item.has_blocking_transactions;
-  // Preset no-stock-deduction lines typically have no transactions — allow toggle without waiting for txn load
-  const canToggleNoStockDeduction =
-    !hasBlockingTxns && (loaded || noStockDeduction);
+  const canToggleNoStockDeduction = !hasBlockingTxns;
+  const canEditNoStockDeduction = hasPermission("orders:edit") && !isVoided;
+  const isNoStockDeductionInteractive = canToggleNoStockDeduction && canEditNoStockDeduction;
 
-  const noStockDeductionToggleTitle = hasBlockingTxns
-    ? "Reverse or cancel pending/committed transactions before changing"
-    : !loaded && !noStockDeduction
-      ? "Loading transactions…"
+  const noStockDeductionToggleTitle = !canEditNoStockDeduction
+    ? "You don't have permission to edit orders"
+    : hasBlockingTxns
+      ? "Reverse or cancel pending/committed transactions before changing"
       : noStockDeduction
         ? "Uncheck to track inventory for this line (overrides product default)"
         : "When enabled, this line skips inventory deduction and is excluded from order completion";
@@ -135,7 +135,7 @@ export default function OrderItemRow({ item, orderType, onRefresh, txnRefreshKey
   }
 
   async function handleToggleNoStockDeduction(checked: boolean) {
-    if (!canToggleNoStockDeduction || noStockDeduction === checked) return;
+    if (!isNoStockDeductionInteractive || noStockDeduction === checked) return;
     setNoStockDeduction(checked);
     try {
       await updateOrderItem(item.id, { no_stock_deduction: checked });
@@ -555,7 +555,7 @@ export default function OrderItemRow({ item, orderType, onRefresh, txnRefreshKey
               {!isSeparator && !isIncomingOrder && (
                 <label
                   className={`flex items-center gap-2 text-xs ${
-                    canToggleNoStockDeduction ? "cursor-pointer" : "cursor-not-allowed opacity-60"
+                    isNoStockDeductionInteractive ? "cursor-pointer" : "cursor-not-allowed opacity-60"
                   }`}
                   title={noStockDeductionToggleTitle}
                 >
@@ -563,7 +563,7 @@ export default function OrderItemRow({ item, orderType, onRefresh, txnRefreshKey
                     type="checkbox"
                     className="checkbox checkbox-xs checkbox-primary"
                     checked={noStockDeduction}
-                    disabled={!canToggleNoStockDeduction || isVoided || !hasPermission("orders:edit")}
+                    disabled={!isNoStockDeductionInteractive}
                     onChange={(e) => void handleToggleNoStockDeduction(e.target.checked)}
                   />
                   <span>No Stock Deduction</span>
@@ -680,7 +680,7 @@ export default function OrderItemRow({ item, orderType, onRefresh, txnRefreshKey
               <div className="flex flex-wrap items-center gap-3">
                 <label
                   className={`flex items-center gap-2 text-sm ${
-                    canToggleNoStockDeduction ? "cursor-pointer" : "cursor-not-allowed opacity-60"
+                    isNoStockDeductionInteractive ? "cursor-pointer" : "cursor-not-allowed opacity-60"
                   }`}
                   title={noStockDeductionToggleTitle}
                 >
@@ -688,7 +688,7 @@ export default function OrderItemRow({ item, orderType, onRefresh, txnRefreshKey
                     type="checkbox"
                     className="checkbox checkbox-sm checkbox-primary"
                     checked={noStockDeduction}
-                    disabled={!canToggleNoStockDeduction || isVoided || !hasPermission("orders:edit")}
+                    disabled={!isNoStockDeductionInteractive}
                     onChange={(e) => void handleToggleNoStockDeduction(e.target.checked)}
                   />
                   <span className="font-medium">No Stock Deduction</span>
