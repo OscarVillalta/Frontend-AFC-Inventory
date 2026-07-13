@@ -82,7 +82,7 @@ export default function Sidebar({ onTransferClick }: Props) {
 
       {/* Bottom section (optional) */}
       <div className="px-4 py-4 text-gray-400 text-sm border-t border-white/10">
-        © 2025 AFC
+        © 2026 AFC
       </div>
     </aside>
   );
