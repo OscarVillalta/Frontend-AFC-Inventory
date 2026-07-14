@@ -28,19 +28,14 @@ export default function TopItemsPieChart({
 }: TopItemsPieChartProps) {
   const pieChartData = useMemo(() => {
     if (!topItemsData) return [];
-    const data = topItemsData.top_items.map((item) => ({
-      name: item.product_name,
-      value: item[topField as keyof TopRankedItem] as number,
-      product_id: item.product_id,
-    }));
-    if (topItemsData.all_others > 0) {
-      data.push({
-        name: "All Others",
-        value: topItemsData.all_others,
-        product_id: -1,
-      });
-    }
-    return data.sort((a, b) => b.value - a.value);
+    return topItemsData.top_items
+      .map((item) => ({
+        name: item.product_name,
+        value: item[topField as keyof TopRankedItem] as number,
+        product_id: item.product_id,
+      }))
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 10);
   }, [topItemsData, topField]);
 
   return (
@@ -88,11 +83,7 @@ export default function TopItemsPieChart({
                   {pieChartData.map((entry, index) => (
                     <Cell
                       key={`cell-${index}`}
-                      fill={
-                        entry.name === "All Others"
-                          ? "#9ca3af"
-                          : CHART_COLORS[index % CHART_COLORS.length]
-                      }
+                      fill={CHART_COLORS[index % CHART_COLORS.length]}
                     />
                   ))}
                 </Pie>
@@ -101,39 +92,29 @@ export default function TopItemsPieChart({
             </ResponsiveContainer>
           </div>
           <div className="flex-1 text-xs space-y-1">
-            {(() => {
-              const totalValue = pieChartData.reduce((sum, e) => sum + e.value, 0);
-              return pieChartData.slice(0, 9).map((entry, index) => (
-                <div key={index} className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div
-                      className="w-3 h-3 rounded-sm"
-                      style={{
-                        backgroundColor:
-                          entry.name === "All Others"
-                            ? "#9ca3af"
-                            : CHART_COLORS[index % CHART_COLORS.length],
-                      }}
-                    />
-                    <span className="text-gray-700">
-                      {entry.product_id > 0 ? (
-                        <Link
-                          to={productDetailPath(entry.product_id)}
-                          className="text-blue-600 hover:underline"
-                        >
-                          {entry.name}
-                        </Link>
-                      ) : (
-                        entry.name
-                      )}
-                    </span>
-                  </div>
-                  <span className="font-semibold text-gray-900">
-                    {totalValue > 0 ? ((entry.value / totalValue) * 100).toFixed(1) : "0.0"}%
+            {pieChartData.map((entry, index) => (
+              <div key={index} className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div
+                    className="w-3 h-3 rounded-sm"
+                    style={{
+                      backgroundColor: CHART_COLORS[index % CHART_COLORS.length],
+                    }}
+                  />
+                  <span className="text-gray-700">
+                    <Link
+                      to={productDetailPath(entry.product_id)}
+                      className="text-blue-600 hover:underline"
+                    >
+                      {entry.name}
+                    </Link>
                   </span>
                 </div>
-              ));
-            })()}
+                <span className="font-semibold text-gray-900">
+                  {entry.value.toLocaleString()}
+                </span>
+              </div>
+            ))}
           </div>
         </div>
       )}

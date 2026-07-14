@@ -231,7 +231,7 @@ export default function Dashboard() {
     setTopItemsLoading(true);
     setTopItemsError(null);
 
-    fetchTopRankedItems(topField, 20)
+    fetchTopRankedItems(topField, 10)
       .then((res) => {
         if (!cancelled) {
           setTopItemsData(res);
