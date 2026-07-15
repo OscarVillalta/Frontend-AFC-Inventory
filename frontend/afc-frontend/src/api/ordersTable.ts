@@ -167,3 +167,14 @@ export function completeOrderManual(orderId: string | number) {
     can_manual_complete: boolean;
   }>;
 }
+
+export function forceOrderNoStock(orderId: string | number) {
+  return apiRequest(`/orders/${orderId}/force-no-stock`, {
+    method: "POST",
+  }) as Promise<{
+    message: string;
+    status: string;
+    completed_at: string | null;
+    can_manual_complete: boolean;
+  }>;
+}

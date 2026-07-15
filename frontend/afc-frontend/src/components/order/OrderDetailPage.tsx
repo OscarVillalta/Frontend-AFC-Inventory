@@ -13,7 +13,7 @@ import { fetchCustomers } from "../../api/customers";
 import type { Supplier } from "../../api/suppliers";
 import { fetchSuppliers } from "../../api/suppliers";
 
-import { patchOrder, deleteOrder, completeOrderManual } from "../../api/ordersTable";
+import { patchOrder, deleteOrder, completeOrderManual, forceOrderNoStock } from "../../api/ordersTable";
 import type { OrderItemPayload } from "../../api/orderDetail";
 import { 
   fetchOrderItems,
@@ -86,6 +86,7 @@ export default function OrderDetailPage() {
   const [deleting, setDeleting] = useState(false);
   const [voiding, setVoiding] = useState(false);
   const [manualCompleteLoading, setManualCompleteLoading] = useState(false);
+  const [forceNoStockLoading, setForceNoStockLoading] = useState(false);
 
   const [items, setItems] = useState<OrderItemPayload[]>([]);
   const [itemsLoading, setItemsLoading] = useState(true);
@@ -204,6 +205,29 @@ export default function OrderDetailPage() {
     }
   }
 
+  async function handleForceNoStock() {
+    if (!orderId || !order) return;
+    if (
+      !confirm(
+        `Set all line items on order ${order.order_number} to No Stock Movements and mark it completed? This will cancel any pending reservations/orders.`
+      )
+    ) {
+      return;
+    }
+
+    setForceNoStockLoading(true);
+    try {
+      await forceOrderNoStock(orderId);
+      showToast(`Order ${order.order_number} completed with no stock movements`, "success");
+      await refreshOrder();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to force no stock completion";
+      showToast(msg, "error");
+    } finally {
+      setForceNoStockLoading(false);
+    }
+  }
+
   async function handleCopySerializedOrder() {
   if (!orderId) return;
 
@@ -247,7 +271,7 @@ export default function OrderDetailPage() {
 }
 
   async function refreshOrder() {
-    if (!orderId) return;
+    if (!orderId) return null;
 
     const [orderData, itemsData, trackingResult] = await Promise.all([
       fetchOrderById(orderId),
@@ -261,6 +285,7 @@ export default function OrderDetailPage() {
 
     // 🔑 force ALL OrderItemRow txns to reload
     setTxnRefreshKey((k) => k + 1);
+    return orderData;
   }
 
   async function handleTrackerStageToggled(updatedStage: OrderTrackerStagePayload) {
@@ -418,9 +443,15 @@ export default function OrderDetailPage() {
     const actionLabel = order?.type && isOutgoingType(order.type) ? "fulfill" : "receive";
     const pastLabel = order?.type && isOutgoingType(order.type) ? "fulfilled" : "received";
 
-    const results = await Promise.allSettled(
-      nonSeparatorItems.map(item => commitAllOrderItemTransactions(item.id))
-    );
+    const results: PromiseSettledResult<unknown>[] = [];
+    for (const item of nonSeparatorItems) {
+      try {
+        const value = await commitAllOrderItemTransactions(item.id);
+        results.push({ status: "fulfilled", value });
+      } catch (reason) {
+        results.push({ status: "rejected", reason });
+      }
+    }
 
     results.forEach((result, index) => {
       const item = nonSeparatorItems[index];
@@ -698,6 +729,19 @@ export default function OrderDetailPage() {
                 {/* ===== ORDER ACTIONS ===== */}
                 {autoSaveError && (
                   <p className="text-sm text-red-500">{autoSaveError}</p>
+                )}
+                {hasPermission("order:forceNoStock")
+                  && isOutgoingType(order.type)
+                  && !isVoided
+                  && order.status !== "Completed"
+                  && !warehouseMismatch && (
+                  <button
+                    className="btn btn-sm btn-info"
+                    onClick={handleForceNoStock}
+                    disabled={forceNoStockLoading}
+                  >
+                    {forceNoStockLoading ? "Processing..." : "Force No Stock & Complete"}
+                  </button>
                 )}
                 <button
                   className="btn btn-sm btn-warning"

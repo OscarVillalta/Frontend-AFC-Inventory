@@ -116,6 +116,25 @@ export async function fetchProductDetail(productId: number): Promise<ProductDeta
   return apiRequest(`/products/${productId}`) as Promise<ProductDetail>;
 }
 
+export type ProductMigrateTargetType = "air_filters" | "stock_items" | "media";
+
+export interface MigrateProductPayload {
+  target_type: ProductMigrateTargetType;
+  target_category_id: number;
+  overrides?: Record<string, string | number | null>;
+  child_overrides?: Record<string, Record<string, string | number | null>>;
+}
+
+export function migrateProduct(productId: number, payload: MigrateProductPayload) {
+  return apiRequest(`/products/${productId}/migrate`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  }) as Promise<{
+    message: string;
+    product: ProductDetail;
+  }>;
+}
+
 export function patchProduct(
   productId: number,
   payload: { default_no_stock_deduction?: boolean },

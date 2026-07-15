@@ -30,6 +30,7 @@ import {
 } from "../api/productDetail";
 import { autocommitTxn } from "../api/transactions";
 import AddChildProductModal from "../components/inventory/AddChildProductModal";
+import MigrateProductModal from "../components/inventory/MigrateProductModal";
 import { fetchSuppliers, type Supplier } from "../api/suppliers";
 import { patchAirFilter } from "../api/airfilters";
 import { patchStockItem } from "../api/stockItems";
@@ -89,6 +90,7 @@ export default function ProductDetailPage() {
 
   // Add Child Product modal state
   const [addChildProductOpen, setAddChildProductOpen] = useState(false);
+  const [migrateProductOpen, setMigrateProductOpen] = useState(false);
 
   // Edit Details state
   const [editingDetails, setEditingDetails] = useState(false);
@@ -667,6 +669,12 @@ export default function ProductDetailPage() {
                 <div className="flex gap-2 flex-shrink-0">
                   {hasPermission("catalog:edit") && (
                   <>
+                  <button
+                    className="btn btn-sm btn-outline border-amber-600 text-amber-700 hover:bg-amber-600 hover:text-white"
+                    onClick={() => setMigrateProductOpen(true)}
+                  >
+                    Migrate Catalog Type
+                  </button>
                   {!editingDetails ? (
                     <button
                       className="btn btn-sm btn-outline border-[#363b4c] text-[#363b4c] hover:bg-[#363b4c] hover:text-white"
@@ -1547,6 +1555,18 @@ export default function ProductDetailPage() {
           onClose={() => setAddChildProductOpen(false)}
           onCreated={() => {
             setAddChildProductOpen(false);
+            loadData();
+          }}
+        />
+      )}
+      {product && (
+        <MigrateProductModal
+          open={migrateProductOpen}
+          product={product}
+          onClose={() => setMigrateProductOpen(false)}
+          onMigrated={(migratedProduct) => {
+            setProduct(migratedProduct);
+            setMigrateProductOpen(false);
             loadData();
           }}
         />
