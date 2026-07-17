@@ -135,6 +135,32 @@ export function migrateProduct(productId: number, payload: MigrateProductPayload
   }>;
 }
 
+export interface AbsorptionSummary {
+  child_product_id: number;
+  parent_product_id: number;
+  archived_product_id: number;
+  transactions_repointed: number;
+  order_items_repointed: number;
+  children_reparented: number;
+  quantities_merged: {
+    warehouse_id: number;
+    on_hand: number;
+    reserved: number;
+    ordered: number;
+  }[];
+}
+
+export function absorbProductIntoParent(sourceProductId: number, parentProductId: number) {
+  return apiRequest(`/products/${sourceProductId}/absorb`, {
+    method: "POST",
+    body: JSON.stringify({ parent_product_id: parentProductId }),
+  }) as Promise<{
+    message: string;
+    product: ProductDetail;
+    absorption: AbsorptionSummary;
+  }>;
+}
+
 export function patchProduct(
   productId: number,
   payload: { default_no_stock_deduction?: boolean },
@@ -153,7 +179,8 @@ export async function fetchProductTransactions(
   productId?: number,
   page = 1,
   limit = 10,
-  childProductId?: number
+  childProductId?: number,
+  state?: string,
 ) {
   const params = new URLSearchParams();
   params.set("page", String(page));
@@ -164,6 +191,9 @@ export async function fetchProductTransactions(
   }
   if (typeof childProductId === "number") {
     params.set("child_product_id", String(childProductId));
+  }
+  if (state) {
+    params.set("state", state);
   }
 
   return apiRequest(`/transactions/search?${params.toString()}`) as Promise<{

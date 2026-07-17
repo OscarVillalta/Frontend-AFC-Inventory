@@ -31,6 +31,7 @@ import {
 import { autocommitTxn } from "../api/transactions";
 import AddChildProductModal from "../components/inventory/AddChildProductModal";
 import MigrateProductModal from "../components/inventory/MigrateProductModal";
+import AbsorbProductModal from "../components/inventory/AbsorbProductModal";
 import { fetchSuppliers, type Supplier } from "../api/suppliers";
 import { patchAirFilter } from "../api/airfilters";
 import { patchStockItem } from "../api/stockItems";
@@ -91,6 +92,7 @@ export default function ProductDetailPage() {
   // Add Child Product modal state
   const [addChildProductOpen, setAddChildProductOpen] = useState(false);
   const [migrateProductOpen, setMigrateProductOpen] = useState(false);
+  const [absorbProductOpen, setAbsorbProductOpen] = useState(false);
 
   // Edit Details state
   const [editingDetails, setEditingDetails] = useState(false);
@@ -674,6 +676,12 @@ export default function ProductDetailPage() {
                     onClick={() => setMigrateProductOpen(true)}
                   >
                     Migrate Catalog Type
+                  </button>
+                  <button
+                    className="btn btn-sm btn-outline border-indigo-600 text-indigo-700 hover:bg-indigo-600 hover:text-white"
+                    onClick={() => setAbsorbProductOpen(true)}
+                  >
+                    Merge into Parent
                   </button>
                   {!editingDetails ? (
                     <button
@@ -1568,6 +1576,17 @@ export default function ProductDetailPage() {
             setProduct(migratedProduct);
             setMigrateProductOpen(false);
             loadData();
+          }}
+        />
+      )}
+      {product && (
+        <AbsorbProductModal
+          open={absorbProductOpen}
+          product={product}
+          onClose={() => setAbsorbProductOpen(false)}
+          onAbsorbed={(parentProductId) => {
+            setAbsorbProductOpen(false);
+            navigate(`/products/${parentProductId}`);
           }}
         />
       )}
