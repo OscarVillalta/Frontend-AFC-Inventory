@@ -1,0 +1,115 @@
+.order-totals-print {
+  font-family: Calibri, Arial, sans-serif;
+  color: #000;
+  background: #fff;
+  padding: 0.5in;
+  box-sizing: border-box;
+}
+
+.order-totals-print__table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.order-totals-print__table td {
+  border: 1px solid #000;
+  padding: 4px 6px;
+  vertical-align: middle;
+}
+
+.order-totals-print__title {
+  font-size: 18pt;
+  font-weight: 700;
+  text-align: center;
+  height: 31px;
+}
+
+.order-totals-print__spacer td {
+  border: none !important;
+  height: 12px;
+  padding: 0;
+}
+
+.order-totals-print__meta-row td {
+  border: none !important;
+}
+
+.order-totals-print__meta-field {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 2px 6px;
+  font-size: 14pt;
+  border: none !important;
+}
+
+.order-totals-print__meta-label {
+  font-weight: 700;
+  white-space: nowrap;
+  flex: 0 0 auto;
+}
+
+.order-totals-print__meta-line {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.order-totals-print__meta-line--blank {
+  border-bottom: 1px solid #000;
+}
+
+.order-totals-print__header {
+  font-size: 14pt;
+  font-weight: 700;
+  text-align: center;
+  height: 50px;
+  white-space: normal;
+  word-wrap: break-word;
+}
+
+.order-totals-print__col-product {
+  width: 34%;
+}
+
+.order-totals-print__col-description {
+  width: 36%;
+}
+
+.order-totals-print__col-count {
+  width: 15%;
+}
+
+.order-totals-print__col-taken {
+  width: 15%;
+}
+
+.order-totals-print__data {
+  font-size: 12pt;
+  height: 22px;
+}
+
+.order-totals-print__data--center {
+  text-align: center;
+}
+
+@media print {
+  @page {
+    size: portrait;
+    margin: 0;
+  }
+
+  html,
+  body {
+    height: auto !important;
+    overflow: visible !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .order-totals-print {
+    font-family: Calibri, Arial, sans-serif;
+  }
+}

@@ -1,9 +1,14 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { Link } from "react-router-dom";
 import type { OrderItemPayload } from "../../../api/orderDetail";
 import type { OrderType } from "../../../constants/orderTypes";
 import { isOutgoingType } from "../../../constants/orderTypes";
 import { useWarehouse } from "../../../hooks/useWarehouse";
+import {
+  extractBuildingNames,
+  filterItemsByBuilding,
+  sortByTotalCountDesc,
+} from "./orderProductSummaries";
 
 function itemSkipsInventory(item: OrderItemPayload, orderType: OrderType): boolean {
   if (orderType === "incoming") return false;
@@ -13,6 +18,8 @@ function itemSkipsInventory(item: OrderItemPayload, orderType: OrderType): boole
 interface Props {
   items: OrderItemPayload[];
   orderType: OrderType;
+  selectedBuilding: string;
+  onSelectedBuildingChange: (value: string) => void;
 }
 
 interface ProductSummary {
@@ -43,41 +50,20 @@ function hasEnoughStock(product: ProductSummary, orderType: OrderType): boolean 
   return product.total_pending + product.total_fulfilled >= product.total_ordered;
 }
 
-export default function OrderTotalsTab({ items, orderType }: Props) {
+export default function OrderTotalsTab({
+  items,
+  orderType,
+  selectedBuilding,
+  onSelectedBuildingChange,
+}: Props) {
   const { warehouses } = useWarehouse();
-  const [selectedBuilding, setSelectedBuilding] = useState<string>("__all__");
 
-  // Extract unique buildings from Section_Separator items
-  const buildings = useMemo(() => {
-    const seen = new Set<string>();
-    const result: string[] = [];
-    for (const item of items) {
-      if (item.type === "Section_Separator") {
-        const name = item.note || "Unnamed Building";
-        if (!seen.has(name)) {
-          seen.add(name);
-          result.push(name);
-        }
-      }
-    }
-    return result;
-  }, [items]);
+  const buildings = useMemo(() => extractBuildingNames(items), [items]);
 
-  // Filter items to those belonging to the selected building
-  const filteredItems = useMemo(() => {
-    if (selectedBuilding === "__all__") return items;
-    const result: OrderItemPayload[] = [];
-    let inBuilding = false;
-    for (const item of items) {
-      if (item.type === "Section_Separator") {
-        inBuilding = (item.note || "Unnamed Building") === selectedBuilding;
-      }
-      if (inBuilding) {
-        result.push(item);
-      }
-    }
-    return result;
-  }, [items, selectedBuilding]);
+  const filteredItems = useMemo(
+    () => filterItemsByBuilding(items, selectedBuilding),
+    [items, selectedBuilding],
+  );
 
   // Aggregate product totals from filtered items
   const productSummaries = useMemo(() => {
@@ -137,10 +123,8 @@ export default function OrderTotalsTab({ items, orderType }: Props) {
       }
     }
 
-    return Array.from(map.values()).sort((a, b) =>
-      a.part_number.localeCompare(b.part_number)
-    );
-  }, [filteredItems, warehouses]);
+    return sortByTotalCountDesc(Array.from(map.values()), (row) => row.total_ordered);
+  }, [filteredItems, warehouses, orderType]);
 
   const totalUniqueProducts = productSummaries.length;
   const totalOrdered = productSummaries.reduce((s, p) => s + p.total_ordered, 0);
@@ -169,7 +153,7 @@ export default function OrderTotalsTab({ items, orderType }: Props) {
           <select
             className="select select-sm select-bordered"
             value={selectedBuilding}
-            onChange={(e) => setSelectedBuilding(e.target.value)}
+            onChange={(e) => onSelectedBuildingChange(e.target.value)}
           >
             <option value="__all__">All Buildings</option>
             {buildings.map((b) => (

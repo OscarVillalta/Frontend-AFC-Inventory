@@ -23,11 +23,29 @@ import AddOrderItemForm from "../Sections/AddOrderItem";
 import OrderItemRow from "../Sections/OrderItemRow";
 import LineItemsMenu from "./LineItemsMenu";
 import OrderTotalsTab from "./OrderTotalsTab";
+import OrderTotalsPrintSheet from "./OrderTotalsPrintSheet";
+import {
+  aggregateProductLogRows,
+} from "./orderProductSummaries";
+import orderTotalsPrintCss from "./orderTotalsPrint.css?inline";
 
 import type { OrderType } from "../../../constants/orderTypes";
 
+const orderTotalsPrintPageStyle = `
+  html, body {
+    height: auto !important;
+    overflow: visible !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #fff !important;
+  }
+  ${orderTotalsPrintCss}
+`;
+
 interface Props {
   orderId: number;
+  orderNumber: string;
+  externalOrderNumber?: string | null;
   orderStatus: string;
   orderType: OrderType;
   items: OrderItemPayload[];
@@ -41,6 +59,8 @@ interface Props {
 
 export default function OrderItemsTable({
   orderId,
+  orderNumber: _orderNumber,
+  externalOrderNumber,
   orderStatus,
   orderType,
   items,
@@ -57,6 +77,7 @@ export default function OrderItemsTable({
   const selectAllRef = useRef<HTMLInputElement>(null);
   const lastSelectedIndexRef = useRef<number | null>(null);
   const [activeTab, setActiveTab] = useState<"lineItems" | "totals">("lineItems");
+  const [selectedBuilding, setSelectedBuilding] = useState("__all__");
   const totalsRef = useRef<HTMLDivElement>(null);
 
   // Search and filter states
@@ -72,9 +93,16 @@ export default function OrderItemsTable({
 
   const isCompleted = orderStatus === "Completed";
 
-  // Print handler for totals section
+  const printLogRows = useMemo(
+    () => aggregateProductLogRows(localItems, selectedBuilding),
+    [localItems, selectedBuilding],
+  );
+
   const handlePrintTotals = useReactToPrint({
     contentRef: totalsRef,
+    documentTitle: " ",
+    pageStyle: orderTotalsPrintPageStyle,
+    preserveAfterPrint: true,
   });
 
   // Sensors for drag and drop
@@ -535,10 +563,22 @@ export default function OrderItemsTable({
           </table>
         </DndContext>
         ) : (
-          <div ref={totalsRef}>
-            <OrderTotalsTab items={localItems} orderType={orderType} />
-          </div>
+          <OrderTotalsTab
+            items={localItems}
+            orderType={orderType}
+            selectedBuilding={selectedBuilding}
+            onSelectedBuildingChange={setSelectedBuilding}
+          />
         )}
+      </div>
+
+      <div style={{ display: "none" }} aria-hidden="true">
+        <div ref={totalsRef} style={{ width: "8.5in" }}>
+          <OrderTotalsPrintSheet
+            rows={printLogRows}
+            externalOrderNumber={externalOrderNumber}
+          />
+        </div>
       </div>
 
       {activeTab === "lineItems" && totalPages > 1 && (
