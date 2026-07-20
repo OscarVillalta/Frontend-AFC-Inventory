@@ -45,6 +45,7 @@ const orderTotalsPrintPageStyle = `
 interface Props {
   orderId: number;
   orderNumber: string;
+  customerName?: string | null;
   externalOrderNumber?: string | null;
   orderStatus: string;
   orderType: OrderType;
@@ -60,6 +61,7 @@ interface Props {
 export default function OrderItemsTable({
   orderId,
   orderNumber: _orderNumber,
+  customerName,
   externalOrderNumber,
   orderStatus,
   orderType,
@@ -576,6 +578,7 @@ export default function OrderItemsTable({
         <div ref={totalsRef} style={{ width: "8.5in" }}>
           <OrderTotalsPrintSheet
             rows={printLogRows}
+            customerName={customerName}
             externalOrderNumber={externalOrderNumber}
           />
         </div>

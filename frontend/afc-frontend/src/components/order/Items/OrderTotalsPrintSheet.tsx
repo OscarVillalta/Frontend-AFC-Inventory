@@ -3,6 +3,7 @@ import "./orderTotalsPrint.css";
 
 interface Props {
   rows: ProductLogRow[];
+  customerName?: string | null;
   externalOrderNumber?: string | null;
   minRows?: number;
 }
@@ -17,7 +18,7 @@ function MetaFieldRow({
   const isBlank = !value?.trim();
   return (
     <tr className="order-totals-print__meta-row">
-      <td colSpan={5} className="order-totals-print__meta-field">
+      <td colSpan={6} className="order-totals-print__meta-field">
         <span className="order-totals-print__meta-label">{label}</span>
         <span
           className={`order-totals-print__meta-line${
@@ -33,6 +34,7 @@ function MetaFieldRow({
 
 export default function OrderTotalsPrintSheet({
   rows,
+  customerName,
   externalOrderNumber,
   minRows = 35,
 }: Props) {
@@ -61,6 +63,7 @@ export default function OrderTotalsPrintSheet({
           </tr>
 
           <MetaFieldRow label="Technician Name:" />
+          <MetaFieldRow label="Customer Name:" value={customerName} />
           <MetaFieldRow label="Order ID:" value={externalOrderNumber} />
           <MetaFieldRow label="Date:" />
 
@@ -90,7 +93,7 @@ export default function OrderTotalsPrintSheet({
           </tr>
 
           <tr className="order-totals-print__spacer">
-            <td colSpan={5} />
+            <td colSpan={6} />
           </tr>
 
           {paddedRows.map((row) => {

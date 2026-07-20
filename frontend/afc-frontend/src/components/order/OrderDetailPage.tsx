@@ -678,6 +678,7 @@ export default function OrderDetailPage() {
               <OrderItemsTable
                 orderId={order.id}
                 orderNumber={order.order_number}
+                customerName={order.cs_name}
                 externalOrderNumber={order.external_order_number}
                 items={items}
                 loading={itemsLoading}
