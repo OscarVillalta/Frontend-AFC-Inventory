@@ -5,6 +5,7 @@ import {
   fetchProductTransactions,
 } from "../../api/productDetail";
 import { fetchProducts, type Product } from "../../api/products";
+import MultiSelectAutocomplete from "../MultiSelectAutocomplete";
 
 interface AbsorbProductModalProps {
   open: boolean;
@@ -61,6 +62,20 @@ export default function AbsorbProductModal({
     [parentOptions, parentProductId],
   );
 
+  const parentProductOptions = useMemo(
+    () =>
+      parentOptions.map((row) => ({
+        id: row.id,
+        name: getIdentifier(row),
+      })),
+    [parentOptions],
+  );
+
+  const selectedParentIds = useMemo(
+    () => (parentProductId ? [Number(parentProductId)] : []),
+    [parentProductId],
+  );
+
   const childCount = product.child_products?.length ?? 0;
 
   if (!open) return null;
@@ -112,24 +127,20 @@ export default function AbsorbProductModal({
             </div>
           </div>
 
-          <div>
-            <label className="label">
-              <span className="label-text font-medium">Parent product</span>
-            </label>
-            <select
-              className="select select-bordered w-full"
-              value={parentProductId}
-              onChange={(e) => setParentProductId(e.target.value)}
-              disabled={loading}
-            >
-              <option value="">Select parent product…</option>
-              {parentOptions.map((row) => (
-                <option key={row.id} value={String(row.id)}>
-                  {getIdentifier(row)} (ID {row.id})
-                </option>
-              ))}
-            </select>
-          </div>
+          <MultiSelectAutocomplete
+            label="Parent product"
+            placeholder="Search by part number…"
+            options={parentProductOptions}
+            selectedIds={selectedParentIds}
+            onChange={(ids) => {
+              if (ids.length === 0) {
+                setParentProductId("");
+                return;
+              }
+              setParentProductId(String(ids[ids.length - 1]));
+            }}
+            className={loading ? "pointer-events-none opacity-60" : ""}
+          />
 
           <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900 space-y-1">
             <p>
