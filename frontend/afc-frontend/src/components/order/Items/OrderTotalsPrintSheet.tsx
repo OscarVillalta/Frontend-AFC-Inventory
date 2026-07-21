@@ -16,6 +16,7 @@ function MetaFieldRow({
   value?: string | null;
 }) {
   const isBlank = !value?.trim();
+  console.log(label, value);
   return (
     <tr className="order-totals-print__meta-row">
       <td colSpan={6} className="order-totals-print__meta-field">
@@ -67,9 +68,6 @@ export default function OrderTotalsPrintSheet({
           <MetaFieldRow label="Order ID:" value={externalOrderNumber} />
           <MetaFieldRow label="Date:" />
 
-          <tr className="order-totals-print__spacer">
-            <td colSpan={6} />
-          </tr>
 
           <tr>
             <td

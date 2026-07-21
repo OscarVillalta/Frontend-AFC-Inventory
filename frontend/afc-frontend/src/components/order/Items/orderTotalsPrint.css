@@ -51,7 +51,7 @@
 }
 
 .order-totals-print__meta-line {
-  flex: 1 1 auto;
+  flex: 1 0 auto;
   min-width: 0;
 }
 
