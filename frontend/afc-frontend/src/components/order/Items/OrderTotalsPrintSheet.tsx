@@ -16,7 +16,6 @@ function MetaFieldRow({
   value?: string | null;
 }) {
   const isBlank = !value?.trim();
-  console.log(label, value);
   return (
     <tr className="order-totals-print__meta-row">
       <td colSpan={6} className="order-totals-print__meta-field">
