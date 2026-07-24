@@ -1,8 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useWarehouse } from "../hooks/useWarehouse";
 import { fetchProducts } from "../api/products";
 import type { Product } from "../api/products";
 import { createTransfer } from "../api/warehouses";
+import MultiSelectAutocomplete from "./MultiSelectAutocomplete";
 
 interface StockTransferModalProps {
   open: boolean;
@@ -27,6 +28,20 @@ export default function StockTransferModal({
   const [success, setSuccess] = useState(false);
 
   const activeWarehouses = warehouses.filter((w) => w.is_active);
+
+  const productOptions = useMemo(
+    () =>
+      products.map((p) => ({
+        id: p.id,
+        name: p.part_number ?? `Product #${p.id}`,
+      })),
+    [products],
+  );
+
+  const selectedProductIds = useMemo(
+    () => (productId ? [Number(productId)] : []),
+    [productId],
+  );
 
   useEffect(() => {
     if (!open) return;
@@ -119,24 +134,21 @@ export default function StockTransferModal({
               </div>
             )}
 
-            <div>
-              <label className="text-sm font-medium text-gray-600">
-                Product
-              </label>
-              <select
-                className="select select-bordered w-full mt-1"
-                value={productId}
-                onChange={(e) => setProductId(e.target.value)}
-                disabled={loading}
-              >
-                <option value="">Select product...</option>
-                {products.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.part_number ?? `Product #${p.id}`} - {p.category}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <MultiSelectAutocomplete
+              label="Product"
+              placeholder="Search by part number…"
+              options={productOptions}
+              selectedIds={selectedProductIds}
+              onChange={(ids) => {
+                if (ids.length === 0) {
+                  setProductId("");
+                  return;
+                }
+                setProductId(String(ids[ids.length - 1]));
+              }}
+              closeOnSelect
+              className={loading ? "pointer-events-none opacity-60" : ""}
+            />
 
             <div className="grid grid-cols-2 gap-4">
               <div>

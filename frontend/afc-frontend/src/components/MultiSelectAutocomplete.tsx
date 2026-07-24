@@ -17,6 +17,8 @@ interface MultiSelectAutocompleteProps {
   getSelectedColor?: (optionId: number, indexInSelection: number) => string;
   /** When provided, selected product names link to the product detail page. */
   getSelectedHref?: (optionId: number) => string | undefined;
+  /** Close the dropdown after an option is selected. */
+  closeOnSelect?: boolean;
 }
 
 export default function MultiSelectAutocomplete({
@@ -28,6 +30,7 @@ export default function MultiSelectAutocomplete({
   className = "",
   getSelectedColor,
   getSelectedHref,
+  closeOnSelect = false,
 }: MultiSelectAutocompleteProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [inputValue, setInputValue] = useState("");
@@ -71,6 +74,9 @@ export default function MultiSelectAutocomplete({
     onChange([...selectedIds, optionId]);
     setInputValue("");
     setHighlightedIndex(-1);
+    if (closeOnSelect) {
+      setIsOpen(false);
+    }
     // Scroll to top when item is selected
     if (listRef.current) {
       listRef.current.scrollTop = 0;
