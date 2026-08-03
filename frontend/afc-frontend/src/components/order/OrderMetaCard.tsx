@@ -34,6 +34,7 @@ interface Props {
   disabled?: boolean;
 
   canManualComplete?: boolean;
+  manualCompleteHint?: string;
   onManualComplete?: () => void;
   manualCompleteLoading?: boolean;
 }
@@ -56,6 +57,7 @@ export default function OrderMetaCard({
   onTypeChange,
   disabled = false,
   canManualComplete = false,
+  manualCompleteHint,
   onManualComplete,
   manualCompleteLoading = false,
 }: Props) {
@@ -168,7 +170,7 @@ export default function OrderMetaCard({
                   {manualCompleteLoading ? "Completing…" : "Mark Complete"}
                 </button>
                 <p className="text-xs text-gray-500">
-                  This order has no stock-tracked lines.
+                  {manualCompleteHint ?? "This order has no stock-tracked lines."}
                 </p>
               </div>
             ) : (

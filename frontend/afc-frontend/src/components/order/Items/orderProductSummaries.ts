@@ -1,10 +1,15 @@
 import type { OrderItemPayload } from "../../../api/orderDetail";
 
 export interface ProductLogRow {
+  rowKey: string;
   product_id: number;
   part_number: string;
   description: string;
   total_count: number;
+}
+
+export function summaryKey(partNumber: string, description: string): string {
+  return `${partNumber}\0${description}`;
 }
 
 export function extractBuildingNames(items: OrderItemPayload[]): string[] {
@@ -46,23 +51,23 @@ export function aggregateProductLogRows(
   buildingFilter = "__all__",
 ): ProductLogRow[] {
   const filteredItems = filterItemsByBuilding(items, buildingFilter);
-  const map = new Map<number, ProductLogRow>();
+  const map = new Map<string, ProductLogRow>();
 
   for (const item of filteredItems) {
     if (item.type === "Unit_Separator" || item.type === "Section_Separator") continue;
     if (!item.product_id) continue;
 
-    const existing = map.get(item.product_id);
+    const description = item.note?.trim() ?? "";
+    const key = summaryKey(item.part_number, description);
+    const existing = map.get(key);
     if (existing) {
       existing.total_count += item.quantity_ordered;
-      if (!existing.description && item.note?.trim()) {
-        existing.description = item.note.trim();
-      }
     } else {
-      map.set(item.product_id, {
+      map.set(key, {
+        rowKey: key,
         product_id: item.product_id,
         part_number: item.part_number,
-        description: item.note?.trim() ?? "",
+        description,
         total_count: item.quantity_ordered,
       });
     }

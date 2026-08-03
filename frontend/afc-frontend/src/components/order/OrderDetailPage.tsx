@@ -25,6 +25,7 @@ import {
   fetchOrderItemTransactions,
   void_order,
   canManualCompleteOrder,
+  getManualCompleteHint,
   itemSkipsInventoryForOrder,
 } from "../../api/orderDetail";
 
@@ -596,9 +597,8 @@ export default function OrderDetailPage() {
       ? warehouses.find((w) => w.id === order.warehouse_id)?.name ?? `ID ${order.warehouse_id}`
       : null;
 
-  const canManualComplete =
-    order.can_manual_complete ??
-    canManualCompleteOrder(items, order.type, order.status);
+  const canManualComplete = canManualCompleteOrder(items, order.type, order.status);
+  const manualCompleteHint = getManualCompleteHint(items, order.type);
 
   return (
     <MainLayout>
@@ -670,6 +670,7 @@ export default function OrderDetailPage() {
                   }}
                   disabled={!hasPermission("orders:edit") || isVoided || warehouseMismatch}
                   canManualComplete={canManualComplete}
+                  manualCompleteHint={manualCompleteHint}
                   onManualComplete={handleManualComplete}
                   manualCompleteLoading={manualCompleteLoading}
                 />

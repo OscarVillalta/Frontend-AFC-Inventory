@@ -8,6 +8,7 @@ import {
   extractBuildingNames,
   filterItemsByBuilding,
   sortByTotalCountDesc,
+  summaryKey,
 } from "./orderProductSummaries";
 
 function itemSkipsInventory(item: OrderItemPayload, orderType: OrderType): boolean {
@@ -37,10 +38,6 @@ interface ProductSummary {
   on_hand_by_wh: Record<string, number | null>;
   /** available (on_hand − reserved) keyed by warehouse name */
   available_by_wh: Record<string, number | null>;
-}
-
-function summaryKey(partNumber: string, description: string): string {
-  return `${partNumber}\0${description}`;
 }
 
 function getDisplayOnHand(

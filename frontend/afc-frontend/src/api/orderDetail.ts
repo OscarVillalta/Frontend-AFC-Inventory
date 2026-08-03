@@ -163,15 +163,37 @@ export function itemSkipsInventoryForOrder(
   return Boolean(item.no_stock_deduction);
 }
 
-export function hasStockTrackableItems(
+export function isLineFulfilled(item: OrderItemPayload): boolean {
+  return item.quantity_ordered > 0 && item.quantity_fulfilled >= item.quantity_ordered;
+}
+
+export function getStockTrackableItems(
   items: OrderItemPayload[],
   orderType: OrderType,
-): boolean {
-  return items.some(
+): OrderItemPayload[] {
+  return items.filter(
     (item) =>
       !SEPARATOR_TYPES.includes(item.type)
       && !itemSkipsInventoryForOrder(item, orderType),
   );
+}
+
+export function getSkipInventoryItems(
+  items: OrderItemPayload[],
+  orderType: OrderType,
+): OrderItemPayload[] {
+  return items.filter(
+    (item) =>
+      !SEPARATOR_TYPES.includes(item.type)
+      && itemSkipsInventoryForOrder(item, orderType),
+  );
+}
+
+export function hasStockTrackableItems(
+  items: OrderItemPayload[],
+  orderType: OrderType,
+): boolean {
+  return getStockTrackableItems(items, orderType).length > 0;
 }
 
 export function canManualCompleteOrder(
@@ -182,5 +204,25 @@ export function canManualCompleteOrder(
   if (orderType === "void") return false;
   if (orderStatus === "Completed" || orderStatus === "Voided") return false;
   if (items.length === 0) return false;
-  return !hasStockTrackableItems(items, orderType);
+
+  const trackable = getStockTrackableItems(items, orderType);
+  const pendingTrackable = trackable.filter((item) => !isLineFulfilled(item));
+  if (pendingTrackable.length > 0) return false;
+
+  if (trackable.length === 0) return true;
+
+  const unfulfilledSkip = getSkipInventoryItems(items, orderType).filter(
+    (item) => !isLineFulfilled(item),
+  );
+  return unfulfilledSkip.length > 0;
+}
+
+export function getManualCompleteHint(
+  items: OrderItemPayload[],
+  orderType: OrderType,
+): string {
+  if (hasStockTrackableItems(items, orderType)) {
+    return "All stock-tracked lines are fulfilled. Mark complete to finalize remaining no-stock lines.";
+  }
+  return "This order has no stock-tracked lines.";
 }

@@ -41,6 +41,7 @@ export default function OrderTotalsPrintSheet({
   const paddedRows = [...rows];
   while (paddedRows.length < minRows) {
     paddedRows.push({
+      rowKey: `blank-${paddedRows.length}`,
       product_id: -paddedRows.length,
       part_number: "",
       description: "",
@@ -96,7 +97,7 @@ export default function OrderTotalsPrintSheet({
           {paddedRows.map((row) => {
             const isBlank = !row.part_number;
             return (
-              <tr key={row.product_id} className="order-totals-print__data">
+              <tr key={row.rowKey} className="order-totals-print__data">
                 <td colSpan={2} className="order-totals-print__col-product">
                   {isBlank ? "" : row.part_number}
                 </td>
