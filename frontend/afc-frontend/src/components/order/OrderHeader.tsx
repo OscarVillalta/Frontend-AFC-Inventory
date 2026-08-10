@@ -1,11 +1,13 @@
 import type { OrderType } from "../../constants/orderTypes";
 import { ORDER_TYPE_LABELS, ORDER_TYPE_COLORS } from "../../constants/orderTypes";
+import { formatQbExternalRef } from "../../utils/qbDocType";
 
 type OrderStatus = "Pending" | "Partially Fulfilled" | "Completed";
 
 interface Props {
   orderNumber: string;
   externalOrderNumber?: string | null;
+  qbDocType?: string | null;
   type: OrderType;
   status: OrderStatus;
   currentDepartment?: string | null;
@@ -18,6 +20,7 @@ interface Props {
 export default function OrderHeader({
   orderNumber,
   externalOrderNumber,
+  qbDocType,
   type,
   status,
   onCopyOrder,
@@ -43,7 +46,7 @@ export default function OrderHeader({
           <div className="flex items-center gap-2">
             <span className="text-md font-medium text-slate-400 uppercase tracking-wide">Ext #</span>
             <span className="text-md font-bold text-slate-400 tracking-tight ">
-              {externalOrderNumber}
+              {formatQbExternalRef(externalOrderNumber, qbDocType)}
             </span>
           </div>
         )}

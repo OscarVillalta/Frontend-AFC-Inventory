@@ -15,6 +15,7 @@ import { ALL_ORDER_TYPES, ORDER_TYPE_LABELS, type OrderType } from "../constants
 import { useWarehouse } from "../hooks/useWarehouse";
 import { useAuth } from "../hooks/useAuth";
 import { useToast } from "../hooks/useToast";
+import { formatQbExternalRef } from "../utils/qbDocType";
 
 function sortOrdersByOrderNumberDesc(orders: OrderRowItemPayload[]): OrderRowItemPayload[] {
   return [...orders].sort((a, b) => {
@@ -704,7 +705,7 @@ export default function OrdersSearchPage() {
                           </h3>
                           {order.external_order_number && (
                             <span className="px-3 py-1 rounded-full text-sm font-semibold bg-yellow-100 text-yellow-800 border border-yellow-300 truncate max-w-[200px] sm:max-w-none">
-                              QB# {order.external_order_number}
+                              {formatQbExternalRef(order.external_order_number, order.qb_doc_type)}
                             </span>
                           )}
                           <span

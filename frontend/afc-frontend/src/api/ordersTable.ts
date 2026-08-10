@@ -10,6 +10,7 @@ export interface OrderRowItemPayload {
   created_at: string;
   completed_at?: string | null;
   external_order_number?: string | null;
+  qb_doc_type?: string | null;
 }
 
 export interface OrderResponse {
@@ -55,6 +56,7 @@ export interface OrderDetailPayload {
   id: number;
   order_number: string;
   external_order_number: string;
+  qb_doc_type?: string | null;
   type: "incoming" | "installation" | "will_call" | "delivery" | "shipment";
   order_type?: string | null;
   cs_name: string;

@@ -53,6 +53,7 @@ interface OrderDetailPayload {
   id: number;
   order_number: string;
   external_order_number?: string | null;
+  qb_doc_type?: string | null;
   type: OrderType;
   cs_name: string;
   cs_id: number;
@@ -631,6 +632,7 @@ export default function OrderDetailPage() {
               <OrderHeader
                 orderNumber={order.order_number}
                 externalOrderNumber={order.external_order_number}
+                qbDocType={order.qb_doc_type}
                 type={order.type}
                 status={order.status}
                 currentDepartment={trackingData?.tracker?.current_department ?? null}
