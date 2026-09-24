@@ -38,6 +38,7 @@ import { patchStockItem } from "../api/stockItems";
 import { useWarehouse } from "../hooks/useWarehouse";
 import { useAuth } from "../hooks/useAuth";
 import { useProjectionDateRange } from "../hooks/useProjectionDateRange";
+import { formatUnitPrice } from "../utils/currency";
 
 /* ============================================================
    TYPES
@@ -110,6 +111,9 @@ export default function ProductDetailPage() {
   const [defaultNoStockDeduction, setDefaultNoStockDeduction] = useState(false);
   const [orderDefaultSaving, setOrderDefaultSaving] = useState(false);
 
+  const [unitPriceInput, setUnitPriceInput] = useState("");
+  const [unitPriceSaving, setUnitPriceSaving] = useState(false);
+
   // Transaction filter state
   const [txnTypeFilter, setTxnTypeFilter] = useState<"all" | "planned" | "executed" | "reversed" | "adjustments">("all");
   const [txnDateRange, setTxnDateRange] = useState<7 | 30 | 90 | null>(null);
@@ -159,6 +163,7 @@ export default function ProductDetailPage() {
       ]);
       setProduct(productData);
       setDefaultNoStockDeduction(Boolean(productData.default_no_stock_deduction));
+      setUnitPriceInput(productData.unit_price == null ? "" : productData.unit_price.toFixed(2));
       
       let allTransactions = txnData.results || [];
 
@@ -586,6 +591,32 @@ export default function ProductDetailPage() {
     }
   }
 
+  async function handleSaveUnitPrice() {
+    if (!product || unitPriceSaving) return;
+    const trimmed = unitPriceInput.trim();
+    const nextPrice = trimmed === "" ? null : Number(trimmed);
+    if (nextPrice !== null && (!Number.isFinite(nextPrice) || nextPrice < 0)) {
+      alert("Unit price must be a non-negative number.");
+      return;
+    }
+    const previousPrice = product.unit_price ?? null;
+    setProduct((prev) => (prev ? { ...prev, unit_price: nextPrice } : prev));
+    setUnitPriceSaving(true);
+    try {
+      const updated = await patchProduct(product.id, { unit_price: nextPrice });
+      const savedPrice: number | null = updated.unit_price ?? null;
+      setProduct((prev) => (prev ? { ...prev, unit_price: savedPrice } : prev));
+      setUnitPriceInput(savedPrice == null ? "" : savedPrice.toFixed(2));
+    } catch (err) {
+      console.error("Failed to update unit price:", err);
+      setProduct((prev) => (prev ? { ...prev, unit_price: previousPrice } : prev));
+      setUnitPriceInput(previousPrice == null ? "" : previousPrice.toFixed(2));
+      alert("Failed to save unit price. Please try again.");
+    } finally {
+      setUnitPriceSaving(false);
+    }
+  }
+
   // MERV rating label helper
   // Percentages represent minimum particle filtration efficiency (ASHRAE 52.2)
   const getMervLabel = (merv: number) => {
@@ -922,6 +953,36 @@ export default function ProductDetailPage() {
                 </span>
               </span>
             </label>
+
+            <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide mt-5 mb-3">
+              Pricing
+            </h2>
+            <div className="flex items-end gap-3">
+              <label className="form-control">
+                <span className="text-sm font-medium text-[#363b4c] mb-1">Unit Price (USD)</span>
+                <div className="flex items-center gap-1">
+                  <span className="text-gray-500">$</span>
+                  <input
+                    type="number"
+                    min={0}
+                    step={0.01}
+                    placeholder="0.00"
+                    className="input input-sm input-bordered w-36"
+                    value={unitPriceInput}
+                    disabled={!hasPermission("catalog:edit") || unitPriceSaving}
+                    onChange={(e) => setUnitPriceInput(e.target.value)}
+                  />
+                </div>
+              </label>
+              <button
+                className="btn btn-sm btn-primary"
+                disabled={!hasPermission("catalog:edit") || unitPriceSaving}
+                onClick={() => void handleSaveUnitPrice()}
+              >
+                {unitPriceSaving ? "Saving..." : "Save"}
+              </button>
+            </div>
+            <p className="text-sm text-gray-500 mt-1">Leave blank to clear the price.</p>
           </div>
         )}
 
@@ -932,7 +993,7 @@ export default function ProductDetailPage() {
             <span className="badge badge-soft badge-primary text-xs">🏭 {activeWarehouseName}</span>
           </div>
         )}
-        <div className="grid grid-cols-5 gap-4">
+        <div className="grid grid-cols-6 gap-4">
           <StatCard label="On Hand" value={on_hand} />
           <StatCard label="Reserved" value={reserved} />
           <StatCard label="Ordered" value={ordered} />
@@ -946,6 +1007,7 @@ export default function ProductDetailPage() {
             value={backordered}
             className={backordered > 0 ? "text-red-600" : "text-gray-600"}
           />
+          <StatCard label="Unit Price" value={formatUnitPrice(product.unit_price)} />
         </div>
 
         {/* ========== GRAPH TABS ========== */}
@@ -1600,7 +1662,7 @@ export default function ProductDetailPage() {
 
 interface StatCardProps {
   label: string;
-  value: number;
+  value: number | string;
   className?: string;
 }
 

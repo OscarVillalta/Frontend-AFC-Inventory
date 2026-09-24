@@ -5,6 +5,7 @@ export interface ProductDetail {
   category: string;
   reference_id: number;
   default_no_stock_deduction?: boolean;
+  unit_price?: number | null;
   details: {
     part_number?: string;
     name?: string;
@@ -163,7 +164,7 @@ export function absorbProductIntoParent(sourceProductId: number, parentProductId
 
 export function patchProduct(
   productId: number,
-  payload: { default_no_stock_deduction?: boolean },
+  payload: { default_no_stock_deduction?: boolean; unit_price?: number | null },
 ) {
   return apiRequest(`/products/${productId}`, {
     method: "PATCH",

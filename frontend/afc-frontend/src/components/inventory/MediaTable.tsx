@@ -8,6 +8,7 @@ import type { createTxnRequest } from "../../api/transactions";
 import type { Supplier } from "../../api/suppliers";
 import { useWarehouse } from "../../hooks/useWarehouse";
 import { useAuth } from "../../hooks/useAuth";
+import { formatUnitPrice } from "../../utils/currency";
 
 /* ============================================================
    TYPES
@@ -331,7 +332,7 @@ export default function MediaTable({
 
   /* ===================== TABLE COLUMNS ===================== */
 
-  const columns = ["Part Number", "Description", "Supplier", "Category", "Dimensions", "UOM", "", "On Hand", "Ordered", "Reserved", "Available", "Backordered"];
+  const columns = ["Part Number", "Description", "Supplier", "Category", "Dimensions", "UOM", "", "On Hand", "Ordered", "Reserved", "Available", "Backordered", "Unit Price"];
 
   if(hasPermission("inventory:manual_adjust")){
     columns.push("Actions");
@@ -358,6 +359,13 @@ export default function MediaTable({
           </span>
         ) : (
           <span className="text-gray-400">—</span>
+        )}
+      </td>
+      <td className={`${rowPadding} text-right text-sm whitespace-nowrap`}>
+        {isChild || row.unit_price == null ? (
+          <span className="text-gray-400">—</span>
+        ) : (
+          formatUnitPrice(row.unit_price)
         )}
       </td>
     </>

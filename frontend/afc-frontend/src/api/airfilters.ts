@@ -46,7 +46,8 @@ export interface AirFilterPayload {
   location: number | null;
   available: number;
   backordered: number;
-  
+  unit_price?: number | null;
+
   children: AirFilterChild[];
 }
 

@@ -8,6 +8,7 @@ import type { createTxnRequest } from "../../api/transactions";
 import type { Supplier } from "../../api/suppliers";
 import { useWarehouse } from "../../hooks/useWarehouse";
 import { useAuth } from "../../hooks/useAuth";
+import { formatUnitPrice } from "../../utils/currency";
 
 /* ============================================================
    TYPES
@@ -224,7 +225,7 @@ export default function StockItemsTable({
 
   /* ===================== TABLE COLUMNS ===================== */
 
-  const columns = ["Name", "Description", "Category", "Supplier", "", "On Hand", "Ordered", "Reserved", "Available", "Backorder"];
+  const columns = ["Name", "Description", "Category", "Supplier", "", "On Hand", "Ordered", "Reserved", "Available", "Backorder", "Unit Price"];
 
   if(hasPermission("catalog:edit") || hasPermission("catalog:archive")){
     columns.push("Actions");
@@ -394,6 +395,17 @@ export default function StockItemsTable({
                 </span>
               ) : (
                 <span className="text-gray-400">—</span>
+              )}
+            </td>
+            {/* Unit Price */}
+            <td
+              className={`${rowPadding} text-right text-sm whitespace-nowrap`}
+              onClick={() => navigate(`/products/${row.product_id}`)}
+            >
+              {row.unit_price == null ? (
+                <span className="text-gray-400">—</span>
+              ) : (
+                formatUnitPrice(row.unit_price)
               )}
             </td>
             {/* Actions */}

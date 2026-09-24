@@ -23,6 +23,7 @@ export interface MediaPayload {
   ordered: number;
   available: number;
   backordered: number;
+  unit_price?: number | null;
 }
 
 export type CreateMediaPayload = {

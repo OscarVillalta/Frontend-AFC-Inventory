@@ -20,6 +20,7 @@ export interface StockItemPayload {
   location: number;
   available: number;
   backordered: number;
+  unit_price?: number | null;
 }
 
 export interface StockItemResponse {
