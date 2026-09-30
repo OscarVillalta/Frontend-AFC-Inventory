@@ -38,7 +38,7 @@ import { patchStockItem } from "../api/stockItems";
 import { useWarehouse } from "../hooks/useWarehouse";
 import { useAuth } from "../hooks/useAuth";
 import { useProjectionDateRange } from "../hooks/useProjectionDateRange";
-import { formatUnitPrice } from "../utils/currency";
+import { formatUnitPrice, PRICE_MANAGE_PERMISSION } from "../utils/currency";
 
 /* ============================================================
    TYPES
@@ -75,6 +75,7 @@ export default function ProductDetailPage() {
   const navigate = useNavigate();
   const { activeWarehouseId, warehouses } = useWarehouse();
   const { hasPermission } = useAuth();
+  const canViewPrice = hasPermission(PRICE_MANAGE_PERMISSION);
   const activeWarehouseName = warehouses.find((w) => w.id === activeWarehouseId)?.name ?? null;
   const [product, setProduct] = useState<ProductDetail | null>(null);
   const [transactions, setTransactions] = useState<TransactionItem[]>([]);
@@ -954,6 +955,8 @@ export default function ProductDetailPage() {
               </span>
             </label>
 
+            {canViewPrice && (
+            <>
             <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide mt-5 mb-3">
               Pricing
             </h2>
@@ -983,6 +986,8 @@ export default function ProductDetailPage() {
               </button>
             </div>
             <p className="text-sm text-gray-500 mt-1">Leave blank to clear the price.</p>
+            </>
+            )}
           </div>
         )}
 
@@ -993,7 +998,7 @@ export default function ProductDetailPage() {
             <span className="badge badge-soft badge-primary text-xs">🏭 {activeWarehouseName}</span>
           </div>
         )}
-        <div className="grid grid-cols-6 gap-4">
+        <div className={`grid ${canViewPrice ? "grid-cols-6" : "grid-cols-5"} gap-4`}>
           <StatCard label="On Hand" value={on_hand} />
           <StatCard label="Reserved" value={reserved} />
           <StatCard label="Ordered" value={ordered} />
@@ -1007,7 +1012,9 @@ export default function ProductDetailPage() {
             value={backordered}
             className={backordered > 0 ? "text-red-600" : "text-gray-600"}
           />
-          <StatCard label="Unit Price" value={formatUnitPrice(product.unit_price)} />
+          {canViewPrice && (
+            <StatCard label="Unit Price" value={formatUnitPrice(product.unit_price)} />
+          )}
         </div>
 
         {/* ========== GRAPH TABS ========== */}

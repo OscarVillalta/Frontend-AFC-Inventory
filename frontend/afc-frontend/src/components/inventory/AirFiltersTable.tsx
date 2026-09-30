@@ -8,7 +8,7 @@ import type { createTxnRequest } from "../../api/transactions";
 import type { Supplier } from "../../api/suppliers";
 import { useWarehouse } from "../../hooks/useWarehouse";
 import { useAuth } from "../../hooks/useAuth";
-import { formatUnitPrice } from "../../utils/currency";
+import { formatUnitPrice, PRICE_MANAGE_PERMISSION } from "../../utils/currency";
 
 /* ============================================================
    TYPES
@@ -319,7 +319,13 @@ export default function AirFiltersTable({
 
   /* ===================== TABLE COLUMNS ===================== */
 
-  const columns = ["Part Number", "Description", "Supplier", "Category", "Dimensions", "MERV", "", "On Hand", "Ordered", "Reserved", "Available", "Backorder", "Unit Price"];
+  const canViewPrice = hasPermission(PRICE_MANAGE_PERMISSION);
+
+  const columns = ["Part Number", "Description", "Supplier", "Category", "Dimensions", "MERV", "", "On Hand", "Ordered", "Reserved", "Available", "Backorder"];
+
+  if (canViewPrice) {
+    columns.push("Unit Price");
+  }
 
    if(hasPermission("catalog:edit") || hasPermission("catalog:archive")){
     columns.push("Actions");
@@ -348,13 +354,15 @@ export default function AirFiltersTable({
           <span className="text-gray-400">—</span>
         )}
       </td>
-      <td className={`${rowPadding} text-right text-sm whitespace-nowrap`}>
-        {isChild || !("unit_price" in row) || row.unit_price == null ? (
-          <span className="text-gray-400">—</span>
-        ) : (
-          formatUnitPrice(row.unit_price)
-        )}
-      </td>
+      {canViewPrice && (
+        <td className={`${rowPadding} text-right text-sm whitespace-nowrap`}>
+          {isChild || !("unit_price" in row) || row.unit_price == null ? (
+            <span className="text-gray-400">—</span>
+          ) : (
+            formatUnitPrice(row.unit_price)
+          )}
+        </td>
+      )}
     </>
   );
 

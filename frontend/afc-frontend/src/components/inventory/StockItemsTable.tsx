@@ -8,7 +8,7 @@ import type { createTxnRequest } from "../../api/transactions";
 import type { Supplier } from "../../api/suppliers";
 import { useWarehouse } from "../../hooks/useWarehouse";
 import { useAuth } from "../../hooks/useAuth";
-import { formatUnitPrice } from "../../utils/currency";
+import { formatUnitPrice, PRICE_MANAGE_PERMISSION } from "../../utils/currency";
 
 /* ============================================================
    TYPES
@@ -225,7 +225,13 @@ export default function StockItemsTable({
 
   /* ===================== TABLE COLUMNS ===================== */
 
-  const columns = ["Name", "Description", "Category", "Supplier", "", "On Hand", "Ordered", "Reserved", "Available", "Backorder", "Unit Price"];
+  const canViewPrice = hasPermission(PRICE_MANAGE_PERMISSION);
+
+  const columns = ["Name", "Description", "Category", "Supplier", "", "On Hand", "Ordered", "Reserved", "Available", "Backorder"];
+
+  if (canViewPrice) {
+    columns.push("Unit Price");
+  }
 
   if(hasPermission("catalog:edit") || hasPermission("catalog:archive")){
     columns.push("Actions");
@@ -398,16 +404,18 @@ export default function StockItemsTable({
               )}
             </td>
             {/* Unit Price */}
-            <td
-              className={`${rowPadding} text-right text-sm whitespace-nowrap`}
-              onClick={() => navigate(`/products/${row.product_id}`)}
-            >
-              {row.unit_price == null ? (
-                <span className="text-gray-400">—</span>
-              ) : (
-                formatUnitPrice(row.unit_price)
-              )}
-            </td>
+            {canViewPrice && (
+              <td
+                className={`${rowPadding} text-right text-sm whitespace-nowrap`}
+                onClick={() => navigate(`/products/${row.product_id}`)}
+              >
+                {row.unit_price == null ? (
+                  <span className="text-gray-400">—</span>
+                ) : (
+                  formatUnitPrice(row.unit_price)
+                )}
+              </td>
+            )}
             {/* Actions */}
             
             <td className={`${rowPadding} text-right pr-3`}>

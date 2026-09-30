@@ -1,3 +1,5 @@
+export const PRICE_MANAGE_PERMISSION = "price:manage";
+
 const usdFormatter = new Intl.NumberFormat("en-US", {
   style: "currency",
   currency: "USD",
