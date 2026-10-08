@@ -10,6 +10,7 @@ import TransactionSummaryBar from "./TransactionSummaryBar";
 import TransactionDetailDrawer from "./TransactionDetailDrawer";
 import { useWarehouse } from "../../hooks/useWarehouse";
 import DateSelection from "../DateSelection";
+import { addDaysKey, dayOfWeekKey, toLocalDateKey, todayLocalKey } from "../../utils/dateTime";
 
 interface TransactionRow {
   id: string;
@@ -28,10 +29,7 @@ interface TransactionRow {
 }
 
 function formatDate(iso: string) {
-  if (!iso) return "";
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return "";
-  return date.toISOString().split("T")[0];
+  return toLocalDateKey(iso);
 }
 
 function getChildPartNumber(cp: ChildProductName) {
@@ -85,16 +83,14 @@ const PRESET_FILTERS = [
 ] as const;
 
 function getPresetDates(preset: string) {
-  const today = new Date();
-  const yyyy = (d: Date) => d.toISOString().split("T")[0];
+  const today = todayLocalKey();
 
   if (preset === "today") {
-    return { startDate: yyyy(today), endDate: yyyy(today), dateFilterMode: "between" as const };
+    return { startDate: today, endDate: today, dateFilterMode: "between" as const };
   }
   if (preset === "week") {
-    const start = new Date(today);
-    start.setDate(today.getDate() - today.getDay()); // Sunday
-    return { startDate: yyyy(start), endDate: yyyy(today), dateFilterMode: "between" as const };
+    const start = addDaysKey(today, -dayOfWeekKey(today)); // Sunday
+    return { startDate: start, endDate: today, dateFilterMode: "between" as const };
   }
   return {};
 }
@@ -178,6 +174,15 @@ export default function TransactionsTable() {
     } else if (filters.dateFilterMode === "after" && filters.startDate) {
       apiFilters.after_date = filters.startDate;
     }
+
+    if (filters.lastUpdatedMode === "between" && filters.lastUpdatedStart && filters.lastUpdatedEnd) {
+      apiFilters.updated_start_date = filters.lastUpdatedStart;
+      apiFilters.updated_end_date = filters.lastUpdatedEnd;
+    } else if (filters.lastUpdatedMode === "before" && filters.lastUpdatedStart) {
+      apiFilters.updated_before_date = filters.lastUpdatedStart;
+    } else if (filters.lastUpdatedMode === "after" && filters.lastUpdatedStart) {
+      apiFilters.updated_after_date = filters.lastUpdatedStart;
+    }
     return apiFilters;
   }, [filters]);
 
@@ -237,7 +242,7 @@ export default function TransactionsTable() {
 
   useEffect(() => {
     loadTransactions();
-  }, [page, pageSize, filters.searchProduct, filters.orderId, filters.filterState, filters.filterReason, filters.filterNote, filters.startDate, filters.endDate, filters.dateFilterMode, activeWarehouseId]);
+  }, [page, pageSize, filters.searchProduct, filters.orderId, filters.filterState, filters.filterReason, filters.filterNote, filters.startDate, filters.endDate, filters.dateFilterMode, filters.lastUpdatedStart, filters.lastUpdatedEnd, filters.lastUpdatedMode, activeWarehouseId]);
 
   const productLookup = useMemo(() => {
     return new Map(products.map((product) => [product.id, product.part_number]));
@@ -330,7 +335,8 @@ export default function TransactionsTable() {
     filters.filterState !== "All" ||
     filters.filterReason ||
     filters.filterNote ||
-    filters.dateFilterMode !== "none";
+    filters.dateFilterMode !== "none" ||
+    filters.lastUpdatedMode !== "none";
 
   const dateRangeLabel = getDateRangeLabel(
     filters.dateFilterMode,
@@ -448,7 +454,7 @@ export default function TransactionsTable() {
                     filters={filters}
                     startdateKey="startDate"
                     enddatekey="endDate"
-                    datemodekey="dateFiltermode"/>
+                    datemodekey="dateFilterMode"/>
                   </div>
 
                   {/* Last Updated Date Range */}

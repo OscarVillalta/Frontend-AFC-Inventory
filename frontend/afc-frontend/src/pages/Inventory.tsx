@@ -16,6 +16,7 @@ import type { StockItemCategory } from "../api/stockItems";
 import type { MediaCategory } from "../api/media";
 import { useWarehouse } from "../hooks/useWarehouse";
 import { useAuth } from "../hooks/useAuth";
+import { PRICE_MANAGE_PERMISSION } from "../utils/currency";
 
 type TabKey = "filters" | "stock" | "media";
 type QuickView = "all" | "low_stock" | "backordered" | "has_orders";
@@ -81,6 +82,21 @@ export default function Inventory() {
   const [filterAvailableMin, setFilterAvailableMin] = useState(saved.filterAvailableMin ?? "");
   const [filterBackorderedMin, setFilterBackorderedMin] = useState(saved.filterBackorderedMin ?? "");
 
+  /* ── Price filters (price:manage only) ── */
+  const canViewPrice = hasPermission(PRICE_MANAGE_PERMISSION);
+  const [filterUnitPriceMin, setFilterUnitPriceMin] = useState(saved.filterUnitPriceMin ?? "");
+  const [filterUnitPriceMax, setFilterUnitPriceMax] = useState(saved.filterUnitPriceMax ?? "");
+  const [filterGrossValueMin, setFilterGrossValueMin] = useState(saved.filterGrossValueMin ?? "");
+  const [filterGrossValueMax, setFilterGrossValueMax] = useState(saved.filterGrossValueMax ?? "");
+
+  const toNumberOrUndefined = (value: string) => (canViewPrice && value !== "" ? Number(value) : undefined);
+  const priceFilterProps = {
+    filterUnitPriceMin: toNumberOrUndefined(filterUnitPriceMin),
+    filterUnitPriceMax: toNumberOrUndefined(filterUnitPriceMax),
+    filterGrossValueMin: toNumberOrUndefined(filterGrossValueMin),
+    filterGrossValueMax: toNumberOrUndefined(filterGrossValueMax),
+  };
+
   /* ── Dropdown data ── */
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [airFilterCategories, setAirFilterCategories] = useState<AirFilterCategory[]>([]);
@@ -114,12 +130,17 @@ export default function Inventory() {
       filterOrderedMin,
       filterAvailableMin,
       filterBackorderedMin,
+      filterUnitPriceMin,
+      filterUnitPriceMax,
+      filterGrossValueMin,
+      filterGrossValueMax,
     };
     localStorage.setItem(LS_KEY, JSON.stringify(data));
   }, [
     tab, quickView, warehouseView, globalSearch, filterSupplier, filterCategory, filterMerv,
     filterDescription, compact, filterHeight, filterWidth, filterDepth,
     filterOnHandMin, filterReservedMin, filterOrderedMin, filterAvailableMin, filterBackorderedMin,
+    filterUnitPriceMin, filterUnitPriceMax, filterGrossValueMin, filterGrossValueMax,
   ]);
 
   const triggerRefresh = () => setRefreshToken((prev) => prev + 1);
@@ -138,6 +159,10 @@ export default function Inventory() {
     setFilterOrderedMin("");
     setFilterAvailableMin("");
     setFilterBackorderedMin("");
+    setFilterUnitPriceMin("");
+    setFilterUnitPriceMax("");
+    setFilterGrossValueMin("");
+    setFilterGrossValueMax("");
     setQuickView("all");
     setWarehouseView("current");
   };
@@ -156,6 +181,11 @@ export default function Inventory() {
     filterOrderedMin !== "" ||
     filterAvailableMin !== "" ||
     filterBackorderedMin !== "" ||
+    (canViewPrice &&
+      (filterUnitPriceMin !== "" ||
+        filterUnitPriceMax !== "" ||
+        filterGrossValueMin !== "" ||
+        filterGrossValueMax !== "")) ||
     quickView !== "all" ||
     warehouseView !== "current";
 
@@ -415,6 +445,28 @@ export default function Inventory() {
             />
           </div>
 
+          {/* Price filters */}
+          {canViewPrice &&
+            [
+              { label: "Min Price", placeholder: "$ ≥", value: filterUnitPriceMin, set: setFilterUnitPriceMin },
+              { label: "Max Price", placeholder: "$ ≤", value: filterUnitPriceMax, set: setFilterUnitPriceMax },
+              { label: "Min Gross", placeholder: "$ ≥", value: filterGrossValueMin, set: setFilterGrossValueMin },
+              { label: "Max Gross", placeholder: "$ ≤", value: filterGrossValueMax, set: setFilterGrossValueMax },
+            ].map((f) => (
+              <div key={f.label} className="flex flex-col gap-0.5 w-[90px]">
+                <label className="text-xs text-gray-400 font-medium uppercase tracking-wide">{f.label}</label>
+                <input
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  className={inputCls}
+                  placeholder={f.placeholder}
+                  value={f.value}
+                  onChange={(e) => f.set(e.target.value)}
+                />
+              </div>
+            ))}
+
           {/* Trailing utilities */}
           <div className="flex items-center gap-3 ml-auto">
             {hasActiveFilters && (
@@ -507,6 +559,7 @@ export default function Inventory() {
               filterOrderedMin={filterOrderedMin !== "" ? Number(filterOrderedMin) : undefined}
               filterAvailableMin={filterAvailableMin !== "" ? Number(filterAvailableMin) : undefined}
               filterBackorderedMin={filterBackorderedMin !== "" ? Number(filterBackorderedMin) : undefined}
+              {...priceFilterProps}
               quickView={quickView}
               warehouseView={warehouseView}
               compact={compact}
@@ -526,6 +579,7 @@ export default function Inventory() {
               filterOrderedMin={filterOrderedMin !== "" ? Number(filterOrderedMin) : undefined}
               filterAvailableMin={filterAvailableMin !== "" ? Number(filterAvailableMin) : undefined}
               filterBackorderedMin={filterBackorderedMin !== "" ? Number(filterBackorderedMin) : undefined}
+              {...priceFilterProps}
               quickView={quickView}
               warehouseView={warehouseView}
               compact={compact}
@@ -545,6 +599,7 @@ export default function Inventory() {
               filterOrderedMin={filterOrderedMin !== "" ? Number(filterOrderedMin) : undefined}
               filterAvailableMin={filterAvailableMin !== "" ? Number(filterAvailableMin) : undefined}
               filterBackorderedMin={filterBackorderedMin !== "" ? Number(filterBackorderedMin) : undefined}
+              {...priceFilterProps}
               quickView={quickView}
               warehouseView={warehouseView}
               compact={compact}

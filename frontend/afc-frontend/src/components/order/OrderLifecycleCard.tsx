@@ -9,6 +9,7 @@ import {
   canUserActOnStepIndex,
 } from "../../utils/trackerSteps";
 import { toggleTrackerStep } from "../../utils/toggleTrackerStep";
+import { APP_TIME_ZONE } from "../../utils/dateTime";
 import { orderNumberSearchTerm } from "../../utils/orderNumberSearch";
 import {
   TRACKER_FILTERS_STORAGE_KEY,
@@ -159,6 +160,7 @@ export default function OrderLifecycleCard({
           year: "numeric",
           hour: "2-digit",
           minute: "2-digit",
+          timeZone: APP_TIME_ZONE,
         })
       : null;
 
@@ -174,6 +176,7 @@ export default function OrderLifecycleCard({
         year: "numeric",
         hour: "2-digit",
         minute: "2-digit",
+        timeZone: APP_TIME_ZONE,
       })
     : "—";
 

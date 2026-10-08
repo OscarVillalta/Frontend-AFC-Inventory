@@ -1,4 +1,5 @@
 import { apiRequest } from "./apiClient";
+import { setPriceFilterParams, type PriceFilterParams } from "./priceFilters";
 
 /* ============================================================
    TYPES — match /stock_items/search
@@ -35,7 +36,7 @@ export interface StockItemResponse {
    SEARCH PARAMS
 ============================================================ */
 
-export interface StockItemSearchParams {
+export interface StockItemSearchParams extends PriceFilterParams {
   name?: string;
   description?: string;
   supplier?: string;
@@ -89,6 +90,7 @@ export function fetchStockItems(
   if (filters.available_min !== undefined) params.set("available", String(filters.available_min));
   if (filters.backordered_min !== undefined) params.set("backordered", String(filters.backordered_min));
   if (filters.warehouse_view) params.set("warehouse_view", filters.warehouse_view);
+  setPriceFilterParams(params, filters);
 
   return apiRequest(`/stock_items/search?${params.toString()}`, {
     method: "GET",

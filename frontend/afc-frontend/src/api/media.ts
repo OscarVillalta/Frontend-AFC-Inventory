@@ -1,4 +1,5 @@
 import { apiRequest } from "./apiClient";
+import { setPriceFilterParams, type PriceFilterParams } from "./priceFilters";
 
 /* ============================================================
    TYPES — match /media/search
@@ -53,7 +54,7 @@ export interface MediaCategory {
    SEARCH PARAMS
 ============================================================ */
 
-export interface MediaSearchParams {
+export interface MediaSearchParams extends PriceFilterParams {
   part_number?: string;
   description?: string;
   supplier?: string;
@@ -103,6 +104,7 @@ export function fetchMedia(
   if (filters.available_min !== undefined) params.set("available", String(filters.available_min));
   if (filters.backordered_min !== undefined) params.set("backordered", String(filters.backordered_min));
   if (filters.warehouse_view) params.set("warehouse_view", filters.warehouse_view);
+  setPriceFilterParams(params, filters);
 
   return apiRequest(`/media/search?${params.toString()}`, {
     method: "GET",

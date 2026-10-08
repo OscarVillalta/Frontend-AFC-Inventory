@@ -42,6 +42,24 @@ export interface TransactionFilters {
   end_date?: string;
   before_date?: string;
   after_date?: string;
+  updated_start_date?: string;
+  updated_end_date?: string;
+  updated_before_date?: string;
+  updated_after_date?: string;
+}
+
+const UPDATED_DATE_KEYS = [
+  "updated_start_date",
+  "updated_end_date",
+  "updated_before_date",
+  "updated_after_date",
+] as const;
+
+function setUpdatedDateParams(params: URLSearchParams, filters: TransactionFilters) {
+  for (const key of UPDATED_DATE_KEYS) {
+    const value = filters[key];
+    if (value) params.set(key, value);
+  }
 }
 
 export interface ProduceRequest {
@@ -77,6 +95,7 @@ export function fetchTransactionSummary(
     if (filters.end_date) params.set("end_date", filters.end_date);
     if (filters.before_date) params.set("before_date", filters.before_date);
     if (filters.after_date) params.set("after_date", filters.after_date);
+    setUpdatedDateParams(params, filters);
   }
 
   return apiRequest(`/transactions/summary?${params.toString()}`, {
@@ -124,6 +143,7 @@ export function fetchTransactions(
     if (filters.after_date) {
       params.set("after_date", filters.after_date);
     }
+    setUpdatedDateParams(params, filters);
   }
   
   return apiRequest(`/transactions/search?${params.toString()}`, {

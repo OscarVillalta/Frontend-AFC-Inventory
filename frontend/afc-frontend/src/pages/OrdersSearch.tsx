@@ -16,6 +16,7 @@ import { useWarehouse } from "../hooks/useWarehouse";
 import { useAuth } from "../hooks/useAuth";
 import { useToast } from "../hooks/useToast";
 import { formatQbExternalRef } from "../utils/qbDocType";
+import { addDaysKey, todayLocalKey } from "../utils/dateTime";
 
 function sortOrdersByOrderNumberDesc(orders: OrderRowItemPayload[]): OrderRowItemPayload[] {
   return [...orders].sort((a, b) => {
@@ -267,8 +268,7 @@ export default function OrdersSearchPage() {
   };
 
   const setPresetDateRange = (preset: string) => {
-    const today = new Date();
-    const todayStr = today.toISOString().split('T')[0];
+    const todayStr = todayLocalKey();
     
     switch (preset) {
       case 'today':
@@ -276,16 +276,12 @@ export default function OrdersSearchPage() {
         setFilter("dateTo", todayStr);
         break;
       case 'last7': {
-        const last7 = new Date(today);
-        last7.setDate(last7.getDate() - 7);
-        setFilter("dateFrom", last7.toISOString().split('T')[0]);
+        setFilter("dateFrom", addDaysKey(todayStr, -7));
         setFilter("dateTo", todayStr);
         break;
       }
       case 'last30': {
-        const last30 = new Date(today);
-        last30.setDate(last30.getDate() - 30);
-        setFilter("dateFrom", last30.toISOString().split('T')[0]);
+        setFilter("dateFrom", addDaysKey(todayStr, -30));
         setFilter("dateTo", todayStr);
         break;
       }

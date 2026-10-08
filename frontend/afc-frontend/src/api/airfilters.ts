@@ -1,4 +1,5 @@
 import { apiRequest } from "./apiClient";
+import { setPriceFilterParams, type PriceFilterParams } from "./priceFilters";
 
 /* ============================================================
    TYPES — match /air_filters/search
@@ -78,7 +79,7 @@ export interface AirFilterCategory {
    SEARCH PARAMS
 ============================================================ */
 
-export interface AirFilterSearchParams {
+export interface AirFilterSearchParams extends PriceFilterParams {
   part_number?: string;
   description?: string;
   supplier?: string;
@@ -130,6 +131,7 @@ export function fetchAirFilters(
   if (filters.available !== undefined) params.set("available", String(filters.available));
   if (filters.backordered !== undefined) params.set("backordered", String(filters.backordered));
   if (filters.warehouse_view) params.set("warehouse_view", filters.warehouse_view);
+  setPriceFilterParams(params, filters);
 
   console.log(params.toString())
 

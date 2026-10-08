@@ -28,6 +28,7 @@ import {
 } from "../api/productDetail";
 import { useWarehouse } from "../hooks/useWarehouse";
 import { useProjectionDateRange } from "../hooks/useProjectionDateRange";
+import { addDaysKey, formatDate, formatDateTime, localDayStart } from "../utils/dateTime";
 
 /* ============================================================
    TYPES
@@ -212,8 +213,8 @@ export default function ChildProductDetailPage() {
     let cutoff: Date | null = null;
     let endDate: Date | null = null;
     if (histDays === "custom") {
-      if (histCustomStart) cutoff = new Date(histCustomStart);
-      if (histCustomEnd) endDate = new Date(histCustomEnd);
+      if (histCustomStart) cutoff = localDayStart(histCustomStart);
+      if (histCustomEnd) endDate = new Date(localDayStart(addDaysKey(histCustomEnd, 1)).getTime() - 1);
     } else {
       cutoff = new Date();
       cutoff.setDate(now.getDate() - histDays);
@@ -238,7 +239,7 @@ export default function ChildProductDetailPage() {
 
       runningBalance += item.quantity_delta;
       points.push({
-        date: itemDate.toLocaleDateString("en-US", {
+        date: formatDate(itemDate, {
           month: "short",
           day: "numeric",
           year: "numeric",
@@ -789,7 +790,7 @@ export default function ChildProductDetailPage() {
                       }}
                     >
                       <p className="font-semibold text-gray-800">
-                        {new Date(hoveredHistPoint.data.raw_date).toLocaleString("en-US", {
+                        {formatDateTime(hoveredHistPoint.data.raw_date, {
                           month: "short",
                           day: "numeric",
                           year: "numeric",
@@ -958,7 +959,7 @@ export default function ChildProductDetailPage() {
                   transactions.map((txn) => (
                     <tr key={txn.id} className="border-b hover:bg-gray-50">
                       <td className="px-4 py-3 text-gray-700">
-                        {new Date(txn.created_at).toLocaleDateString()}
+                        {formatDate(txn.created_at)}
                       </td>
                       <td className="px-4 py-3 capitalize text-gray-700">
                         {txn.reason}

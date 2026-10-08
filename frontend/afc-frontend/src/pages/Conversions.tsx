@@ -17,6 +17,7 @@ import { fetchChildProducts, fetchProducts, type ChildProductName, type Product 
 import { useWarehouse } from "../hooks/useWarehouse";
 import { useAuth } from "../hooks/useAuth";
 import AutocompleteInput from "../components/AutocompleteInput";
+import { APP_TIME_ZONE, toLocalDateKey } from "../utils/dateTime";
 
 interface SourceInput {
   selection: string;
@@ -32,23 +33,20 @@ interface ConversionDraft {
 }
 
 function formatDate(iso?: string) {
-  if (!iso) return "";
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return "";
-  return date.toISOString().split("T")[0];
+  return toLocalDateKey(iso);
 }
 
 const dateFormatter = new Intl.DateTimeFormat("en-US", {
   month: "short",
   day: "numeric",
   year: "numeric",
-  timeZone: "UTC",
+  timeZone: APP_TIME_ZONE,
 });
 
 const timeFormatter = new Intl.DateTimeFormat("en-US", {
   hour: "numeric",
   minute: "2-digit",
-  timeZone: "UTC",
+  timeZone: APP_TIME_ZONE,
 });
 
 function formatDateTime(iso?: string) {

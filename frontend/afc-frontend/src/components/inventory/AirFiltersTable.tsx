@@ -8,7 +8,7 @@ import type { createTxnRequest } from "../../api/transactions";
 import type { Supplier } from "../../api/suppliers";
 import { useWarehouse } from "../../hooks/useWarehouse";
 import { useAuth } from "../../hooks/useAuth";
-import { formatUnitPrice, PRICE_MANAGE_PERMISSION } from "../../utils/currency";
+import { formatUnitPrice, grossValue, PRICE_MANAGE_PERMISSION } from "../../utils/currency";
 
 /* ============================================================
    TYPES
@@ -49,6 +49,10 @@ interface Props {
   filterOrderedMin?: number;
   filterAvailableMin?: number;
   filterBackorderedMin?: number;
+  filterUnitPriceMin?: number;
+  filterUnitPriceMax?: number;
+  filterGrossValueMin?: number;
+  filterGrossValueMax?: number;
   quickView?: "all" | "low_stock" | "backordered" | "has_orders" | "recently_updated";
   warehouseView?: "current" | "total";
   compact?: boolean;
@@ -124,6 +128,10 @@ export default function AirFiltersTable({
   filterOrderedMin,
   filterAvailableMin,
   filterBackorderedMin,
+  filterUnitPriceMin,
+  filterUnitPriceMax,
+  filterGrossValueMin,
+  filterGrossValueMax,
   quickView = "all",
   warehouseView = "current",
   compact = false,
@@ -180,6 +188,10 @@ export default function AirFiltersTable({
       ordered: filterOrderedMin,
       available: filterAvailableMin,
       backordered: filterBackorderedMin,
+      unit_price_min: filterUnitPriceMin,
+      unit_price_max: filterUnitPriceMax,
+      gross_value_min: filterGrossValueMin,
+      gross_value_max: filterGrossValueMax,
       warehouse_view: warehouseView,
     })
       .then((res) => {
@@ -192,14 +204,16 @@ export default function AirFiltersTable({
     setPage(1);
   }, [globalSearch, filterDescription, filterSupplier, filterCategory, filterMerv, quickView, warehouseView, pageSize,
       filterHeight, filterWidth, filterDepth,
-      filterOnHandMin, filterReservedMin, filterOrderedMin, filterAvailableMin, filterBackorderedMin]);
+      filterOnHandMin, filterReservedMin, filterOrderedMin, filterAvailableMin, filterBackorderedMin,
+      filterUnitPriceMin, filterUnitPriceMax, filterGrossValueMin, filterGrossValueMax]);
 
   useEffect(() => {
     loadData();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, pageSize, globalSearch, filterDescription, filterSupplier, filterCategory, filterMerv, refreshToken,
       filterHeight, filterWidth, filterDepth, quickView, warehouseView,
-      filterOnHandMin, filterReservedMin, filterOrderedMin, filterAvailableMin, filterBackorderedMin, activeWarehouseId]);
+      filterOnHandMin, filterReservedMin, filterOrderedMin, filterAvailableMin, filterBackorderedMin,
+      filterUnitPriceMin, filterUnitPriceMax, filterGrossValueMin, filterGrossValueMax, activeWarehouseId]);
 
   const parents: AirFilterPayload[] = data?.results ?? [];
 
@@ -324,7 +338,7 @@ export default function AirFiltersTable({
   const columns = ["Part Number", "Description", "Supplier", "Category", "Dimensions", "MERV", "", "On Hand", "Ordered", "Reserved", "Available", "Backorder"];
 
   if (canViewPrice) {
-    columns.push("Unit Price");
+    columns.push("Unit Price", "Gross Value");
   }
 
    if(hasPermission("catalog:edit") || hasPermission("catalog:archive")){
@@ -355,11 +369,20 @@ export default function AirFiltersTable({
         )}
       </td>
       {canViewPrice && (
-        <td className={`${rowPadding} text-right text-sm whitespace-nowrap`}>
+        <td className={`${rowPadding} text-center text-sm whitespace-nowrap`}>
           {isChild || !("unit_price" in row) || row.unit_price == null ? (
             <span className="text-gray-400">—</span>
           ) : (
             formatUnitPrice(row.unit_price)
+          )}
+        </td>
+      )}
+      {canViewPrice && (
+        <td className={`${rowPadding} text-center text-sm whitespace-nowrap`}>
+          {isChild || !("unit_price" in row) || row.unit_price == null ? (
+            <span className="text-gray-400">—</span>
+          ) : (
+            formatUnitPrice(grossValue(row.on_hand, row.unit_price))
           )}
         </td>
       )}

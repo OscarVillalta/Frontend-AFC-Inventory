@@ -1,34 +1,16 @@
 import { useMemo, useState } from "react";
-
-/** Format a Date to YYYY-MM-DD */
-function toYMD(d: Date): string {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
+import { addMonthsKey, todayLocalKey } from "../utils/dateTime";
 
 /**
  * Hook providing date range controls for the projected stock graph.
  * Default range: today → today + 1 month. Max end: today + 2 months.
  */
 export function useProjectionDateRange() {
-  const todayStr = useMemo(() => {
-    const d = new Date();
-    d.setHours(0, 0, 0, 0);
-    return toYMD(d);
-  }, []);
+  const todayStr = useMemo(() => todayLocalKey(), []);
 
-  const defaultEndStr = useMemo(() => {
-    const d = new Date();
-    d.setHours(0, 0, 0, 0);
-    d.setMonth(d.getMonth() + 1);
-    return toYMD(d);
-  }, []);
+  const defaultEndStr = useMemo(() => addMonthsKey(todayStr, 1), [todayStr]);
 
-  const maxEndStr = useMemo(() => {
-    const d = new Date();
-    d.setHours(0, 0, 0, 0);
-    d.setMonth(d.getMonth() + 2);
-    return toYMD(d);
-  }, []);
+  const maxEndStr = useMemo(() => addMonthsKey(todayStr, 2), [todayStr]);
 
   const [projStart, setProjStart] = useState(todayStr);
   const [projEnd, setProjEnd] = useState(defaultEndStr);

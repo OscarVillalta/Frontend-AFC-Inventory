@@ -8,7 +8,7 @@ import type { createTxnRequest } from "../../api/transactions";
 import type { Supplier } from "../../api/suppliers";
 import { useWarehouse } from "../../hooks/useWarehouse";
 import { useAuth } from "../../hooks/useAuth";
-import { formatUnitPrice, PRICE_MANAGE_PERMISSION } from "../../utils/currency";
+import { formatUnitPrice, grossValue, PRICE_MANAGE_PERMISSION } from "../../utils/currency";
 
 /* ============================================================
    TYPES
@@ -49,6 +49,10 @@ interface Props {
   filterOrderedMin?: number;
   filterAvailableMin?: number;
   filterBackorderedMin?: number;
+  filterUnitPriceMin?: number;
+  filterUnitPriceMax?: number;
+  filterGrossValueMin?: number;
+  filterGrossValueMax?: number;
   quickView?: "all" | "low_stock" | "backordered" | "has_orders" | "recently_updated";
   warehouseView?: "current" | "total";
   compact?: boolean;
@@ -148,6 +152,10 @@ export default function MediaTable({
   filterOrderedMin,
   filterAvailableMin,
   filterBackorderedMin,
+  filterUnitPriceMin,
+  filterUnitPriceMax,
+  filterGrossValueMin,
+  filterGrossValueMax,
   quickView = "all",
   warehouseView = "current",
   compact = false,
@@ -199,6 +207,10 @@ export default function MediaTable({
       ordered_min: filterOrderedMin,
       available_min: filterAvailableMin,
       backordered_min: filterBackorderedMin,
+      unit_price_min: filterUnitPriceMin,
+      unit_price_max: filterUnitPriceMax,
+      gross_value_min: filterGrossValueMin,
+      gross_value_max: filterGrossValueMax,
       warehouse_view: warehouseView,
     })
       .then((res) => {
@@ -219,13 +231,15 @@ export default function MediaTable({
   useEffect(() => {
     setPage(1);
   }, [globalSearch, filterDescription, filterSupplier, filterCategory, quickView, warehouseView, pageSize,
-      filterOnHandMin, filterReservedMin, filterOrderedMin, filterAvailableMin, filterBackorderedMin]);
+      filterOnHandMin, filterReservedMin, filterOrderedMin, filterAvailableMin, filterBackorderedMin,
+      filterUnitPriceMin, filterUnitPriceMax, filterGrossValueMin, filterGrossValueMax]);
 
   useEffect(() => {
     loadData();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, pageSize, globalSearch, filterDescription, filterSupplier, filterCategory, refreshToken, quickView, warehouseView,
-      filterOnHandMin, filterReservedMin, filterOrderedMin, filterAvailableMin, filterBackorderedMin, activeWarehouseId]);
+      filterOnHandMin, filterReservedMin, filterOrderedMin, filterAvailableMin, filterBackorderedMin,
+      filterUnitPriceMin, filterUnitPriceMax, filterGrossValueMin, filterGrossValueMax, activeWarehouseId]);
 
   const rows: MediaPayload[] = data?.results ?? [];
 
@@ -337,7 +351,7 @@ export default function MediaTable({
   const columns = ["Part Number", "Description", "Supplier", "Category", "Dimensions", "UOM", "", "On Hand", "Ordered", "Reserved", "Available", "Backordered"];
 
   if (canViewPrice) {
-    columns.push("Unit Price");
+    columns.push("Unit Price", "Gross Value");
   }
 
   if(hasPermission("inventory:manual_adjust")){
@@ -368,11 +382,20 @@ export default function MediaTable({
         )}
       </td>
       {canViewPrice && (
-        <td className={`${rowPadding} text-right text-sm whitespace-nowrap`}>
+        <td className={`${rowPadding} text-center text-sm whitespace-nowrap`}>
           {isChild || row.unit_price == null ? (
             <span className="text-gray-400">—</span>
           ) : (
             formatUnitPrice(row.unit_price)
+          )}
+        </td>
+      )}
+      {canViewPrice && (
+        <td className={`${rowPadding} text-center text-sm whitespace-nowrap`}>
+          {isChild || row.unit_price == null ? (
+            <span className="text-gray-400">—</span>
+          ) : (
+            formatUnitPrice(grossValue(row.on_hand, row.unit_price))
           )}
         </td>
       )}

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import type { TransactionPayload } from "../../api/transactions";
 import { fetchTransactionOnHand } from "../../api/transactions";
 import type { TransactionOnHand } from "../../api/transactions";
+import { formatDateTime as formatLocalDateTime } from "../../utils/dateTime";
 
 const ROLLBACK_NOTE_PREFIX = "Reversal of transaction #";
 
@@ -12,10 +13,7 @@ interface TransactionDetailDrawerProps {
 }
 
 function formatDateTime(iso: string) {
-  if (!iso) return "";
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return "";
-  return date.toLocaleString();
+  return formatLocalDateTime(iso);
 }
 
 function getStateDisplayLabel(state: string, qtyDelta: number) {

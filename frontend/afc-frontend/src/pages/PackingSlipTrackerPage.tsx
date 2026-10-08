@@ -33,6 +33,7 @@ import {
   TRACKER_DEPARTMENT_FILTER_OPTIONS,
 } from "../utils/trackerSteps";
 import { toggleTrackerStep } from "../utils/toggleTrackerStep";
+import { formatDate, formatDateTime } from "../utils/dateTime";
 import { orderNumberSearchTerm } from "../utils/orderNumberSearch";
 import { maybeSyncCalendarOnTrackerComplete } from "../utils/syncCalendarOnTrackerCompleted";
 import { fetchCustomers, type Customer } from "../api/customers";
@@ -166,7 +167,7 @@ function toPackingSlipRow(r: PackingSlipResult): PackingSlipRow {
   // Use the most recent completed_at from stages, falling back to tracker updated_at
   const latestStage = latestCompletedStage(stages);
   const updated = latestStage?.completed_at ?? r.tracker?.updated_at ?? r.created_at;
-  const lastUpdated = updated ? new Date(updated).toLocaleDateString() : "";
+  const lastUpdated = formatDate(updated);
 
   return {
     id: r.id,
@@ -202,12 +203,10 @@ export function buildSteps(row: PackingSlipRow): Step[] {
     const stage = stageMap.get(i);
     const isCompleted = stage?.is_completed ?? false;
 
-    const timestamp = stage?.completed_at
-      ? new Date(stage.completed_at).toLocaleString("en-US", {
-          month: "short", day: "numeric", year: "numeric",
-          hour: "numeric", minute: "2-digit",
-        })
-      : "";
+    const timestamp = formatDateTime(stage?.completed_at, {
+      month: "short", day: "numeric", year: "numeric",
+      hour: "numeric", minute: "2-digit",
+    });
     const performedBy = stage?.completed_by ?? "";
 
     return {
@@ -1018,7 +1017,7 @@ export default function PackingSlipTrackerPage() {
 
         const latest = latestCompletedStage(newStages);
         const lastUpdated = latest?.completed_at
-          ? new Date(latest.completed_at).toLocaleDateString()
+          ? formatDate(latest.completed_at)
           : row.lastUpdated;
 
         const isNowCompleted = completedCount >= totalSteps;

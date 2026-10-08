@@ -5,6 +5,7 @@ import {
   orderDetailPath,
   productDetailPath,
 } from "../../utils/dashboardLinks";
+import { formatDate as formatLocalDate } from "../../utils/dateTime";
 
 interface DashboardFeedsProps {
   recentTransactions: RecentTransaction[];
@@ -14,12 +15,7 @@ interface DashboardFeedsProps {
 }
 
 function formatDate(iso: string | null): string {
-  if (!iso) return "—";
-  return new Date(iso).toLocaleDateString(undefined, {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
+  return formatLocalDate(iso, { month: "short", day: "numeric", year: "numeric" }, "—");
 }
 
 export default function DashboardFeeds({

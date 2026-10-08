@@ -28,12 +28,14 @@ import TopItemsPieChart from "../components/dashboard/TopItemsPieChart";
 import MultiSelectAutocomplete from "../components/MultiSelectAutocomplete";
 import { getProductColor } from "../components/dashboard/chartColors";
 import { productDetailPath } from "../utils/dashboardLinks";
+import { APP_TIME_ZONE } from "../utils/dateTime";
 
 function formatHeaderDate(date: Date): string {
   return date.toLocaleDateString(undefined, {
     month: "short",
     day: "numeric",
     year: "numeric",
+    timeZone: APP_TIME_ZONE,
   });
 }
 

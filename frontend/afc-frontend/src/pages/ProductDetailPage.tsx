@@ -38,7 +38,17 @@ import { patchStockItem } from "../api/stockItems";
 import { useWarehouse } from "../hooks/useWarehouse";
 import { useAuth } from "../hooks/useAuth";
 import { useProjectionDateRange } from "../hooks/useProjectionDateRange";
-import { formatUnitPrice, PRICE_MANAGE_PERMISSION } from "../utils/currency";
+import {
+  addDaysKey,
+  formatDate,
+  formatDateKey,
+  formatDateTime,
+  formatTime,
+  localDayStart,
+  toLocalDateKey,
+  todayLocalKey,
+} from "../utils/dateTime";
+import { formatUnitPrice, grossValue, PRICE_MANAGE_PERMISSION } from "../utils/currency";
 
 /* ============================================================
    TYPES
@@ -420,19 +430,19 @@ export default function ProductDetailPage() {
     const groups: { label: string; txns: TransactionItem[] }[] = [];
     const seen = new Map<string, TransactionItem[]>();
     filteredTxns.forEach((txn) => {
-      const key = new Date(txn.created_at).toDateString();
+      const key = toLocalDateKey(txn.created_at);
       if (!seen.has(key)) seen.set(key, []);
       seen.get(key)!.push(txn);
     });
-    const todayStr = new Date().toDateString();
-    const yesterdayStr = new Date(Date.now() - 86400000).toDateString();
+    const todayStr = todayLocalKey();
+    const yesterdayStr = addDaysKey(todayStr, -1);
     seen.forEach((txns, key) => {
       const label =
         key === todayStr
           ? "Today"
           : key === yesterdayStr
           ? "Yesterday"
-          : new Date(key).toLocaleDateString("en-US", {
+          : formatDateKey(key, {
               month: "short",
               day: "numeric",
               year: "numeric",
@@ -453,8 +463,8 @@ export default function ProductDetailPage() {
     let cutoff: Date | null = null;
     let endDate: Date | null = null;
     if (histDays === "custom") {
-      if (histCustomStart) cutoff = new Date(histCustomStart);
-      if (histCustomEnd) endDate = new Date(histCustomEnd);
+      if (histCustomStart) cutoff = localDayStart(histCustomStart);
+      if (histCustomEnd) endDate = new Date(localDayStart(addDaysKey(histCustomEnd, 1)).getTime() - 1);
     } else {
       cutoff = new Date();
       cutoff.setDate(now.getDate() - histDays);
@@ -483,7 +493,7 @@ export default function ProductDetailPage() {
       runningBalance += item.quantity_delta;
 
       points.push({
-        date: itemDate.toLocaleDateString("en-US", {
+        date: formatDate(itemDate, {
           month: "short",
           day: "numeric",
           year: "numeric",
@@ -998,7 +1008,7 @@ export default function ProductDetailPage() {
             <span className="badge badge-soft badge-primary text-xs">🏭 {activeWarehouseName}</span>
           </div>
         )}
-        <div className={`grid ${canViewPrice ? "grid-cols-6" : "grid-cols-5"} gap-4`}>
+        <div className={`grid ${canViewPrice ? "grid-cols-7" : "grid-cols-5"} gap-4`}>
           <StatCard label="On Hand" value={on_hand} />
           <StatCard label="Reserved" value={reserved} />
           <StatCard label="Ordered" value={ordered} />
@@ -1014,6 +1024,9 @@ export default function ProductDetailPage() {
           />
           {canViewPrice && (
             <StatCard label="Unit Price" value={formatUnitPrice(product.unit_price)} />
+          )}
+          {canViewPrice && (
+            <StatCard label="Gross Value" value={formatUnitPrice(grossValue(on_hand, product.unit_price))} />
           )}
         </div>
 
@@ -1198,7 +1211,7 @@ export default function ProductDetailPage() {
                         }}
                       >
                         <p className="font-semibold text-gray-800">
-                          {new Date(hoveredHistPoint.data.raw_date).toLocaleString("en-US", {
+                          {formatDateTime(hoveredHistPoint.data.raw_date, {
                             month: "short",
                             day: "numeric",
                             year: "numeric",
@@ -1265,7 +1278,7 @@ export default function ProductDetailPage() {
                         </td>
                         <td className="py-2 text-gray-500">
                           {order.eta
-                            ? new Date(order.eta).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+                            ? new Date(order.eta).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" })
                             : <span className="text-yellow-600 text-xs">No ETA</span>}
                         </td>
                         <td className="py-2">
@@ -1391,7 +1404,7 @@ export default function ProductDetailPage() {
                         </td>
                         <td className="py-2 text-gray-500">
                           {order.need_by
-                            ? new Date(order.need_by).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+                            ? new Date(order.need_by).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" })
                             : "—"}
                         </td>
                         <td className="py-2">
@@ -1491,7 +1504,7 @@ export default function ProductDetailPage() {
                       {txns.map((txn) => (
                         <tr key={txn.id} className="border-b hover:bg-gray-50">
                           <td className="px-4 py-3 text-gray-500 text-xs">
-                            {new Date(txn.created_at).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}
+                            {formatTime(txn.created_at)}
                           </td>
                           <td className="px-4 py-3 text-gray-700">
                             {getTxnProductLabel(txn)}

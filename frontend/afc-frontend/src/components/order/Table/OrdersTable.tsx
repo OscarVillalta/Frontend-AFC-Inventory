@@ -215,7 +215,7 @@ export default function OrdersTable({ reloadKey }: Props) {
 
             <td className="py-3 px-2 text-gray-500">
               {row.completed_at
-                ? new Date(row.completed_at).toLocaleDateString()
+                ? formatUTCDate(row.completed_at)
                 : "—"}
             </td>
 

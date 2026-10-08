@@ -6,6 +6,7 @@ import {
   canUserActOnStepIndex,
 } from "../../utils/trackerSteps";
 import { toggleTrackerStep } from "../../utils/toggleTrackerStep";
+import { APP_TIME_ZONE } from "../../utils/dateTime";
 
 interface Props {
   trackingData: OrderWithTracking | null;
@@ -126,7 +127,7 @@ export default function OrderTrackerControl({ trackingData, onRefresh }: Props) 
             const timestamp = stage?.completed_at
               ? new Date(stage.completed_at).toLocaleString("en-US", {
                   month: "short", day: "numeric", year: "numeric",
-                  hour: "numeric", minute: "2-digit",
+                  hour: "numeric", minute: "2-digit", timeZone: APP_TIME_ZONE,
                 })
               : null;
 
