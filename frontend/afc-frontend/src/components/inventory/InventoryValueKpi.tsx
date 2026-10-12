@@ -2,9 +2,9 @@ import { Component, useEffect, useState, type ReactNode } from "react";
 import { fetchInventoryValue } from "../../api/inventoryValue";
 import type { InventoryValue } from "../../api/inventoryValue";
 import type { Supplier } from "../../api/suppliers";
-import { AUTH_TOKEN_KEY } from "../../context/authContextDef";
+import { useAuth } from "../../hooks/useAuth";
 import { useWarehouse } from "../../hooks/useWarehouse";
-import { formatUnitPrice } from "../../utils/currency";
+import { formatUnitPrice, PRICE_MANAGE_PERMISSION } from "../../utils/currency";
 
 type Breakdown = "total" | "supplier" | "product";
 
@@ -34,23 +34,6 @@ class InventoryValueBoundary extends Component<{ children: ReactNode }, Boundary
   }
 }
 
-function isAdminSession(): boolean {
-  try {
-    const token = localStorage.getItem(AUTH_TOKEN_KEY);
-    if (!token) return false;
-    const part = token.split(".")[1];
-    if (!part) return false;
-    const base64 = part.replace(/-/g, "+").replace(/_/g, "/");
-    const padded = base64 + "=".repeat((4 - (base64.length % 4)) % 4);
-    const payload: unknown = JSON.parse(atob(padded));
-    if (!payload || typeof payload !== "object") return false;
-    const role = (payload as { role?: unknown }).role;
-    return typeof role === "string" && role.trim().toLowerCase() === "admin";
-  } catch {
-    return false;
-  }
-}
-
 function isAbortError(error: unknown): boolean {
   return error instanceof DOMException
     ? error.name === "AbortError"
@@ -69,7 +52,8 @@ const inputCls =
   "border border-gray-200 rounded-lg px-2 py-1.5 text-sm text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-400";
 
 function InventoryValueKpiInner({ refreshToken, suppliers }: InventoryValueKpiProps) {
-  const isAdmin = isAdminSession();
+  const { hasPermission } = useAuth();
+  const canViewPrice = hasPermission(PRICE_MANAGE_PERMISSION);
   const { activeWarehouseId, warehouses } = useWarehouse();
   const [breakdown, setBreakdown] = useState<Breakdown>("total");
   const [supplierId, setSupplierId] = useState("");
@@ -88,7 +72,7 @@ function InventoryValueKpiInner({ refreshToken, suppliers }: InventoryValueKpiPr
   }, [query]);
 
   useEffect(() => {
-    if (!isAdmin || hidden) return;
+    if (!canViewPrice || hidden) return;
     const controller = new AbortController();
     let cancelled = false;
 
@@ -125,9 +109,9 @@ function InventoryValueKpiInner({ refreshToken, suppliers }: InventoryValueKpiPr
       cancelled = true;
       controller.abort();
     };
-  }, [isAdmin, hidden, refreshToken, activeWarehouseId, breakdown, supplierId, debouncedQuery, reloadKey]);
+  }, [canViewPrice, hidden, refreshToken, activeWarehouseId, breakdown, supplierId, debouncedQuery, reloadKey]);
 
-  if (!isAdmin || hidden) return null;
+  if (!canViewPrice || hidden) return null;
 
   const requestKey = `${activeWarehouseId ?? ""}|${breakdown}|${supplierId}|${debouncedQuery}|${refreshToken ?? 0}|${reloadKey}`;
   const shown = dataKey === requestKey ? data : null;
