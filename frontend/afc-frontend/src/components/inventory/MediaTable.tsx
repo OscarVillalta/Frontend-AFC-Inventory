@@ -8,6 +8,7 @@ import type { createTxnRequest } from "../../api/transactions";
 import type { Supplier } from "../../api/suppliers";
 import { useWarehouse } from "../../hooks/useWarehouse";
 import { useAuth } from "../../hooks/useAuth";
+import { useTableSort } from "../../hooks/useTableSort";
 import { formatUnitPrice, grossValue, PRICE_MANAGE_PERMISSION } from "../../utils/currency";
 
 /* ============================================================
@@ -167,6 +168,7 @@ export default function MediaTable({
   const { hasPermission } = useAuth();
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
+  const { sortBy, sortDir, toggleSort } = useTableSort();
 
   const [data, setData] = useState<MediaResponse>();
   const [loading, setLoading] = useState(false);
@@ -211,6 +213,8 @@ export default function MediaTable({
       unit_price_max: filterUnitPriceMax,
       gross_value_min: filterGrossValueMin,
       gross_value_max: filterGrossValueMax,
+      sort_by: sortBy,
+      sort_dir: sortDir,
       warehouse_view: warehouseView,
     })
       .then((res) => {
@@ -232,14 +236,15 @@ export default function MediaTable({
     setPage(1);
   }, [globalSearch, filterDescription, filterSupplier, filterCategory, quickView, warehouseView, pageSize,
       filterOnHandMin, filterReservedMin, filterOrderedMin, filterAvailableMin, filterBackorderedMin,
-      filterUnitPriceMin, filterUnitPriceMax, filterGrossValueMin, filterGrossValueMax]);
+      filterUnitPriceMin, filterUnitPriceMax, filterGrossValueMin, filterGrossValueMax, sortBy, sortDir]);
 
   useEffect(() => {
     loadData();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, pageSize, globalSearch, filterDescription, filterSupplier, filterCategory, refreshToken, quickView, warehouseView,
       filterOnHandMin, filterReservedMin, filterOrderedMin, filterAvailableMin, filterBackorderedMin,
-      filterUnitPriceMin, filterUnitPriceMax, filterGrossValueMin, filterGrossValueMax, activeWarehouseId]);
+      filterUnitPriceMin, filterUnitPriceMax, filterGrossValueMin, filterGrossValueMax, activeWarehouseId,
+      sortBy, sortDir]);
 
   const rows: MediaPayload[] = data?.results ?? [];
 
@@ -354,6 +359,19 @@ export default function MediaTable({
     columns.push("Unit Price", "Gross Value");
   }
 
+  const sortKeys: Record<string, string> = {
+    "Part Number": "part_number",
+    Description: "description",
+    Supplier: "supplier",
+    Category: "category",
+    Dimensions: "dimensions",
+    "On Hand": "on_hand",
+    Ordered: "ordered",
+    Reserved: "reserved",
+    Available: "available",
+    ...(canViewPrice ? { "Unit Price": "unit_price", "Gross Value": "gross_value" } : {}),
+  };
+
   if(hasPermission("inventory:manual_adjust")){
     columns.push("Actions");
   }
@@ -414,6 +432,10 @@ export default function MediaTable({
         total={data?.total ?? 0}
         onPageChange={setPage}
         onPageSizeChange={setPageSize}
+        sortKeys={sortKeys}
+        sortBy={sortBy}
+        sortDir={sortDir}
+        onSort={toggleSort}
       >
         {/* ── DATA ROWS ── */}
         {groupedProducts.map((group) => {

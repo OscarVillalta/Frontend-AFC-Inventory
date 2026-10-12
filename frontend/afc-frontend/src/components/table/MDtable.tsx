@@ -10,6 +10,11 @@ interface MDTableProps {
   onPageChange: (page: number) => void;
   onPageSizeChange?: (size: number) => void;
   sortLabel?: string;
+  /** Column label → API sort key; only listed columns are clickable. */
+  sortKeys?: Record<string, string>;
+  sortBy?: string;
+  sortDir?: "asc" | "desc";
+  onSort?: (key: string) => void;
 }
 
 
@@ -36,6 +41,10 @@ export default function MDTable({
   onPageChange,
   onPageSizeChange,
   sortLabel,
+  sortKeys,
+  sortBy,
+  sortDir,
+  onSort,
 }: MDTableProps) {
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const rangeStart = total === 0 ? 0 : (page - 1) * pageSize + 1;
@@ -94,14 +103,32 @@ export default function MDTable({
           {/* Column headers */}
           <thead>
             <tr className="bg-gray-50 border-b border-gray-200">
-              {columns.map((col, idx) => (
-                <th
-                  key={`${col}-${idx}`}
-                  className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap"
-                >
-                  {col}
-                </th>
-              ))}
+              {columns.map((col, idx) => {
+                const key = sortKeys?.[col];
+                const active = key !== undefined && key === sortBy;
+                return (
+                  <th
+                    key={`${col}-${idx}`}
+                    className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap"
+                    aria-sort={active ? (sortDir === "desc" ? "descending" : "ascending") : undefined}
+                  >
+                    {key && onSort ? (
+                      <button
+                        type="button"
+                        onClick={() => onSort(key)}
+                        className={`group inline-flex items-center gap-1 uppercase tracking-wider hover:text-gray-800 ${active ? "text-gray-800" : ""}`}
+                      >
+                        {col}
+                        <span className={active ? "text-blue-600" : "text-gray-300 opacity-0 group-hover:opacity-100"}>
+                          {active && sortDir === "desc" ? "▼" : "▲"}
+                        </span>
+                      </button>
+                    ) : (
+                      col
+                    )}
+                  </th>
+                );
+              })}
             </tr>
           </thead>
 

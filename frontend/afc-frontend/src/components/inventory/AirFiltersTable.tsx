@@ -8,6 +8,7 @@ import type { createTxnRequest } from "../../api/transactions";
 import type { Supplier } from "../../api/suppliers";
 import { useWarehouse } from "../../hooks/useWarehouse";
 import { useAuth } from "../../hooks/useAuth";
+import { useTableSort } from "../../hooks/useTableSort";
 import { formatUnitPrice, grossValue, PRICE_MANAGE_PERMISSION } from "../../utils/currency";
 
 /* ============================================================
@@ -144,6 +145,7 @@ export default function AirFiltersTable({
   const activeWarehouseName = warehouses.find((w) => w.id === activeWarehouseId)?.name ?? null;
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
+  const { sortBy, sortDir, toggleSort } = useTableSort();
 
   const [data, setData] = useState<AirFilterResponse>();
   const [loading, setLoading] = useState(false);
@@ -192,6 +194,8 @@ export default function AirFiltersTable({
       unit_price_max: filterUnitPriceMax,
       gross_value_min: filterGrossValueMin,
       gross_value_max: filterGrossValueMax,
+      sort_by: sortBy,
+      sort_dir: sortDir,
       warehouse_view: warehouseView,
     })
       .then((res) => {
@@ -205,7 +209,7 @@ export default function AirFiltersTable({
   }, [globalSearch, filterDescription, filterSupplier, filterCategory, filterMerv, quickView, warehouseView, pageSize,
       filterHeight, filterWidth, filterDepth,
       filterOnHandMin, filterReservedMin, filterOrderedMin, filterAvailableMin, filterBackorderedMin,
-      filterUnitPriceMin, filterUnitPriceMax, filterGrossValueMin, filterGrossValueMax]);
+      filterUnitPriceMin, filterUnitPriceMax, filterGrossValueMin, filterGrossValueMax, sortBy, sortDir]);
 
   useEffect(() => {
     loadData();
@@ -213,7 +217,8 @@ export default function AirFiltersTable({
   }, [page, pageSize, globalSearch, filterDescription, filterSupplier, filterCategory, filterMerv, refreshToken,
       filterHeight, filterWidth, filterDepth, quickView, warehouseView,
       filterOnHandMin, filterReservedMin, filterOrderedMin, filterAvailableMin, filterBackorderedMin,
-      filterUnitPriceMin, filterUnitPriceMax, filterGrossValueMin, filterGrossValueMax, activeWarehouseId]);
+      filterUnitPriceMin, filterUnitPriceMax, filterGrossValueMin, filterGrossValueMax, activeWarehouseId,
+      sortBy, sortDir]);
 
   const parents: AirFilterPayload[] = data?.results ?? [];
 
@@ -341,6 +346,20 @@ export default function AirFiltersTable({
     columns.push("Unit Price", "Gross Value");
   }
 
+  const sortKeys: Record<string, string> = {
+    "Part Number": "part_number",
+    Description: "description",
+    Supplier: "supplier",
+    Category: "category",
+    Dimensions: "dimensions",
+    MERV: "merv",
+    "On Hand": "on_hand",
+    Ordered: "ordered",
+    Reserved: "reserved",
+    Available: "available",
+    ...(canViewPrice ? { "Unit Price": "unit_price", "Gross Value": "gross_value" } : {}),
+  };
+
    if(hasPermission("catalog:edit") || hasPermission("catalog:archive")){
     columns.push("Actions");
   }
@@ -401,6 +420,10 @@ export default function AirFiltersTable({
         total={data?.total ?? 0}
         onPageChange={setPage}
         onPageSizeChange={setPageSize}
+        sortKeys={sortKeys}
+        sortBy={sortBy}
+        sortDir={sortDir}
+        onSort={toggleSort}
       >
         {/* ── DATA ROWS ── */}
         {parents.map((parent) => {
@@ -504,7 +527,7 @@ export default function AirFiltersTable({
                 </td>
                 {/* MERV */}
                 <td
-                  className={`${rowPadding} text-sm text-center`}
+                  className={`${rowPadding} text-sm text-center min-w-[7rem] whitespace-nowrap`}
                   onClick={(e) => { e.stopPropagation(); 
                     if(hasPermission("catalog:edit")) {
                       setInlineEdit({ rowId: parent.id, field: "merv_rating" }); 
@@ -592,7 +615,7 @@ export default function AirFiltersTable({
                     <td className={`${rowPadding} text-sm text-gray-500`} onClick={() => navigate(`/child-products/${child.child_product_id}`)}>{child.supplier_name ?? "—"}</td>
                     <td className={`${rowPadding} text-sm text-gray-500`} onClick={() => navigate(`/child-products/${child.child_product_id}`)}>{child.filter_category}</td>
                     <td className={`${rowPadding} text-sm text-gray-500 whitespace-nowrap`} onClick={() => navigate(`/child-products/${child.id}`)}>{dimVal(child.height)} × {dimVal(child.width)} × {dimVal(child.depth)}</td>
-                    <td className={`${rowPadding} text-center`} onClick={() => navigate(`/child-products/${child.child_product_id}`)}>
+                    <td className={`${rowPadding} text-center min-w-[7rem] whitespace-nowrap`} onClick={() => navigate(`/child-products/${child.child_product_id}`)}>
                       {child.merv_rating === 0
                         ? <span className="text-gray-300">–</span>
                         : <span className="px-2 py-0.5 text-xs rounded bg-gray-100 text-gray-500">{mervLabel(child.merv_rating)}</span>}

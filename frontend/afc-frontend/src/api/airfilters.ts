@@ -1,5 +1,6 @@
 import { apiRequest } from "./apiClient";
 import { setPriceFilterParams, type PriceFilterParams } from "./priceFilters";
+import { setSortParams, type SortParams } from "./sort";
 
 /* ============================================================
    TYPES — match /air_filters/search
@@ -79,7 +80,7 @@ export interface AirFilterCategory {
    SEARCH PARAMS
 ============================================================ */
 
-export interface AirFilterSearchParams extends PriceFilterParams {
+export interface AirFilterSearchParams extends PriceFilterParams, SortParams {
   part_number?: string;
   description?: string;
   supplier?: string;
@@ -132,6 +133,7 @@ export function fetchAirFilters(
   if (filters.backordered !== undefined) params.set("backordered", String(filters.backordered));
   if (filters.warehouse_view) params.set("warehouse_view", filters.warehouse_view);
   setPriceFilterParams(params, filters);
+  setSortParams(params, filters);
 
   console.log(params.toString())
 
