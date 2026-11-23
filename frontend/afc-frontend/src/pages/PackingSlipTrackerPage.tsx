@@ -35,7 +35,6 @@ import {
 import { toggleTrackerStep } from "../utils/toggleTrackerStep";
 import { formatDate, formatDateTime } from "../utils/dateTime";
 import { orderNumberSearchTerm } from "../utils/orderNumberSearch";
-import { maybeSyncCalendarOnTrackerComplete } from "../utils/syncCalendarOnTrackerCompleted";
 import { fetchCustomers, type Customer } from "../api/customers";
 import { fetchSuppliers, type Supplier } from "../api/suppliers";
 
@@ -971,8 +970,6 @@ export default function PackingSlipTrackerPage() {
       prev.map((row) => {
         if (row.id !== orderId) return row;
 
-        const wasCompleted = row.trackerStatus === "Completed";
-
         // Update the stages array
         const existingIndex = row.stages.findIndex((s) => s.stage_index === updatedStage.stage_index);
         const newStages = existingIndex >= 0
@@ -981,7 +978,6 @@ export default function PackingSlipTrackerPage() {
 
         const stepsTemplate = getStepsTemplate(row.type ?? "");
         const totalSteps = stepsTemplate.length;
-        const completedCount = newStages.filter((s) => s.is_completed).length;
 
         // Clear backordered when a stage is toggled (mirrors backend behaviour)
         const firstIncompleteIdx = getFirstIncompleteIndex(newStages, row.type ?? "");
@@ -1019,25 +1015,6 @@ export default function PackingSlipTrackerPage() {
         const lastUpdated = latest?.completed_at
           ? formatDate(latest.completed_at)
           : row.lastUpdated;
-
-        const isNowCompleted = completedCount >= totalSteps;
-        if (!wasCompleted && isNowCompleted && updatedStage.is_completed) {
-          void maybeSyncCalendarOnTrackerComplete(
-            {
-              orderId: row.id,
-              orderNumber: row.packingSlipNo,
-              externalOrderNumber: row.externalOrderNumber,
-              type: row.type,
-              status: row.status,
-              description: row.notes,
-            },
-            row.type,
-            row.stages,
-            updatedStage,
-          ).catch((err) => {
-            console.error("Failed to sync calendar after tracker completion:", err);
-          });
-        }
 
         return {
           ...row,

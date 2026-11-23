@@ -32,7 +32,6 @@ interface Props {
   orderNumber: string;
   orderType: string;
   onRefresh: () => void;
-  onTrackerStageToggled?: (updatedStage: OrderTrackerStagePayload) => void | Promise<void>;
 }
 
 // ─────────────────────────────────────────────
@@ -115,7 +114,6 @@ export default function OrderLifecycleCard({
   orderNumber,
   orderType,
   onRefresh,
-  onTrackerStageToggled,
 }: Props) {
   const { hasPermission, user } = useAuth()
   const canMarkPaid = hasPermission("orders:mark_paid");
@@ -188,7 +186,7 @@ export default function OrderLifecycleCard({
     setSavingIndex(index);
     setToggleError(null);
     try {
-      const updated = await toggleTrackerStep({
+      await toggleTrackerStep({
         orderId,
         orderType,
         stages,
@@ -198,7 +196,6 @@ export default function OrderLifecycleCard({
         userEmail: user?.email,
         hasPermission,
       });
-      await onTrackerStageToggled?.(updated);
       onRefresh();
     } catch (err) {
       console.error("Failed to toggle stage:", err);
